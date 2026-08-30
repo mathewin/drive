@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DriveWin Colaborador — Prévia</title>
+<style>
+  :root{
+    --bg: #0a0a0a;
+    --card: #161616;
+    --card-border: #262626;
+    --green: #31f900;
+    --green-dim: #1c8f00;
+    --green-lucro: #00e6a0;
+    --pink: #c864af;
+    --pink-vivid: #ff2e92;
+    --text: #f2f2f2;
+    --text-dim: #8a8a8a;
+    --red: #ff5470;
+    --amber: #ffb100;
+    --track-bg: #222;
+    --divider: #1c1c1c;
+    --muted-bg: #1c1c1c;
+    --sidebar-w: 230px;
+  }
+  :root.theme-light{
+    --bg: #f3f4f7;
+    --card: #ffffff;
+    --card-border: #e3e5ea;
+    --green: #159c3f;
+    --green-dim: #0f7a30;
+    --green-lucro: #00946b;
+    --pink: #b1467d;
+    --pink-vivid: #d81b81;
+    --text: #14151a;
+    --text-dim: #6b7078;
+    --red: #e0304f;
+    --amber: #b8790a;
+    --track-bg: #e6e7eb;
+    --divider: #edeef1;
+    --muted-bg: #f0f1f4;
+  }
+  html.theme-light body{ background: var(--bg); }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text);
+    min-height:100vh;
+  }
+  a{ color:inherit; }
+
+  /* ---------- LOGIN ---------- */
+  #login{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column;
+    text-align:center; position:relative; overflow:hidden; padding:0 22px; box-sizing:border-box;
+  }
+  .login-glow{
+    width:100%; height:320px; position:absolute; top:0; left:0; pointer-events:none;
+    background: radial-gradient(circle at 30% 20%, rgba(49,249,0,0.16), transparent 60%),
+                radial-gradient(circle at 70% 30%, rgba(255,46,146,0.12), transparent 55%);
+  }
+  .login-badge{
+    display:inline-flex; align-items:center; gap:6px; background: rgba(255,46,146,0.12);
+    border:1px solid rgba(255,46,146,0.45); color: var(--pink-vivid);
+    font-size:10.5px; font-weight:800; letter-spacing:.04em; padding:6px 14px; border-radius:20px;
+  }
+  .login-title{ font-size:34px; font-weight:800; margin-top:14px; }
+  .login-title span{ color: var(--green); text-shadow: 0 0 18px rgba(49,249,0,0.5); }
+  .login-sub{ color: var(--text-dim); font-size:13px; margin-top:8px; margin-bottom:30px; }
+  .field{
+    background: var(--card); border:1px solid var(--card-border); border-radius:14px;
+    padding:14px 16px; text-align:left; color: var(--text-dim); font-size:14px; margin-bottom:14px;
+    display:flex; align-items:center; gap:10px; width:100%; max-width:300px; box-sizing:border-box;
+  }
+  .btn-primary{
+    background: linear-gradient(135deg, var(--green), var(--green-lucro)); color:#06210f; border:none;
+    border-radius:14px; padding:15px; font-weight:800; font-size:15px; width:100%; max-width:300px; cursor:pointer;
+    box-shadow: 0 0 22px rgba(49,249,0,0.3); box-sizing:border-box;
+  }
+  .privacy-note{ color: var(--text-dim); font-size:11px; margin-top:26px; }
+
+  /* ---------- APP LAYOUT ---------- */
+  #app{ display:none; }
+  #app.active{ display:flex; }
+  .sidebar{
+    width: var(--sidebar-w); flex-shrink:0; min-height:100vh; background: var(--card);
+    border-right:1px solid var(--card-border); padding:22px 14px 90px; position:sticky; top:0; height:100vh;
+    overflow-y:auto;
+  }
+  .brand{ font-size:19px; font-weight:800; padding:0 8px 22px; }
+  .brand span{ color: var(--green); }
+  .brand small{ display:block; color: var(--text-dim); font-size:10.5px; font-weight:700; letter-spacing:.06em; margin-top:2px; }
+  .side-item{
+    display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:10px; font-size:13.5px;
+    font-weight:600; color: var(--text-dim); cursor:pointer; margin-bottom:4px;
+  }
+  .side-item:hover{ background: var(--muted-bg); }
+  .side-item.active{ background: rgba(49,249,0,0.1); color: var(--green); }
+  .side-icon{ font-size:16px; width:20px; text-align:center; }
+  .side-footer{ position:absolute; bottom:18px; width: calc(var(--sidebar-w) - 28px); }
+  .logout{ font-size:12px; color: var(--text-dim); cursor:pointer; padding:0 12px; }
+
+  .main{ flex:1; padding: 26px 34px 60px; max-width:1180px; }
+  .page-title{ font-size:22px; font-weight:800; margin-bottom:2px; }
+  .page-sub{ color: var(--text-dim); font-size:13px; margin-bottom:22px; }
+  .section{ display:none; }
+  .section.active{ display:block; }
+
+  .section-card{ background: var(--card); border:1px solid var(--card-border); border-radius:14px; padding:18px 20px; margin-top:16px; }
+  .section-card:first-child{ margin-top:0; }
+  .section-title{ font-size:13px; font-weight:700; color: var(--text-dim); letter-spacing:.04em; margin-bottom:14px; text-transform:uppercase; }
+  .section-title-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:10px; }
+  .stat-note{ color: var(--text-dim); font-size:11px; }
+
+  /* ---------- TABLE ---------- */
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th{ text-align:left; color: var(--text-dim); font-weight:700; font-size:11px; letter-spacing:.03em; text-transform:uppercase; padding:8px 10px; border-bottom:1px solid var(--divider); }
+  td{ padding:11px 10px; border-bottom:1px solid var(--divider); vertical-align:middle; }
+  tr:last-child td{ border-bottom:none; }
+  tr:hover td{ background: rgba(255,255,255,0.015); }
+
+  .badge{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; }
+  .badge.green{ color: var(--green); background: rgba(49,249,0,0.1); }
+  .badge.amber{ color: var(--amber); background: rgba(255,177,0,0.12); }
+  .badge.red{ color: var(--red); background: rgba(255,84,112,0.12); }
+  .badge.gray{ color: var(--text-dim); background: var(--muted-bg); }
+
+  .btn-sm{ font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:8px; cursor:pointer; border:1px solid var(--card-border); background: var(--muted-bg); color: var(--text); display:inline-block; margin-right:6px; }
+  .btn-sm:hover{ border-color: var(--text-dim); }
+  .btn-sm.ok{ background: rgba(49,249,0,0.12); color: var(--green); border-color: var(--green-dim); }
+  .btn-sm.danger{ background: rgba(255,84,112,0.1); color: var(--red); border-color: rgba(255,84,112,0.3); }
+
+  .empty-note{ color: var(--text-dim); font-size:12.5px; text-align:center; padding:26px 0; }
+
+  .toast{
+    position:fixed; bottom:22px; right:22px; background: var(--card); border:1px solid var(--green-dim);
+    color: var(--green); padding:12px 18px; border-radius:12px; font-size:13px; font-weight:700;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4); display:none; z-index:100;
+  }
+
+  /* ---------- TEMA CLARO/ESCURO ---------- */
+  .theme-switch{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:10px 12px; margin-bottom:10px; border-radius:10px; background: var(--muted-bg);
+    font-size:12px; font-weight:600; color: var(--text-dim);
+  }
+  .theme-toggle{
+    position:relative; width:40px; height:22px; border-radius:20px; background: var(--track-bg);
+    cursor:pointer; flex-shrink:0; border:1px solid var(--card-border);
+  }
+  .theme-toggle::after{
+    content:''; position:absolute; top:1px; left:1px; width:18px; height:18px; border-radius:50%;
+    background: var(--green); transition: transform .2s ease; box-shadow:0 0 8px rgba(49,249,0,0.5);
+  }
+  html.theme-light .theme-toggle::after{ transform: translateX(18px); background: var(--amber); box-shadow:0 0 8px rgba(184,121,10,0.4); }
+
+  /* ---------- SUPORTE ---------- */
+  .periodo-group{ display:flex; gap:4px; background: var(--muted-bg); padding:3px; border-radius:10px; flex-wrap:wrap; }
+  .periodo-btn{ font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; cursor:pointer; color: var(--text-dim); }
+  .periodo-btn.active{ background: var(--card); color: var(--green); box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+
+  .ticket-card{
+    display:flex; align-items:flex-start; gap:10px; background: var(--muted-bg);
+    border:1px solid var(--card-border); border-radius:12px; padding:12px 14px; margin-bottom:10px; cursor:pointer;
+  }
+  .ticket-card:last-child{ margin-bottom:0; }
+  .ticket-card:hover{ border-color: var(--text-dim); }
+  .ticket-icon{ font-size:16px; margin-top:2px; }
+  .ticket-body{ flex:1; min-width:0; }
+  .ticket-top-row{ display:flex; justify-content:space-between; gap:8px; align-items:center; }
+  .ticket-nome{ font-size:13px; font-weight:700; }
+  .ticket-assunto{ font-size:12.5px; font-weight:700; margin-top:2px; }
+  .ticket-preview{ color: var(--text-dim); font-size:11.5px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* ---------- MODAL THREAD ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:flex-start; justify-content:center;
+    z-index:200; padding-top:70px;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-panel{
+    width:480px; max-width:calc(100% - 40px); background: var(--card); border:1px solid var(--card-border);
+    border-radius:16px; padding:18px; max-height:80vh; display:flex; flex-direction:column;
+  }
+  .modal-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:10px; }
+  .modal-title{ font-size:14.5px; font-weight:800; }
+  .modal-close{ color: var(--text-dim); font-size:20px; cursor:pointer; line-height:1; flex-shrink:0; }
+  .msg-row{ margin-bottom:12px; }
+  .msg-bubble{ display:inline-block; max-width:80%; padding:9px 13px; border-radius:14px; font-size:12.5px; line-height:1.4; text-align:left; }
+  .msg-meta{ font-size:9.5px; color: var(--text-dim); margin-top:3px; }
+  .reply-row{ display:flex; gap:8px; align-items:flex-end; margin-top:6px; }
+  .reply-row textarea{
+    flex:1; background: var(--muted-bg); border:1px solid var(--card-border); border-radius:12px;
+    padding:10px 12px; color: var(--text); font-family:inherit; font-size:13px; resize:none; outline:none; min-height:40px;
+  }
+
+  /* ---------- MENU HAMBÚRGUER (MOBILE) ---------- */
+  .hamburger-btn{
+    display:none; position:fixed; top:14px; left:14px; z-index:300;
+    width:42px; height:42px; border-radius:10px; background: var(--card);
+    border:1px solid var(--card-border); align-items:center; justify-content:center;
+    flex-direction:column; gap:4px; cursor:pointer;
+  }
+  .hamburger-btn span{ display:block; width:20px; height:2px; background: var(--text); border-radius:2px; }
+  .sidebar-overlay{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:249;
+  }
+  .sidebar-overlay.open{ display:block; }
+
+  @media (max-width: 780px){
+    html, body{ overflow-x:hidden; width:100%; max-width:100vw; }
+    #app.active{ display:block; }
+    .hamburger-btn{ display:flex; }
+    .sidebar{
+      position:fixed; top:0; left:0; z-index:250; height:100vh;
+      transform: translateX(-100%); transition: transform .25s ease;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    }
+    .sidebar.open{ transform: translateX(0); }
+    .main{
+      width:100%; max-width:100vw; padding: 70px 14px 50px;
+      box-sizing:border-box; overflow-x:hidden;
+    }
+    .section-card{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    table{ min-width:520px; white-space:nowrap; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TELA LOGIN -->
+<div id="login">
+  <div class="login-glow"></div>
+  <div class="login-badge">🎧 ACESSO DA EQUIPE</div>
+  <div class="login-title">Drive<span>Win</span> Colaborador</div>
+  <div class="login-sub">Suporte e acompanhamento de tropas</div>
+  <div class="field" style="align-items:flex-start; flex-direction:column; gap:6px;">
+    <span style="font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.03em;">Quem é você?</span>
+    <select id="colab-login-select" style="width:100%; background:transparent; border:none; color:var(--text); font-size:14px; outline:none;"></select>
+  </div>
+  <div class="field"><span>🔒</span>••••••••</div>
+  <button class="btn-primary" onclick="entrar()">Entrar</button>
+  <div class="privacy-note">Acesso restrito à equipe do DriveWin</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()">
+    <span></span><span></span><span></span>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+  <div class="sidebar" id="sidebar">
+    <div class="brand">Drive<span>Win</span><small>PAINEL COLABORADOR</small></div>
+    <div class="side-item active" data-s="suporte" onclick="showSection('suporte', this)"><span class="side-icon">🎧</span>Suporte</div>
+    <div class="side-item" data-s="tropas" onclick="showSection('tropas', this)"><span class="side-icon">🏁</span>Tropas &amp; Motoristas</div>
+    <div class="side-footer">
+      <div class="stat-note" id="colab-ativo-nome" style="margin-bottom:10px;"></div>
+      <div class="theme-switch">
+        <span id="theme-label">🌙 Modo escuro</span>
+        <div class="theme-toggle" id="theme-toggle" onclick="toggleTheme()"></div>
+      </div>
+      <div class="logout" onclick="sair()">↩ Sair do painel</div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- SUPORTE -->
+    <div class="section active" id="sec-suporte">
+      <div class="page-title">Suporte</div>
+      <div class="page-sub">Chamados abertos pelos motoristas no app deles</div>
+
+      <div class="section-card">
+        <div class="section-title-row">
+          <div class="periodo-group" id="suporte-filtros">
+            <span class="periodo-btn active" data-f="todos" onclick="setFiltroSuporte('todos', this)">Todos</span>
+            <span class="periodo-btn" data-f="aberto" onclick="setFiltroSuporte('aberto', this)">Aguardando</span>
+            <span class="periodo-btn" data-f="respondido" onclick="setFiltroSuporte('respondido', this)">Respondidos</span>
+            <span class="periodo-btn" data-f="fechado" onclick="setFiltroSuporte('fechado', this)">Encerrados</span>
+          </div>
+          <span class="stat-note" id="suporte-count"></span>
+        </div>
+        <div id="suporte-lista"></div>
+        <div class="empty-note" id="suporte-vazio" style="display:none;">Nenhum chamado por aqui.</div>
+      </div>
+    </div>
+
+    <!-- TROPAS & MOTORISTAS -->
+    <div class="section" id="sec-tropas">
+      <div class="page-title">Tropas &amp; Motoristas</div>
+      <div class="page-sub">Acompanhe quem está ativo em cada tropa e aplique cancelamento ou reativação de acesso</div>
+      <div id="tropas-wrap"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL: THREAD DO CHAMADO -->
+<div class="modal-overlay" id="ticket-overlay">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <div class="modal-title" id="ticket-titulo">Chamado</div>
+      <div class="modal-close" onclick="fecharTicket()">✕</div>
+    </div>
+    <div id="ticket-mensagens" style="flex:1; overflow-y:auto; margin-bottom:6px;"></div>
+    <div class="reply-row" id="ticket-reply-wrap">
+      <textarea id="ticket-reply" rows="1" placeholder="Responder ao motorista..."></textarea>
+      <span class="btn-sm ok" style="margin:0; padding:11px 14px;" onclick="enviarResposta()">Enviar</span>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <span class="btn-sm" id="btn-encerrar" onclick="encerrarChamado()">Marcar como resolvido</span>
+      <span class="btn-sm" id="btn-reabrir" style="display:none;" onclick="reabrirChamado()">Reabrir chamado</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------------- tema claro/escuro ----------------
+  (function initTheme(){
+    const saved = localStorage.getItem('drivewin_theme');
+    if(saved === 'light') document.documentElement.classList.add('theme-light');
+  })();
+  function toggleTheme(){
+    const html = document.documentElement;
+    const isLight = !html.classList.contains('theme-light');
+    html.classList.toggle('theme-light', isLight);
+    localStorage.setItem('drivewin_theme', isLight ? 'light' : 'dark');
+    const label = document.getElementById('theme-label');
+    if(label) label.textContent = isLight ? '☀️ Modo claro' : '🌙 Modo escuro';
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    if(document.documentElement.classList.contains('theme-light')){
+      const label = document.getElementById('theme-label');
+      if(label) label.textContent = '☀️ Modo claro';
+    }
+  });
+
+  // ---------------- dados compartilhados (mesma origem do painel admin e do app do motorista) ----------------
+  const STORAGE_KEY = 'drivewin_admin_mock_v1'; // tropas / motoristas — igual ao painel admin
+  const SUPORTE_KEY = 'drivewin_suporte_v1';    // chamados — igual ao app do motorista
+
+  function seed(){
+    return {
+      tropas: [
+        { id:'t1', nome:'Tropa do Marcos' },
+        { id:'t2', nome:'Tropa da Renata' },
+        { id:'t3', nome:'Tropa do Éder' },
+        { id:'t4', nome:'Tropa do Wagner' },
+      ],
+      assinantes: [
+        { id:'a1', nome:'Pedro Lima',     tropaId:'t1', status:'pago',     ativo:true },
+        { id:'a2', nome:'Ana Beatriz',    tropaId:'t1', status:'pendente', ativo:true },
+        { id:'a3', nome:'Rafael Souza',   tropaId:'t2', status:'atrasado', ativo:true },
+        { id:'a4', nome:'Mariana Duarte', tropaId:null, status:'pago',     ativo:true },
+        { id:'a5', nome:'Bruno Teixeira', tropaId:'t3', status:'pendente', ativo:true },
+      ],
+      colaboradores: [
+        { id:'cl1', nome:'Ana Souza', email:'ana@drivewin.com', todasTropas:true, tropaIds:[] },
+        { id:'cl2', nome:'Bruno Reis', email:'bruno@drivewin.com', todasTropas:false, tropaIds:['t1','t2'] },
+      ],
+    };
+  }
+  function getData(){
+    let d;
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      d = raw ? JSON.parse(raw) : null;
+    }catch(e){ d = null; }
+    if(!d) d = seed();
+    if(!Array.isArray(d.tropas)) d.tropas = seed().tropas;
+    if(!Array.isArray(d.assinantes)) d.assinantes = seed().assinantes;
+    if(!Array.isArray(d.colaboradores)) d.colaboradores = seed().colaboradores;
+    // migração: garante que todo motorista tenha o campo "ativo" (acesso liberado/cancelado)
+    d.assinantes.forEach(a => { if(a.ativo === undefined) a.ativo = true; });
+    saveData(d);
+    return d;
+  }
+  function saveData(d){ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+
+  function getTickets(){
+    try{ const raw = localStorage.getItem(SUPORTE_KEY); return raw ? JSON.parse(raw) : []; }catch(e){ return []; }
+  }
+  function saveTickets(list){ localStorage.setItem(SUPORTE_KEY, JSON.stringify(list)); }
+  function agoraFmt(){
+    const d = new Date();
+    return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+
+  function toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.style.display = 'block';
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(()=> t.style.display='none', 2200);
+  }
+
+  const COLAB_ATIVO_KEY = 'drivewin_colaborador_ativo';
+
+  function popularSelectColaboradores(){
+    const d = getData();
+    const sel = document.getElementById('colab-login-select');
+    if(!sel) return;
+    const lista = d.colaboradores || [];
+    sel.innerHTML = lista.length
+      ? lista.map(c => `<option value="${c.id}">${c.nome}</option>`).join('')
+      : '<option value="">Nenhum colaborador cadastrado — peça ao admin</option>';
+  }
+  function getColaboradorAtivo(){
+    const d = getData();
+    const id = localStorage.getItem(COLAB_ATIVO_KEY);
+    return (d.colaboradores || []).find(c => c.id === id) || null;
+  }
+  function tropasPermitidas(){
+    const d = getData();
+    const col = getColaboradorAtivo();
+    if(!col || col.todasTropas) return d.tropas;
+    const ids = new Set(col.tropaIds || []);
+    return d.tropas.filter(t => ids.has(t.id));
+  }
+
+  function entrar(){
+    const sel = document.getElementById('colab-login-select');
+    const id = sel ? sel.value : '';
+    if(!id){ alert('Selecione seu usuário para entrar.'); return; }
+    localStorage.setItem(COLAB_ATIVO_KEY, id);
+    const col = getColaboradorAtivo();
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').classList.add('active');
+    const nomeEl = document.getElementById('colab-ativo-nome');
+    if(nomeEl) nomeEl.textContent = col ? `Logado como ${col.nome}` : '';
+    renderSuporte();
+    renderTropas();
+  }
+  function sair(){
+    document.getElementById('app').classList.remove('active');
+    document.getElementById('login').style.display = 'flex';
+    localStorage.removeItem(COLAB_ATIVO_KEY);
+    popularSelectColaboradores();
+  }
+  document.addEventListener('DOMContentLoaded', popularSelectColaboradores);
+
+  function showSection(id, el){
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('sec-'+id).classList.add('active');
+    document.querySelectorAll('.side-item').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    toggleSidebar(false);
+    if(id === 'suporte') renderSuporte();
+    if(id === 'tropas') renderTropas();
+  }
+  function toggleSidebar(force){
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('sidebar-overlay');
+    const open = typeof force === 'boolean' ? force : !sb.classList.contains('open');
+    sb.classList.toggle('open', open);
+    ov.classList.toggle('open', open);
+  }
+
+  // ---------------- SUPORTE ----------------
+  let filtroSuporte = 'todos';
+  function setFiltroSuporte(f, el){
+    filtroSuporte = f;
+    document.querySelectorAll('#suporte-filtros .periodo-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    renderSuporte();
+  }
+  function renderSuporte(){
+    const col = getColaboradorAtivo();
+    const semRestricao = !col || col.todasTropas;
+    const nomesPermitidos = new Set(tropasPermitidas().map(t => t.nome));
+    let todos = getTickets().slice().sort((a,b) => b.criadoEm.localeCompare(a.criadoEm));
+    if(!semRestricao){
+      // chamados de motoristas sem tropa continuam visíveis a todo mundo, pois ninguém é "dono" deles
+      todos = todos.filter(t => !t.tropa || nomesPermitidos.has(t.tropa));
+    }
+    const filtrados = filtroSuporte === 'todos' ? todos : todos.filter(t => t.status === filtroSuporte);
+    document.getElementById('suporte-count').textContent = `${filtrados.length} chamado${filtrados.length===1?'':'s'}`;
+    document.getElementById('suporte-vazio').style.display = filtrados.length ? 'none' : 'block';
+    document.getElementById('suporte-lista').innerHTML = filtrados.map(t => {
+      const label = t.status === 'fechado' ? 'Encerrado' : (t.status === 'respondido' ? 'Respondido' : 'Aguardando');
+      const cls = t.status === 'fechado' ? 'gray' : (t.status === 'respondido' ? 'green' : 'amber');
+      const ultima = t.mensagens[t.mensagens.length - 1];
+      const preview = ultima ? (ultima.texto.length > 90 ? ultima.texto.slice(0,90) + '…' : ultima.texto) : '';
+      return `<div class="ticket-card" onclick="abrirTicket('${t.id}')">
+        <span class="ticket-icon">💬</span>
+        <div class="ticket-body">
+          <div class="ticket-top-row">
+            <span class="ticket-nome">${t.nome}${t.tropa ? ' · ' + t.tropa : ''}</span>
+            <span class="badge ${cls}">${label}</span>
+          </div>
+          <div class="ticket-assunto">${t.assunto}</div>
+          <div class="ticket-preview">${preview}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  let ticketAtualId = null;
+  function abrirTicket(id){
+    ticketAtualId = id;
+    renderThread();
+    document.getElementById('ticket-overlay').classList.add('open');
+  }
+  function fecharTicket(){
+    document.getElementById('ticket-overlay').classList.remove('open');
+    ticketAtualId = null;
+  }
+  document.getElementById('ticket-overlay').addEventListener('click', (e) => {
+    if(e.target.id === 'ticket-overlay') fecharTicket();
+  });
+  function renderThread(){
+    const t = getTickets().find(x => x.id === ticketAtualId);
+    if(!t){ fecharTicket(); return; }
+    document.getElementById('ticket-titulo').textContent = `${t.nome}${t.tropa ? ' · ' + t.tropa : ''} — ${t.assunto}`;
+    document.getElementById('ticket-mensagens').innerHTML = t.mensagens.map(m => {
+      const meu = m.de === 'suporte';
+      return `<div class="msg-row" style="text-align:${meu ? 'right' : 'left'};">
+        <div class="msg-bubble" style="background:${meu ? 'var(--green-dim)' : 'var(--muted-bg)'}; color:${meu ? '#06210f' : 'var(--text)'};">${m.texto}</div>
+        <div class="msg-meta">${meu ? 'Você (suporte)' : t.nome} · ${m.em}</div>
+      </div>`;
+    }).join('');
+    const encerrado = t.status === 'fechado';
+    document.getElementById('ticket-reply-wrap').style.display = encerrado ? 'none' : 'flex';
+    document.getElementById('btn-encerrar').style.display = encerrado ? 'none' : 'inline-block';
+    document.getElementById('btn-reabrir').style.display = encerrado ? 'inline-block' : 'none';
+  }
+  function enviarResposta(){
+    const texto = document.getElementById('ticket-reply').value.trim();
+    if(!texto) return;
+    const todos = getTickets();
+    const t = todos.find(x => x.id === ticketAtualId);
+    if(!t) return;
+    t.mensagens.push({ de:'suporte', texto, em: agoraFmt() });
+    t.status = 'respondido';
+    saveTickets(todos);
+    document.getElementById('ticket-reply').value = '';
+    renderThread();
+    renderSuporte();
+  }
+  function encerrarChamado(){
+    const todos = getTickets();
+    const t = todos.find(x => x.id === ticketAtualId);
+    if(!t) return;
+    t.status = 'fechado';
+    saveTickets(todos);
+    renderThread();
+    renderSuporte();
+    toast('Chamado marcado como resolvido');
+  }
+  function reabrirChamado(){
+    const todos = getTickets();
+    const t = todos.find(x => x.id === ticketAtualId);
+    if(!t) return;
+    t.status = 'aberto';
+    saveTickets(todos);
+    renderThread();
+    renderSuporte();
+  }
+
+  // ---------------- TROPAS & MOTORISTAS ----------------
+  function renderTropas(){
+    const d = getData();
+    const col = getColaboradorAtivo();
+    const semRestricao = !col || col.todasTropas;
+    const permitidas = tropasPermitidas();
+    const blocos = permitidas.map(t => {
+      const membros = d.assinantes.filter(a => a.tropaId === t.id);
+      return renderBlocoTropa(t.nome, membros);
+    });
+    if(semRestricao){
+      const semTropa = d.assinantes.filter(a => !a.tropaId);
+      if(semTropa.length) blocos.push(renderBlocoTropa('Sem tropa', semTropa));
+    }
+    document.getElementById('tropas-wrap').innerHTML = blocos.length
+      ? blocos.join('')
+      : '<div class="empty-note">Você ainda não tem tropas liberadas. Peça ao admin pra dar acesso na tela de Colaboradores.</div>';
+  }
+  function renderBlocoTropa(nomeTropa, membros){
+    const ativos = membros.filter(a => a.ativo !== false).length;
+    const rows = membros.map(a => {
+      const ativo = a.ativo !== false;
+      const stCls = a.status === 'pago' ? 'green' : (a.status === 'pendente' ? 'amber' : 'red');
+      const stLabel = a.status === 'pago' ? 'Pago' : (a.status === 'pendente' ? 'Pendente' : 'Atrasado');
+      return `<tr>
+        <td><b>${a.nome}</b></td>
+        <td><span class="badge ${stCls}">${stLabel}</span></td>
+        <td><span class="badge ${ativo ? 'green' : 'red'}">${ativo ? 'Ativo' : 'Cancelado'}</span></td>
+        <td>${ativo
+            ? `<span class="btn-sm danger" onclick="alternarAcesso('${a.id}')">Cancelar acesso</span>`
+            : `<span class="btn-sm ok" onclick="alternarAcesso('${a.id}')">Reativar acesso</span>`}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="section-card">
+      <div class="section-title-row">
+        <div class="section-title" style="margin:0;">${nomeTropa.toUpperCase()}</div>
+        <span class="stat-note">${ativos}/${membros.length} ativos</span>
+      </div>
+      <table>
+        <thead><tr><th>Motorista</th><th>Pagamento</th><th>Acesso</th><th>Ação</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="4" class="empty-note">Nenhum motorista nessa tropa.</td></tr>'}</tbody>
+      </table>
+    </div>`;
+  }
+  function alternarAcesso(id){
+    const d = getData();
+    const a = d.assinantes.find(x => x.id === id);
+    if(!a) return;
+    const estaAtivo = a.ativo !== false;
+    if(estaAtivo){
+      if(!confirm(`Cancelar o acesso de ${a.nome}? Ele não vai conseguir mais entrar no app dele até ser reativado.`)) return;
+      a.ativo = false;
+    } else {
+      a.ativo = true;
+    }
+    saveData(d);
+    toast(estaAtivo ? `Acesso de ${a.nome} cancelado` : `Acesso de ${a.nome} reativado`);
+    renderTropas();
+  }
+</script>
+</body>
+</html>

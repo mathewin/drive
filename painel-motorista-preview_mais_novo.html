@@ -1,0 +1,2100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DriveWin — Prévia</title>
+<style>
+  :root{
+    --bg: #0a0a0a;
+    --card: #161616;
+    --card-border: #262626;
+    --green: #31f900;
+    --green-dim: #1c8f00;
+    --green-lucro: #00e6a0;
+    --pink: #c864af;
+    --pink-vivid: #ff2e92;
+    --text: #f2f2f2;
+    --text-dim: #8a8a8a;
+    --red: #ff5470;
+    --track-bg: #222;
+    --divider: #1c1c1c;
+    --tab-active-bg: #2a2a2a;
+    --muted-bg: #1c1c1c;
+    --chart-border: #232323;
+    --input-scheme: dark;
+    --tag-color: #555;
+  }
+  body[data-theme="light"]{
+    --bg: #f4f4f2;
+    --card: #ffffff;
+    --card-border: #e4e4e0;
+    --green: #1f9e00;
+    --green-dim: #1c8f00;
+    --green-lucro: #00946b;
+    --pink: #b5488f;
+    --pink-vivid: #d61c78;
+    --text: #16171a;
+    --text-dim: #6b6b6b;
+    --red: #d6304e;
+    --track-bg: #e9e9e5;
+    --divider: #e6e6e2;
+    --tab-active-bg: #ececea;
+    --muted-bg: #ececea;
+    --chart-border: #e0e0dc;
+    --input-scheme: light;
+    --tag-color: #999;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text);
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    min-height: 100vh;
+    transition: background .25s ease, color .25s ease;
+  }
+  .phone{
+    width: 100%;
+    max-width: 480px;
+    background: var(--bg);
+    min-height: 100vh;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+  .screen{
+    flex:1;
+    display:none;
+    flex-direction:column;
+    padding: 10px 20px 90px;
+    overflow-y:auto;
+  }
+  .screen.active{ display:flex; }
+
+  /* ---------- LOGIN ---------- */
+  #login{ justify-content:center; text-align:center; padding-bottom:20px; position:relative; overflow:hidden; }
+  .login-glow{
+    width:100%; height:260px;
+    background:
+      radial-gradient(circle at 35% 25%, rgba(49,249,0,0.22), transparent 60%),
+      radial-gradient(circle at 70% 35%, rgba(255,46,146,0.18), transparent 55%);
+    position:absolute; top:20px; left:0; pointer-events:none;
+    animation: glowPulse 4s ease-in-out infinite;
+  }
+  @keyframes glowPulse{
+    0%,100%{ opacity:1; }
+    50%{ opacity:.7; }
+  }
+  .login-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    background: rgba(255,46,146,0.12);
+    border: 1px solid rgba(255,46,146,0.45);
+    color: var(--pink-vivid);
+    font-size: 10.5px; font-weight:800; letter-spacing:.03em;
+    padding: 6px 14px; border-radius: 20px;
+    margin-top: 38px; position:relative;
+  }
+  .login-title{
+    font-size: 34px; font-weight: 800; margin-top: 14px;
+    letter-spacing: -.01em;
+  }
+  .login-title span{
+    color: var(--green);
+    text-shadow: 0 0 18px rgba(49,249,0,0.55);
+  }
+  .login-sub{ color: var(--text-dim); font-size: 13px; margin-top: 8px; }
+  .login-tagline{
+    display:inline-flex; align-items:center; gap:6px;
+    color: var(--green-lucro); font-size: 11.5px; font-weight:700;
+    margin-top: 10px; margin-bottom: 34px;
+  }
+  .field{
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    text-align:left;
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 14px;
+    display:flex; align-items:center; gap:10px;
+    transition: border-color .2s ease;
+  }
+  .field:focus-within, .field:hover{ border-color: var(--pink-vivid); }
+  .field-icon{ font-size:15px; flex-shrink:0; opacity:.8; }
+  .field input{ background:transparent; border:none; outline:none; color: var(--text); font-size:14px; width:100%; font-family:inherit; }
+  .field input::placeholder{ color: var(--text-dim); }
+  .login-erro{ display:none; color: var(--pink-vivid); font-size:11.5px; margin:-4px 0 12px; text-align:left; width:100%; max-width:300px; line-height:1.4; }
+
+  .badge-status{ display:inline-flex; align-items:center; font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px; flex-shrink:0; }
+  .badge-status.aberto{ color: var(--pink-vivid); background: rgba(255,46,146,0.12); }
+  .badge-status.respondido{ color: var(--green); background: rgba(49,249,0,0.1); }
+  .badge-status.fechado{ color: var(--text-dim); background: var(--muted-bg); }
+  .ticket-card{ cursor:pointer; }
+  .ticket-card:active{ opacity:.8; }
+  .msg-bubble{ display:inline-block; max-width:80%; padding:8px 12px; border-radius:14px; font-size:12.5px; line-height:1.4; text-align:left; }
+  .msg-row{ margin-bottom:12px; }
+  .msg-row.mine{ text-align:right; }
+  .msg-meta{ font-size:9.5px; color: var(--text-dim); margin-top:3px; }
+  .support-input-row{ display:flex; gap:8px; align-items:flex-end; }
+  .support-input-row textarea{
+    flex:1; background: var(--muted-bg); border:1px solid var(--card-border); border-radius:12px;
+    padding:10px 12px; color: var(--text); font-family:inherit; font-size:13px; resize:none; outline:none; min-height:40px;
+  }
+  .support-send-btn{
+    background: var(--green); color:#06210f; border:none; border-radius:12px; width:40px; height:40px;
+    flex-shrink:0; font-size:16px; font-weight:800; cursor:pointer;
+  }
+  .btn-primary{
+    background: linear-gradient(135deg, var(--green), var(--green-lucro));
+    color: #06210f;
+    border:none;
+    border-radius: 14px;
+    padding: 15px;
+    font-weight: 800;
+    font-size: 15px;
+    width:100%;
+    margin-top: 10px;
+    cursor:pointer;
+    box-shadow: 0 0 22px rgba(49,249,0,0.35);
+    transition: transform .12s ease, box-shadow .2s ease;
+  }
+  .btn-primary:active{ transform: scale(.97); box-shadow: 0 0 12px rgba(49,249,0,0.3); }
+  .link-pink{
+    color: var(--pink-vivid);
+    font-size: 13px;
+    margin-top: 16px;
+    font-weight: 700;
+    cursor:pointer;
+  }
+  .login-road{
+    width:100%; height:2px; margin-top:32px;
+    background-image: repeating-linear-gradient(90deg, var(--pink-vivid) 0 14px, transparent 14px 28px);
+    background-size: 56px 2px;
+    opacity:.5;
+    animation: roadMove 1.2s linear infinite;
+  }
+  @keyframes roadMove{
+    from{ background-position: 0 0; }
+    to{ background-position: -56px 0; }
+  }
+  .privacy-note{
+    margin-top: auto;
+    color: var(--text-dim);
+    font-size: 11px;
+    padding-top: 30px;
+  }
+
+  /* ---------- DASHBOARD ---------- */
+  .gauge-wrap{ display:flex; flex-direction:column; align-items:center; margin: 18px 0 10px; }
+  .gauge{ position:relative; width:200px; height:200px; }
+  .gauge svg{ width:100%; height:100%; transform: rotate(-90deg); }
+  .gauge-center{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+  }
+  .gauge-pct{ color: var(--green); font-size: 13px; font-weight:700; margin-bottom:4px; }
+  .gauge-amt{ font-size: 26px; font-weight: 800; }
+  .valor-lucro{ color: var(--green-lucro) !important; }
+  .gauge-goal{ color: var(--text-dim); font-size: 11px; margin-top: 4px; }
+  .gauge-date{ color: var(--text-dim); font-size: 11px; margin-top:2px; }
+
+  /* ---------- NIVEL DO MOTORISTA ---------- */
+  #nivel-card{ padding: 12px 14px; border-width: 1px; transition: background .4s ease, border-color .4s ease; overflow:hidden; }
+  .nivel-wrap{ display:flex; align-items:center; gap:12px; }
+  .nivel-gauge{ position:relative; width:72px; height:72px; flex-shrink:0; }
+  .nivel-gauge svg{ width:100%; height:100%; overflow:visible; }
+  .nivel-track{ stroke: var(--pink-vivid); }
+  .nivel-anel{
+    transform:rotate(-90deg); transform-origin:50% 50%;
+    transition: stroke-dashoffset .6s cubic-bezier(.34,1.56,.64,1), stroke .3s ease, filter .3s ease;
+  }
+  .nivel-center{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center;
+  }
+  .nivel-emoji{ font-size:26px; line-height:1; }
+  .nivel-pct{ font-size:9px; font-weight:800; color: var(--text-dim); margin-top:1px; }
+  .nivel-info{ flex:1; min-width:0; }
+  .nivel-nome{ font-size:15px; font-weight:800; margin-bottom:3px; letter-spacing:.01em; transition: color .3s ease; }
+  .nivel-media{ font-size:12px; font-weight:700; color: var(--text); margin-bottom:3px; }
+  .nivel-dias{ font-size:10.5px; color: var(--text-dim); margin-bottom:5px; }
+  .nivel-prox{ font-size:10.5px; color: var(--text-dim); }
+
+  .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .stat-card{
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+  .stat-label{ display:flex; align-items:center; gap:6px; color: var(--text-dim); font-size:12px; margin-bottom:6px; }
+  .stat-value{ font-size: 17px; font-weight: 700; }
+  .stat-value.pink{ color: var(--pink); }
+  .stat-value.green{ color: var(--green); }
+
+  .section-card{
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-top: 14px;
+  }
+  .section-title{ font-size: 13px; font-weight: 700; color: var(--text-dim); margin-bottom: 12px; letter-spacing: .04em; }
+  .app-row{ display:flex; align-items:center; gap: 10px; margin-bottom: 12px; }
+  .app-row:last-child{ margin-bottom:0; }
+  .app-icon{
+    width:26px; height:26px; border-radius:7px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:800;
+  }
+  .app-icon.uber{ background:#000; border:1px solid #333; }
+  .app-icon.n99{ background:#ffcc00; color:#000; }
+  .app-icon.promo{ background: var(--pink); }
+  .app-icon.outro{ background:#333; }
+  .app-info{ flex:1; }
+  .app-name-row{ display:flex; justify-content:space-between; font-size: 13px; margin-bottom: 4px; }
+  .app-name-row b{ font-weight:600; }
+  .bar-track{ height:5px; background:var(--track-bg); border-radius:3px; overflow:hidden; }
+  .bar-fill{ height:100%; background: var(--green); border-radius:3px; }
+  .app-pct{ font-size:11px; color: var(--text-dim); width:32px; text-align:right; }
+
+  /* ---------- HISTORICO ---------- */
+  .tabs{
+    display:flex; background: var(--card); border-radius:12px; padding:4px; margin: 8px 0 16px;
+  }
+  .tab{
+    flex:1; text-align:center; padding:9px 0; font-size:13px; font-weight:600;
+    color: var(--text-dim); border-radius:9px; cursor:pointer;
+  }
+  .tab.active{ background:var(--tab-active-bg); color: var(--text); }
+  #analise .tab{ font-size: 11px; padding: 8px 0; }
+
+  .kpi-row{ display:flex; gap:10px; }
+  .kpi-card{ flex:1; background: var(--card); border:1px solid var(--card-border); border-radius:14px; padding:12px 14px; }
+  .kpi-label{ color:var(--text-dim); font-size:12px; margin-bottom:6px; }
+  .kpi-value{ font-size:19px; font-weight:800; }
+  .kpi-value.green{ color: var(--green); }
+
+  .chart-wrap{ margin-top:14px; }
+  .chart-bars{
+    display:flex; align-items:flex-end; justify-content:center; gap:5px; height:110px; margin-top:10px;
+    border-bottom: 1px solid var(--chart-border); padding-bottom:6px;
+  }
+  .chart-bar{ width:7px; max-width:7px; flex:0 0 auto; border-radius:2px 2px 0 0; background: var(--green); min-height:3px; }
+  .chart-bar.neg{ background: var(--pink); align-self:flex-start; }
+  .chart-x{ display:flex; justify-content:space-between; color:var(--text-dim); font-size:10px; margin-top:6px; }
+
+  .day-list{ margin-top:14px; }
+  .day-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 12px 0; border-bottom: 1px solid var(--divider);
+    font-size: 13px;
+  }
+  .day-row:last-child{ border-bottom:none; }
+  .day-date{ color: var(--text-dim); width:44px; }
+  .day-mid{ flex:1; padding: 0 10px; }
+  .day-amt{ font-weight:700; }
+  .day-delta{ font-size:11px; margin-left:6px; }
+  .day-delta.pos{ color: var(--green-lucro); }
+  .day-delta.neg{ color: var(--pink); }
+  .day-km{ color: var(--text-dim); font-size: 12px; }
+  .chev{ color: var(--text-dim); }
+
+  /* ---------- ANALISE / ACOMPANHAMENTO ---------- */
+  .dual-legend{ display:flex; gap:16px; margin-bottom:10px; font-size:11px; color: var(--text-dim); }
+  .dual-legend span{ display:flex; align-items:center; gap:5px; }
+  .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .dot.green{ background: var(--green); }
+  .dot.pink{ background: var(--pink); }
+  .margem-trend-wrap{ padding:6px 0; }
+  .margem-trend-wrap .bar-track{ height:8px; border-radius:6px; background: var(--pink); }
+  .margem-trend-wrap .bar-fill{ border-radius:6px; background: var(--green); transition: width .3s ease; }
+  .dual-chart{
+    display:flex; align-items:flex-end; gap:2px; height:120px;
+    border-bottom: 1px solid var(--chart-border); padding-bottom:6px;
+  }
+  .dual-pair{ display:flex; align-items:flex-end; justify-content:center; gap:2px; flex:1; height:100%; min-width:0; }
+  .dual-bar{ width:5px; max-width:5px; flex:0 0 auto; border-radius:1px 1px 0 0; min-height:2px; }
+  .dual-bar.receita{ background: var(--green); }
+  .dual-bar.despesa{ background: var(--pink); }
+  .highlight-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 10px 0; border-bottom: 1px solid var(--divider); font-size:13px;
+  }
+  .highlight-row:last-child{ border-bottom:none; }
+
+  /* versão compacta só pra tela de Análise, pra reduzir a rolagem */
+  #analise .section-card{ padding: 10px 14px; margin-top: 10px; }
+  #analise .section-title{ margin-bottom: 8px; font-size: 11px; }
+  #analise .app-row{ margin-bottom: 8px; gap: 8px; }
+  #analise .app-name-row{ font-size: 12px; margin-bottom: 3px; }
+  #analise .dual-chart{ height: 76px; padding-bottom: 4px; gap:1px; }
+  #analise .dual-bar{ width:4px; max-width:4px; }
+  #analise .dual-legend{ margin-bottom: 6px; }
+  #analise .grid2{ gap: 8px; margin-top: 8px; }
+  #analise .stat-card{ padding: 9px 11px; }
+  #analise .stat-label{ font-size: 11px; margin-bottom: 3px; }
+  #analise .stat-value{ font-size: 15px; }
+  #analise .highlight-row{ padding: 7px 0; font-size: 12px; }
+  #analise .tabs{ margin: 4px 0 10px; }
+
+  /* ---------- NOVO LANÇAMENTO ---------- */
+  .form-row{
+    display:flex; align-items:center; justify-content:space-between;
+    background: var(--card); border:1px solid var(--card-border); border-radius:12px;
+    padding: 12px 14px; margin-bottom: 10px;
+  }
+  .form-row .fl{ display:flex; align-items:center; gap:10px; font-size:13px; }
+  .form-row input{
+    background: transparent; border:none; color: var(--text); text-align:right;
+    font-size:14px; font-weight:700; width:110px; outline:none;
+  }
+  .form-row input::placeholder{ color: var(--text-dim); font-weight:500; }
+  .fuel-toggle{ display:flex; gap:8px; margin: -2px 0 10px; }
+  .fuel-btn{
+    flex:1; text-align:center; padding:8px; border-radius:10px; font-size:12px; font-weight:700;
+    background:var(--muted-bg); color: var(--text-dim); cursor:pointer; border:1px solid var(--card-border);
+  }
+  .fuel-btn.active.gas{ background: var(--pink); color:#fff; border-color: var(--pink); }
+  .fuel-btn.active.etanol{ background: var(--green); color:#061a00; border-color: var(--green); }
+
+  .meta-box{
+    background: var(--card); border:1px solid var(--card-border); border-radius:12px;
+    padding: 12px 14px; margin-top: 6px;
+  }
+  .meta-note{ color: var(--text-dim); font-size: 11px; margin-top:4px; }
+
+  .estimate-box{
+    background: linear-gradient(135deg, rgba(49,249,0,0.12), rgba(200,100,175,0.08));
+    border: 1px solid var(--green-dim);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top: 16px;
+  }
+  .estimate-label{ font-size:12px; color: var(--text-dim); }
+  .estimate-value{ font-size: 20px; font-weight:800; color: var(--green-lucro); }
+
+  /* ---------- BOTTOM NAV ---------- */
+  .bottomnav{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:480px;
+    background: rgba(10,10,10,0.95);
+    backdrop-filter: blur(6px);
+    border-top: 1px solid var(--divider);
+    display:flex; justify-content:space-around; align-items:center;
+    padding: 10px 0 18px;
+    z-index: 20;
+  }
+  .nav-item{
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    color: var(--text-dim); font-size:10px; font-weight:600; cursor:pointer;
+  }
+  .nav-item.active{ color: var(--green); }
+  .nav-icon{ font-size: 18px; }
+  .nav-plus{
+    width:38px; height:38px; border-radius:50%; background: var(--green);
+    display:flex; align-items:center; justify-content:center; color:#061a00; font-size:20px; font-weight:800;
+    margin-bottom:2px;
+  }
+
+  h6.tag{ text-align:center; color:var(--tag-color); font-size:11px; margin-top:8px; letter-spacing:.08em; }
+
+  /* ---------- MENU / CONFIG DE METAS ---------- */
+  .dash-topbar{ display:flex; justify-content:flex-end; padding-top:4px; }
+  .menu-btn{
+    width:36px; height:36px; border-radius:10px; background: var(--card);
+    border: 1px solid var(--card-border); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:4px; cursor:pointer;
+  }
+  .menu-btn span{ width:16px; height:2px; background: var(--text); border-radius:2px; }
+
+  .config-overlay{
+    position:absolute; inset:0; background:rgba(0,0,0,0.55);
+    display:none; align-items:flex-start; justify-content:center; z-index:50;
+    padding-top: 70px;
+  }
+  .config-overlay.open{ display:flex; }
+  .config-panel{
+    width: calc(100% - 40px); max-width: 400px;
+    background: var(--card); border:1px solid var(--card-border);
+    border-radius:16px; padding:18px;
+  }
+  .config-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .config-title{ font-size:15px; font-weight:800; }
+  .config-close{ color: var(--text-dim); font-size:20px; cursor:pointer; line-height:1; }
+  .config-save-msg{ text-align:center; font-size:12px; color: var(--green); font-weight:700; margin-top:10px; display:none; }
+
+  .goal-row{ margin-bottom: 16px; }
+  .goal-row:last-child{ margin-bottom: 0; }
+  .goal-row-top{ display:flex; justify-content:space-between; align-items:baseline; font-size:13px; margin-bottom:6px; }
+  .goal-row-top b{ font-weight:700; }
+  .goal-row-top span{ color: var(--text-dim); font-size:12px; }
+  .goal-row-bottom{ display:flex; justify-content:space-between; font-size:11px; color: var(--text-dim); margin-top:6px; }
+  .goal-row-bottom .goal-pct{ font-weight:700; color: var(--green); }
+  .goal-row-bottom.batida .goal-pct{ color: var(--green); }
+
+  /* ---------- TEMA CLARO/ESCURO + TOPBAR ---------- */
+  .dash-topbar{ justify-content:space-between; }
+  .topbar-actions{ display:flex; gap:8px; }
+  .theme-btn{
+    width:36px; height:36px; border-radius:10px; background: var(--card);
+    border: 1px solid var(--card-border); display:flex;
+    align-items:center; justify-content:center; font-size:16px; cursor:pointer;
+  }
+  .edit-today-link{
+    display:inline-flex; align-items:center; gap:5px; color: var(--pink-vivid);
+    font-size:11.5px; font-weight:700; margin-top:8px; cursor:pointer;
+  }
+
+  /* ---------- DESTAQUE CUSTO/KM ---------- */
+  .highlight-box{
+    background: linear-gradient(135deg, rgba(255,46,146,0.12), rgba(49,249,0,0.06));
+    border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 12px 14px; margin-top: 10px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .highlight-box .hl-label{ font-size:12px; color: var(--text-dim); }
+  .highlight-box .hl-value{ font-size:20px; font-weight:800; color: var(--pink-vivid); }
+
+  /* ---------- COMPARAÇÃO COM PERÍODO ANTERIOR ---------- */
+  .compare-badge{
+    display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700;
+    padding: 4px 10px; border-radius: 20px; margin-top:6px;
+  }
+  .compare-badge.up{ color: var(--green-lucro); background: rgba(49,249,0,0.1); }
+  .compare-badge.down{ color: var(--pink-vivid); background: rgba(255,46,146,0.1); }
+  .compare-badge.flat{ color: var(--text-dim); background: var(--muted-bg); }
+
+  /* ---------- CONSUMO (km/l) ---------- */
+  .consumo-row{ display:flex; gap:10px; margin-top:10px; }
+  .consumo-row .stat-card{ flex:1; }
+
+  /* ---------- DADOS / BACKUP (config) ---------- */
+  .data-actions{ display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+  .btn-secondary{
+    background: var(--muted-bg); color: var(--text); border:1px solid var(--card-border);
+    border-radius: 12px; padding: 12px; font-weight:700; font-size:13px; text-align:center; cursor:pointer;
+  }
+  .data-note{ color: var(--text-dim); font-size:10.5px; margin-top:2px; line-height:1.4; }
+
+  /* ---------- LEMBRETE DIÁRIO ---------- */
+  .toggle-row{ display:flex; align-items:center; justify-content:space-between; }
+  .switch{ position:relative; width:42px; height:24px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch-slider{
+    position:absolute; cursor:pointer; inset:0; background: var(--muted-bg);
+    border-radius:24px; transition:.2s; border:1px solid var(--card-border);
+  }
+  .switch-slider:before{
+    content:""; position:absolute; height:18px; width:18px; left:2px; bottom:2px;
+    background: var(--text-dim); border-radius:50%; transition:.2s;
+  }
+  .switch input:checked + .switch-slider{ background: rgba(49,249,0,0.25); border-color: var(--green); }
+  .switch input:checked + .switch-slider:before{ background: var(--green); transform: translateX(18px); }
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+
+    <!-- TELA LOGIN -->
+    <div class="screen active" id="login">
+      <div class="login-glow"></div>
+      <div class="login-badge">🏁 NÍVEL 1 · COMECE SUA CORRIDA</div>
+      <div class="login-title">Drive<span>Win</span></div>
+      <div class="login-sub">Seu controle de ganhos por corrida</div>
+      <div class="login-tagline">🏆 Ganhe XP a cada corrida e vire Expert</div>
+      <div class="field"><span class="field-icon">👤</span><input id="login-nome" type="text" placeholder="Seu nome completo" autocomplete="name"></div>
+      <div class="field"><span class="field-icon">🔒</span><input type="password" placeholder="Senha" autocomplete="current-password"></div>
+      <div class="login-erro" id="login-erro"></div>
+      <button class="btn-primary" onclick="entrarMotorista()">Entrar</button>
+      <div class="link-pink">Criar conta</div>
+      <div class="login-road"></div>
+      <div class="privacy-note">🔒 Seus dados são visíveis só para você</div>
+    </div>
+
+    <!-- TELA DASHBOARD -->
+    <div class="screen" id="dashboard">
+      <div class="dash-topbar">
+        <div class="theme-btn" id="theme-btn" onclick="alternarTema()">🌙</div>
+        <div class="topbar-actions">
+          <div class="menu-btn" onclick="abrirConfigMeta()"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+
+      <div class="section-card" id="nivel-card">
+        <div class="section-title">NÍVEL DO MOTORISTA</div>
+        <div class="nivel-wrap">
+          <div class="nivel-gauge">
+            <svg viewBox="0 0 160 160">
+              <circle class="nivel-track" cx="80" cy="80" r="68" stroke-width="14" fill="none"/>
+              <circle class="nivel-anel" cx="80" cy="80" r="68" stroke="#31f900" stroke-width="14" fill="none"
+                stroke-linecap="round" stroke-dasharray="427" stroke-dashoffset="427" id="nivel-anel"/>
+            </svg>
+            <div class="nivel-center">
+              <div class="nivel-emoji" id="nivel-emoji">🥶</div>
+              <div class="nivel-pct" id="nivel-pct">0%</div>
+            </div>
+          </div>
+          <div class="nivel-info">
+            <div class="nivel-nome" id="nivel-nome">Não sabe de nada</div>
+            <div class="nivel-media" id="nivel-media">Média: R$ 0,00/dia</div>
+            <div class="nivel-dias" id="nivel-dias">0 dias registrados</div>
+            <div class="nivel-prox" id="nivel-prox">Falta R$ 50,00 de média pro próximo nível</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gauge-wrap">
+        <div class="gauge">
+          <svg viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="86" stroke="#ff2e92" stroke-width="14" fill="none"/>
+            <circle cx="100" cy="100" r="86" stroke="#31f900" stroke-width="14" fill="none"
+              stroke-linecap="round" stroke-dasharray="540" stroke-dashoffset="540" id="gauge-circle"/>
+          </svg>
+          <div class="gauge-center">
+            <div class="gauge-pct" id="d-pct">0%</div>
+            <div class="gauge-amt valor-lucro" id="d-lucro">R$ 0,00</div>
+            <div class="gauge-goal" id="d-meta">de R$ 250 de meta</div>
+            <div class="gauge-date" id="d-data">Nenhum lançamento hoje</div>
+          </div>
+        </div>
+        <div class="edit-today-link" onclick="editarLancamento(todayISO())">✏️ Editar lançamento de hoje</div>
+      </div>
+
+      <div class="grid2">
+        <div class="stat-card"><div class="stat-label">⏱ Horas</div><div class="stat-value" id="d-horas">0 h</div></div>
+        <div class="stat-card"><div class="stat-label">📍 Km</div><div class="stat-value" id="d-km">0</div></div>
+        <div class="stat-card"><div class="stat-label">💰 Fat./h</div><div class="stat-value" id="d-fath">R$ 0,00</div></div>
+        <div class="stat-card"><div class="stat-label">💰 Fat./km</div><div class="stat-value" id="d-fatkm">R$ 0,00</div></div>
+        <div class="stat-card"><div class="stat-label">⛽ Custo/h</div><div class="stat-value" id="d-custoh">R$ 0,00</div></div>
+        <div class="stat-card"><div class="stat-label">⛽ Custo/km</div><div class="stat-value" id="d-custokm">R$ 0,00</div></div>
+        <div class="stat-card"><div class="stat-label">📈 Lucro/h</div><div class="stat-value valor-lucro" id="d-lucroh">R$ 0,00</div></div>
+        <div class="stat-card"><div class="stat-label">📈 Lucro/km</div><div class="stat-value valor-lucro" id="d-lucrokm">R$ 0,00</div></div>
+      </div>
+
+      <div class="highlight-box">
+        <div class="hl-label">💸 Custo por km rodado (hoje)</div>
+        <div class="hl-value" id="d-custokm-destaque">R$ 0,00</div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">RECEITA POR APP</div>
+        <div class="app-row">
+          <div class="app-icon uber">U</div>
+          <div class="app-info">
+            <div class="app-name-row"><b>Uber</b><span id="d-uber-v">R$ 0,00</span></div>
+            <div class="bar-track"><div class="bar-fill" id="d-uber-bar" style="width:0%"></div></div>
+          </div>
+          <div class="app-pct" id="d-uber-pct">0%</div>
+        </div>
+        <div class="app-row">
+          <div class="app-icon n99">99</div>
+          <div class="app-info">
+            <div class="app-name-row"><b>99</b><span id="d-99-v">R$ 0,00</span></div>
+            <div class="bar-track"><div class="bar-fill" id="d-99-bar" style="width:0%"></div></div>
+          </div>
+          <div class="app-pct" id="d-99-pct">0%</div>
+        </div>
+        <div class="app-row">
+          <div class="app-icon promo">%</div>
+          <div class="app-info">
+            <div class="app-name-row"><b>Promoção</b><span id="d-promo-v">R$ 0,00</span></div>
+            <div class="bar-track"><div class="bar-fill" id="d-promo-bar" style="width:0%"></div></div>
+          </div>
+          <div class="app-pct" id="d-promo-pct">0%</div>
+        </div>
+        <div class="app-row">
+          <div class="app-icon outro">•</div>
+          <div class="app-info">
+            <div class="app-name-row"><b>Outro app</b><span id="d-outroapp-v">R$ 0,00</span></div>
+            <div class="bar-track"><div class="bar-fill" id="d-outroapp-bar" style="width:0%"></div></div>
+          </div>
+          <div class="app-pct" id="d-outroapp-pct">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TELA ACOMPANHAMENTO (somente leitura) -->
+    <div class="screen" id="analise">
+      <div class="tabs">
+        <div class="tab active" data-range="dia" onclick="setRangeAnalise('dia', this)">Dia</div>
+        <div class="tab" data-range="semana" onclick="setRangeAnalise('semana', this)">Semana</div>
+        <div class="tab" data-range="mes" onclick="setRangeAnalise('mes', this)">Mês</div>
+        <div class="tab" data-range="geral" onclick="setRangeAnalise('geral', this)">Geral</div>
+      </div>
+
+      <div id="a-comparacao-wrap" style="display:none; margin-bottom:4px;">
+        <span class="compare-badge" id="a-comparacao-badge"></span>
+      </div>
+
+      <div class="section-card" id="margem-trend-card" style="padding:10px 14px; margin-top:10px;">
+        <div class="section-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <span>MARGEM DE LUCRO</span>
+          <b id="a-margem-media" style="color:var(--text); font-size:13px;">0%</b>
+        </div>
+        <div class="margem-trend-wrap">
+          <div class="bar-track"><div class="bar-fill" id="a-margem-linha" style="width:0%;"></div></div>
+        </div>
+      </div>
+
+      <div class="section-card" id="metas-card">
+        <div class="section-title">METAS</div>
+
+        <div class="goal-row">
+          <div class="goal-row-top"><b>Meta diária</b><span id="mt-dia-valores">R$ 0,00 / R$ 0,00</span></div>
+          <div class="bar-track"><div class="bar-fill" id="mt-dia-bar" style="width:0%"></div></div>
+          <div class="goal-row-bottom" id="mt-dia-row"><span class="goal-pct" id="mt-dia-pct">0%</span><span id="mt-dia-falta">Falta R$ 0,00</span></div>
+        </div>
+
+        <div class="goal-row">
+          <div class="goal-row-top"><b>Meta semanal</b><span id="mt-semana-valores">R$ 0,00 / R$ 0,00</span></div>
+          <div class="bar-track"><div class="bar-fill" id="mt-semana-bar" style="width:0%"></div></div>
+          <div class="goal-row-bottom" id="mt-semana-row"><span class="goal-pct" id="mt-semana-pct">0%</span><span id="mt-semana-falta">Falta R$ 0,00</span></div>
+        </div>
+
+        <div class="goal-row">
+          <div class="goal-row-top"><b>Meta mensal</b><span id="mt-mes-valores">R$ 0,00 / R$ 0,00</span></div>
+          <div class="bar-track"><div class="bar-fill" id="mt-mes-bar" style="width:0%"></div></div>
+          <div class="goal-row-bottom" id="mt-mes-row"><span class="goal-pct" id="mt-mes-pct">0%</span><span id="mt-mes-falta">Falta R$ 0,00</span></div>
+        </div>
+      </div>
+
+      <div class="section-card" id="metas-producao-card">
+        <div class="section-title">PRODUÇÃO</div>
+
+        <div class="mini-goal">
+          <span class="mini-goal-label">⏱ Horas</span>
+          <div class="bar-track"><div class="bar-fill" id="mt-horas-bar" style="width:0%; background:var(--pink);"></div></div>
+          <span class="mini-goal-val" id="mt-horas-valores">0/0h</span>
+        </div>
+        <div class="mini-goal">
+          <span class="mini-goal-label">💰 R$/km</span>
+          <div class="bar-track"><div class="bar-fill" id="mt-km-bar" style="width:0%; background:var(--pink);"></div></div>
+          <span class="mini-goal-val" id="mt-km-valores">0/0</span>
+        </div>
+        <div class="mini-goal">
+          <span class="mini-goal-label">📅 Dias</span>
+          <div class="bar-track"><div class="bar-fill" id="mt-dias-bar" style="width:0%"></div></div>
+          <span class="mini-goal-val" id="mt-dias-valores">0/0</span>
+        </div>
+      </div>
+      <style>
+        .mini-goal{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+        .mini-goal:last-child{ margin-bottom:0; }
+        .mini-goal-label{ font-size:11px; color:var(--text-dim); width:56px; flex-shrink:0; }
+        .mini-goal .bar-track{ flex:1; }
+        .mini-goal-val{ font-size:11px; color:var(--text); width:56px; flex-shrink:0; text-align:right; }
+      </style>
+
+      <div id="a-vazio" style="text-align:center; color:var(--text-dim); font-size:13px; padding:60px 10px;">
+        Sem dados ainda.<br>Lance seus ganhos pra ver o acompanhamento completo aqui.
+      </div>
+
+      <div id="a-conteudo" style="display:none;">
+        <div class="section-title" style="margin-top:6px;">RESUMO GERAL</div>
+        <div class="grid2" style="margin-top:0;">
+          <div class="stat-card"><div class="stat-label">Faturamento total</div><div class="stat-value green" id="a-fat-total">R$ 0,00</div></div>
+          <div class="stat-card"><div class="stat-label">Gastos total</div><div class="stat-value pink" id="a-gasto-total">R$ 0,00</div></div>
+          <div class="stat-card"><div class="stat-label">Lucro total</div><div class="stat-value valor-lucro" id="a-lucro-total">R$ 0,00</div></div>
+          <div class="stat-card"><div class="stat-label">Margem de lucro</div><div class="stat-value" id="a-margem">0%</div></div>
+        </div>
+
+        <div class="highlight-box">
+          <div class="hl-label">💸 Custo médio por km rodado</div>
+          <div class="hl-value" id="a-custokm-destaque">R$ 0,00</div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-title">⛽ CONSUMO DO CARRO</div>
+          <div class="consumo-row">
+            <div class="stat-card"><div class="stat-label">Preço médio/litro</div><div class="stat-value" id="a-precolitro">—</div></div>
+            <div class="stat-card"><div class="stat-label">Km/litro médio <span style="opacity:.7;">(calc.)</span></div><div class="stat-value" id="a-kml">—</div></div>
+          </div>
+          <div class="data-note" id="a-consumo-nota">Informe o preço do litro (opcional) em "Novo lançamento" pra ver o consumo aqui.</div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-title">RECEITA x DESPESA POR DIA</div>
+          <div class="dual-legend"><span><i class="dot green"></i>Receita</span><span><i class="dot pink"></i>Despesa</span></div>
+          <div class="dual-chart" id="a-dual-chart"></div>
+          <div class="chart-x" id="a-dual-x"><span></span><span></span></div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-title">DESPESAS POR CATEGORIA</div>
+          <div id="a-despesas-rows"></div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-title">RECEITA POR APP (GERAL)</div>
+          <div id="a-apps-rows"></div>
+        </div>
+
+        <div class="grid2">
+          <div class="stat-card"><div class="stat-label">Média fat./km</div><div class="stat-value" id="a-media-fatkm">R$ 0,00</div></div>
+          <div class="stat-card"><div class="stat-label">Média fat./h</div><div class="stat-value" id="a-media-fath">R$ 0,00</div></div>
+          <div class="stat-card"><div class="stat-label">Média lucro/km</div><div class="stat-value valor-lucro" id="a-media-lucrokm">R$ 0,00</div></div>
+          <div class="stat-card"><div class="stat-label">Média lucro/h</div><div class="stat-value valor-lucro" id="a-media-lucroh">R$ 0,00</div></div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-title">DESTAQUES</div>
+          <div class="grid2" style="margin-top:0;">
+            <div class="stat-card"><div class="stat-label">📈 Melhor dia</div><div class="stat-value valor-lucro" id="a-melhor" style="font-size:13px;">—</div></div>
+            <div class="stat-card"><div class="stat-label">📉 Pior dia</div><div class="stat-value pink" id="a-pior" style="font-size:13px;">—</div></div>
+          </div>
+          <div class="grid2" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div class="stat-card"><div class="stat-label">📅 Dias</div><div class="stat-value" id="a-dias">0</div></div>
+            <div class="stat-card"><div class="stat-label">🏁 Km</div><div class="stat-value" id="a-km-total">0</div></div>
+            <div class="stat-card"><div class="stat-label">⏱ Horas</div><div class="stat-value" id="a-h-total">0</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TELA HISTORICO -->
+    <div class="screen" id="historico">
+      <div class="tabs">
+        <div class="tab" data-range="dia" onclick="setRange('dia', this)">Dia</div>
+        <div class="tab" data-range="semana" onclick="setRange('semana', this)">Semana</div>
+        <div class="tab active" data-range="mes" onclick="setRange('mes', this)">Mês</div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-card"><div class="kpi-label">Faturado</div><div class="kpi-value" id="h-faturado">R$ 0,00</div></div>
+        <div class="kpi-card"><div class="kpi-label">Lucro</div><div class="kpi-value valor-lucro" id="h-lucro">R$ 0,00</div><div style="color:var(--text-dim); font-size:10px; margin-top:2px;" id="h-diascount">0 dias</div></div>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="section-title" style="margin-bottom:0;">LUCRO POR DIA</div>
+        <div class="chart-bars" id="chartBars"></div>
+        <div id="chart-empty" style="text-align:center; color:var(--text-dim); font-size:12px; padding:10px 0;">Sem lançamentos ainda</div>
+        <div class="chart-x" id="chart-x"><span></span><span></span><span></span></div>
+      </div>
+
+      <div class="day-list">
+        <div class="section-title">DIAS RECENTES</div>
+        <div id="day-rows">
+          <div style="text-align:center; color:var(--text-dim); font-size:12px; padding:18px 0;" id="day-empty">
+            Nenhum dia lançado ainda.<br>Toque em "+ Novo" pra registrar seu primeiro dia.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TELA NOVO LANÇAMENTO -->
+    <div class="screen" id="novo">
+      <div class="section-title" style="margin-top:6px;">DATA DO LANÇAMENTO</div>
+      <div class="meta-box" style="margin-bottom:14px;">
+        <input type="date" id="in-data" style="text-align:left; width:100%; color-scheme: var(--input-scheme);">
+      </div>
+
+      <div class="section-title">GANHOS POR APP</div>
+      <div class="form-row"><div class="fl"><div class="app-icon uber" style="width:22px;height:22px;font-size:9px;">U</div>Uber</div><input type="number" step="0.01" min="0" id="in-uber" placeholder="R$ 0,00"></div>
+      <div class="form-row"><div class="fl"><div class="app-icon n99" style="width:22px;height:22px;font-size:9px;">99</div>99</div><input type="number" step="0.01" min="0" id="in-99" placeholder="R$ 0,00"></div>
+      <div class="form-row"><div class="fl"><div class="app-icon promo" style="width:22px;height:22px;font-size:9px;">%</div>Promoção</div><input type="number" step="0.01" min="0" id="in-promo" placeholder="R$ 0,00"></div>
+      <div class="form-row"><div class="fl"><div class="app-icon outro" style="width:22px;height:22px;font-size:9px;">•</div>Outro app</div><input type="number" step="0.01" min="0" id="in-outroapp" placeholder="R$ 0,00"></div>
+
+      <div class="section-title">QUILOMETRAGEM / HORAS</div>
+      <div class="grid2" style="margin-top:0;">
+        <div class="stat-card"><div class="stat-label">Km rodados</div><input type="number" step="0.1" min="0" id="in-km" placeholder="0 km" style="width:100%; text-align:left; font-size:17px; font-weight:700;"></div>
+        <div class="stat-card"><div class="stat-label">Horas trabalhadas</div><input type="number" step="0.1" min="0" id="in-horas" placeholder="0 h" style="width:100%; text-align:left; font-size:17px; font-weight:700;"></div>
+      </div>
+
+      <div class="section-title" style="margin-top:16px;">GASTOS</div>
+      <div class="form-row"><div class="fl">⛽ Combustível</div><input type="number" step="0.01" min="0" id="in-combustivel" placeholder="R$ 0,00"></div>
+      <div class="fuel-toggle">
+        <div class="fuel-btn gas" data-fuel="gasolina">Gasolina</div>
+        <div class="fuel-btn etanol" data-fuel="etanol">Etanol</div>
+      </div>
+      <div class="grid2" style="margin-top:0; margin-bottom:10px;">
+        <div class="stat-card"><div class="stat-label">💲 Preço do litro <span style="opacity:.7;">(opcional)</span></div><input type="number" step="0.01" min="0" id="in-precolitro" placeholder="R$ 0,00" style="width:100%; text-align:left; font-size:15px; font-weight:700;"></div>
+        <div class="stat-card"><div class="stat-label">Litros abastecidos <span style="opacity:.7;">(calc.)</span></div><div id="in-litros-display" style="font-size:15px; font-weight:700;">—</div></div>
+      </div>
+      <div class="form-row"><div class="fl">🍔 Alimentação</div><input type="number" step="0.01" min="0" id="in-alimentacao" placeholder="R$ 0,00"></div>
+      <div class="grid2" style="margin-top:0; margin-bottom:10px;">
+        <div class="form-row" style="margin:0;"><div class="fl">🚗 Carro/Aluguel</div><input type="number" step="0.01" min="0" id="in-carro" placeholder="R$ 0,00" style="width:70px;"></div>
+        <div class="form-row" style="margin:0;"><div class="fl">🧼 Lavagem</div><input type="number" step="0.01" min="0" id="in-lavagem" placeholder="R$ 0,00" style="width:70px;"></div>
+      </div>
+      <div class="form-row"><div class="fl">🔧 Outros</div><input type="number" step="0.01" min="0" id="in-outros" placeholder="R$ 0,00"></div>
+
+      <div class="section-title" style="margin-top:16px;">META DO DIA</div>
+      <div class="meta-box">
+        <input type="number" step="0.01" min="0" id="in-meta" placeholder="R$ 250" style="text-align:left; width:100%;">
+        <div class="meta-note">usada no medidor do painel</div>
+      </div>
+
+      <div id="save-msg" style="text-align:center; font-size:12px; color:var(--green); font-weight:700; margin-top:10px; display:none;"></div>
+
+      <div class="estimate-box">
+        <div>
+          <div class="estimate-label">Lucro estimado</div>
+          <div class="estimate-value" id="estimate-value">R$ 0,00</div>
+        </div>
+        <button class="btn-primary" style="width:auto; padding:12px 20px; margin:0;" id="btn-salvar">Salvar</button>
+      </div>
+
+      <button id="btn-excluir" onclick="excluirLancamentoAtual()" style="display:none; width:100%; background:transparent; border:1px solid var(--pink); color:var(--pink); border-radius:14px; padding:13px; font-weight:700; font-size:14px; margin-top:10px; cursor:pointer;">
+        🗑 Excluir lançamento deste dia
+      </button>
+    </div>
+
+    <!-- TELA SUPORTE -->
+    <div class="screen" id="suporte">
+      <div class="dash-topbar" style="justify-content:space-between;">
+        <div>
+          <h2 style="font-size:19px; font-weight:800;">Suporte</h2>
+          <div style="color:var(--text-dim); font-size:12px; margin-top:2px;">Fale com a equipe do DriveWin</div>
+        </div>
+      </div>
+      <button class="btn-primary" style="margin-top:16px;" onclick="abrirNovoTicket()">+ Novo chamado</button>
+      <div id="suporte-lista"></div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="bottomnav" id="bottomnav" style="display:none;">
+      <div class="nav-item active" id="nav-dash" onclick="showScreen('dashboard','nav-dash')">
+        <div class="nav-icon">📊</div>Painel
+      </div>
+      <div class="nav-item" id="nav-analise" onclick="showScreen('analise','nav-analise')">
+        <div class="nav-icon">📈</div>Análise
+      </div>
+      <div class="nav-item" id="nav-hist" onclick="showScreen('historico','nav-hist')">
+        <div class="nav-icon">🕘</div>Histórico
+      </div>
+      <div class="nav-item" id="nav-suporte" onclick="showScreen('suporte','nav-suporte')">
+        <div class="nav-icon">💬</div>Suporte
+      </div>
+      <div class="nav-item" onclick="showScreen('novo','nav-novo', true)" id="nav-novo">
+        <div class="nav-plus">+</div>Novo
+      </div>
+    </div>
+
+    <!-- OVERLAY: CONFIGURAÇÃO DE METAS -->
+    <div class="config-overlay" id="config-overlay">
+      <div class="config-panel">
+        <div class="config-header">
+          <div class="config-title">⚙️ Configurar meta</div>
+          <div class="config-close" onclick="fecharConfigMeta()">✕</div>
+        </div>
+        <div class="section-title" style="margin-top:0;">META DIÁRIA</div>
+        <div class="meta-box" style="margin-bottom:12px;">
+          <input type="number" step="0.01" min="0" id="cfg-meta" placeholder="R$ 250" style="text-align:left; width:100%;">
+          <div class="meta-note">usada no medidor do painel</div>
+        </div>
+        <div class="section-title">META SEMANAL</div>
+        <div class="meta-box" style="margin-bottom:12px;">
+          <input type="number" step="0.01" min="0" id="cfg-meta-semana" placeholder="R$ 1.750" style="text-align:left; width:100%;">
+          <div class="meta-note">usada na aba Análise</div>
+        </div>
+        <div class="section-title">META MENSAL</div>
+        <div class="meta-box" style="margin-bottom:12px;">
+          <input type="number" step="0.01" min="0" id="cfg-meta-mes" placeholder="R$ 7.000" style="text-align:left; width:100%;">
+          <div class="meta-note">usada na aba Análise</div>
+        </div>
+        <div class="section-title">PRODUÇÃO (metas diárias/período)</div>
+        <div class="meta-box" style="margin-bottom:10px;">
+          <input type="number" step="0.1" min="0" id="cfg-meta-horas" placeholder="Horas/dia — ex: 8">
+        </div>
+        <div class="meta-box" style="margin-bottom:10px;">
+          <input type="number" step="0.01" min="0" id="cfg-meta-km" placeholder="R$/km — ex: 1.50">
+        </div>
+        <div class="meta-box">
+          <input type="number" step="1" min="0" id="cfg-meta-dias" placeholder="Dias no período — ex: 6">
+        </div>
+        <button class="btn-primary" id="btn-salvar-meta" onclick="salvarConfigMeta()">Salvar metas</button>
+        <div class="config-save-msg" id="config-save-msg">✓ Meta atualizada</div>
+
+        <div class="section-title" style="margin-top:18px;">🔔 LEMBRETE DIÁRIO</div>
+        <div class="meta-box" style="margin-bottom:6px;">
+          <div class="toggle-row">
+            <span style="font-size:13px;">Lembrar de lançar o dia</span>
+            <label class="switch"><input type="checkbox" id="cfg-lembrete-on" onchange="alternarLembrete()"><span class="switch-slider"></span></label>
+          </div>
+        </div>
+        <div class="meta-box" style="margin-bottom:4px;">
+          <input type="time" id="cfg-lembrete-hora" style="text-align:left; width:100%; color-scheme: var(--input-scheme);" onchange="salvarHoraLembrete()">
+        </div>
+        <div class="data-note">Funciona só com o app aberto no navegador/celular (o Chrome precisa de permissão de notificação). Pra lembrete garantido mesmo com o app fechado, é preciso publicar como app real (PWA com notificação push).</div>
+
+        <div class="section-title" style="margin-top:18px;">💾 DADOS / BACKUP</div>
+        <div class="data-actions">
+          <div class="btn-secondary" onclick="exportarJSON()">⬇️ Exportar tudo (JSON)</div>
+          <div class="btn-secondary" onclick="exportarCSV()">⬇️ Exportar lançamentos (CSV)</div>
+          <div class="btn-secondary" onclick="document.getElementById('input-importar').click()">⬆️ Importar dados (JSON)</div>
+          <input type="file" id="input-importar" accept="application/json" style="display:none" onchange="importarJSON(event)">
+        </div>
+        <div class="data-note">Hoje os dados ficam salvos só neste navegador/aparelho. Exporte de vez em quando pra não perder tudo se limpar o cache ou trocar de celular.</div>
+      </div>
+    </div>
+
+    <!-- OVERLAY: NOVO CHAMADO DE SUPORTE -->
+    <div class="config-overlay" id="novo-ticket-overlay">
+      <div class="config-panel">
+        <div class="config-header">
+          <div class="config-title">💬 Novo chamado</div>
+          <div class="config-close" onclick="fecharNovoTicket()">✕</div>
+        </div>
+        <div class="section-title" style="margin-top:0;">ASSUNTO</div>
+        <div class="meta-box" style="margin-bottom:12px;">
+          <input type="text" id="nt-assunto" placeholder="Ex: Problema com pagamento" style="text-align:left; width:100%;">
+        </div>
+        <div class="section-title">MENSAGEM</div>
+        <div class="meta-box" style="margin-bottom:14px;">
+          <textarea id="nt-mensagem" rows="4" placeholder="Descreva o que está acontecendo..." style="width:100%; background:transparent; border:none; outline:none; color:var(--text); font-family:inherit; font-size:13px; resize:none;"></textarea>
+        </div>
+        <button class="btn-primary" onclick="enviarNovoTicket()">Enviar chamado</button>
+      </div>
+    </div>
+
+    <!-- OVERLAY: THREAD DE UM CHAMADO -->
+    <div class="config-overlay" id="ticket-overlay">
+      <div class="config-panel" style="max-height:80vh; display:flex; flex-direction:column;">
+        <div class="config-header">
+          <div class="config-title" id="ticket-titulo">Chamado</div>
+          <div class="config-close" onclick="fecharTicket()">✕</div>
+        </div>
+        <div id="ticket-mensagens" style="flex:1; overflow-y:auto; margin-bottom:12px;"></div>
+        <div id="ticket-encerrado-nota" style="display:none; text-align:center; color:var(--text-dim); font-size:11.5px; margin-bottom:10px;">
+          Este chamado foi encerrado.
+        </div>
+        <button class="btn-secondary" id="btn-reabrir-ticket" style="display:none; margin-bottom:8px;" onclick="reabrirTicketMotorista()">Reabrir chamado</button>
+        <div class="support-input-row" id="ticket-resposta-wrap">
+          <textarea id="ticket-resposta" rows="1" placeholder="Escreva uma mensagem..."></textarea>
+          <button class="support-send-btn" onclick="enviarRespostaTicket()">➤</button>
+        </div>
+        <div class="link-pink" style="margin-top:10px; font-size:12px;" onclick="encerrarTicketMotorista()">Encerrar chamado</div>
+      </div>
+    </div>
+
+  </div>
+
+  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">PRÉVIA — DADOS FICTÍCIOS</p>
+
+<script>
+  const STORAGE_KEY = 'painelMotorista_lancamentos';
+  const META_KEY = 'painelMotorista_meta';
+  const META_SEMANA_KEY = 'painelMotorista_metaSemana';
+  const META_MES_KEY = 'painelMotorista_metaMes';
+  const META_HORAS_KEY = 'painelMotorista_metaHoras';
+  const META_KM_KEY = 'painelMotorista_metaKm';
+  const META_DIAS_KEY = 'painelMotorista_metaDias';
+  const TEMA_KEY = 'painelMotorista_tema';
+  const LEMBRETE_ON_KEY = 'painelMotorista_lembreteOn';
+  const LEMBRETE_HORA_KEY = 'painelMotorista_lembreteHora';
+  const LEMBRETE_ULTIMO_KEY = 'painelMotorista_lembreteUltimoDisparo';
+  const MEU_NOME_KEY = 'painelMotorista_meuNome';
+  const SUPORTE_KEY = 'drivewin_suporte_v1';       // compartilhada com o painel do colaborador (mesmo domínio)
+  const ADMIN_DATA_KEY = 'drivewin_admin_mock_v1'; // compartilhada com o painel admin/colaborador (tropas e status de acesso)
+  const ALL_KEYS = [STORAGE_KEY, META_KEY, META_SEMANA_KEY, META_MES_KEY, META_HORAS_KEY, META_KM_KEY, META_DIAS_KEY];
+  let currentRange = 'mes';
+  let currentRangeAnalise = 'dia';
+  let fuelSelecionado = null;
+  let formSnapshot = null; // usado pra detectar alterações não salvas em "Novo lançamento"
+
+  // ---------- persistencia (localStorage) ----------
+  function getLancamentos(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveLancamentos(obj){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+  }
+  function getMeta(){
+    const v = localStorage.getItem(META_KEY);
+    return v ? parseFloat(v) : 250;
+  }
+  function setMeta(v){
+    localStorage.setItem(META_KEY, String(v));
+  }
+  function getMetaSemana(){
+    const v = localStorage.getItem(META_SEMANA_KEY);
+    return v ? parseFloat(v) : 1750;
+  }
+  function setMetaSemana(v){
+    localStorage.setItem(META_SEMANA_KEY, String(v));
+  }
+  function getMetaMes(){
+    const v = localStorage.getItem(META_MES_KEY);
+    return v ? parseFloat(v) : 7000;
+  }
+  function setMetaMes(v){
+    localStorage.setItem(META_MES_KEY, String(v));
+  }
+  function getMetaHoras(){
+    const v = localStorage.getItem(META_HORAS_KEY);
+    return v ? parseFloat(v) : 0;
+  }
+  function setMetaHoras(v){
+    localStorage.setItem(META_HORAS_KEY, String(v));
+  }
+  function getMetaKm(){
+    const v = localStorage.getItem(META_KM_KEY);
+    return v ? parseFloat(v) : 0;
+  }
+  function setMetaKm(v){
+    localStorage.setItem(META_KM_KEY, String(v));
+  }
+  function getMetaDias(){
+    const v = localStorage.getItem(META_DIAS_KEY);
+    return v ? parseFloat(v) : 0;
+  }
+  function setMetaDias(v){
+    localStorage.setItem(META_DIAS_KEY, String(v));
+  }
+
+  // ---------- tema claro/escuro ----------
+  function aplicarTema(tema){
+    document.body.setAttribute('data-theme', tema);
+    document.getElementById('theme-btn').textContent = tema === 'light' ? '☀️' : '🌙';
+  }
+  function alternarTema(){
+    const atual = localStorage.getItem(TEMA_KEY) || 'dark';
+    const novo = atual === 'dark' ? 'light' : 'dark';
+    localStorage.setItem(TEMA_KEY, novo);
+    aplicarTema(novo);
+  }
+  aplicarTema(localStorage.getItem(TEMA_KEY) || 'dark');
+
+  // ---------- lembrete diário (best-effort, só funciona com app aberto) ----------
+  function alternarLembrete(){
+    const ligado = document.getElementById('cfg-lembrete-on').checked;
+    if(ligado && 'Notification' in window && Notification.permission !== 'granted'){
+      Notification.requestPermission().then(perm => {
+        if(perm !== 'granted'){
+          document.getElementById('cfg-lembrete-on').checked = false;
+          localStorage.setItem(LEMBRETE_ON_KEY, 'false');
+          alert('Pra usar o lembrete, permita notificações pro site nas configurações do navegador.');
+        } else {
+          localStorage.setItem(LEMBRETE_ON_KEY, 'true');
+        }
+      });
+    } else {
+      localStorage.setItem(LEMBRETE_ON_KEY, ligado ? 'true' : 'false');
+    }
+  }
+  function salvarHoraLembrete(){
+    localStorage.setItem(LEMBRETE_HORA_KEY, document.getElementById('cfg-lembrete-hora').value || '20:00');
+  }
+  function checarLembrete(){
+    if(localStorage.getItem(LEMBRETE_ON_KEY) !== 'true') return;
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    const hora = localStorage.getItem(LEMBRETE_HORA_KEY) || '20:00';
+    const agora = new Date();
+    const hojeISO = todayISO();
+    const hhmm = agora.toTimeString().slice(0,5);
+    const jaDisparouHoje = localStorage.getItem(LEMBRETE_ULTIMO_KEY) === hojeISO;
+    if(hhmm === hora && !jaDisparouHoje){
+      const registros = getLancamentos();
+      const corpo = registros[hojeISO] ? 'Você já lançou hoje — quer conferir ou ajustar?' : 'Ainda não tem lançamento hoje. Toque pra registrar seus ganhos e gastos.';
+      try{ new Notification('DriveWin — lembrete diário', { body: corpo }); }catch(e){}
+      localStorage.setItem(LEMBRETE_ULTIMO_KEY, hojeISO);
+    }
+  }
+  setInterval(checarLembrete, 30000);
+
+  function fmtMoney(v){
+    return 'R$ ' + (v || 0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function todayISO(){
+    const d = new Date();
+    return d.toISOString().slice(0,10);
+  }
+  function fmtDateBR(iso){
+    const [y,m,d] = iso.split('-');
+    return `${d}/${m}`;
+  }
+
+  // ---------- login / identificação do motorista ----------
+  function getSharedAdminData(){
+    try{
+      const raw = localStorage.getItem(ADMIN_DATA_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return null; }
+  }
+  function meuNomeAtual(){ return localStorage.getItem(MEU_NOME_KEY) || ''; }
+  function entrarMotorista(){
+    const nomeInput = document.getElementById('login-nome');
+    const erroEl = document.getElementById('login-erro');
+    const nome = (nomeInput.value || '').trim();
+    erroEl.style.display = 'none';
+    if(!nome){
+      erroEl.textContent = 'Digite seu nome pra entrar.';
+      erroEl.style.display = 'block';
+      nomeInput.focus();
+      return;
+    }
+    const dataAdmin = getSharedAdminData();
+    if(dataAdmin && Array.isArray(dataAdmin.assinantes)){
+      const registro = dataAdmin.assinantes.find(a => (a.nome||'').trim().toLowerCase() === nome.toLowerCase());
+      if(registro && registro.ativo === false){
+        erroEl.textContent = '🚫 Seu acesso foi suspenso. Abra um chamado no Suporte ou fale com sua tropa pra regularizar.';
+        erroEl.style.display = 'block';
+        return;
+      }
+    }
+    localStorage.setItem(MEU_NOME_KEY, nome);
+    showScreen('dashboard','nav-dash');
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const nomeInput = document.getElementById('login-nome');
+    if(nomeInput) nomeInput.value = meuNomeAtual();
+  });
+
+  // ---------- suporte (chamados) ----------
+  function getTickets(){
+    try{ const raw = localStorage.getItem(SUPORTE_KEY); return raw ? JSON.parse(raw) : []; }catch(e){ return []; }
+  }
+  function saveTickets(list){ localStorage.setItem(SUPORTE_KEY, JSON.stringify(list)); }
+  function agoraFmt(){
+    const d = new Date();
+    return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+  function renderSuporte(){
+    const nome = meuNomeAtual();
+    const meus = getTickets().filter(t => t.nome === nome).sort((a,b)=> b.criadoEm.localeCompare(a.criadoEm));
+    const wrap = document.getElementById('suporte-lista');
+    if(meus.length === 0){
+      wrap.innerHTML = `<div style="text-align:center; color:var(--text-dim); font-size:12px; padding:26px 0;">
+        Nenhum chamado ainda.<br>Toque em "+ Novo chamado" pra falar com o suporte.</div>`;
+      return;
+    }
+    wrap.innerHTML = meus.map(t => {
+      const ultima = t.mensagens[t.mensagens.length-1];
+      const label = t.status === 'fechado' ? 'Encerrado' : (t.status === 'respondido' ? 'Respondido' : 'Aguardando');
+      const preview = ultima ? (ultima.texto.length > 58 ? ultima.texto.slice(0,58)+'…' : ultima.texto) : '';
+      return `<div class="section-card ticket-card" onclick="abrirTicket('${t.id}')">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+          <b style="font-size:13px;">${t.assunto}</b>
+          <span class="badge-status ${t.status}">${label}</span>
+        </div>
+        <div style="color:var(--text-dim); font-size:11.5px;">${preview}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function abrirNovoTicket(){
+    document.getElementById('nt-assunto').value = '';
+    document.getElementById('nt-mensagem').value = '';
+    document.getElementById('novo-ticket-overlay').classList.add('open');
+  }
+  function fecharNovoTicket(){ document.getElementById('novo-ticket-overlay').classList.remove('open'); }
+  function enviarNovoTicket(){
+    const nome = meuNomeAtual();
+    const assunto = document.getElementById('nt-assunto').value.trim();
+    const mensagem = document.getElementById('nt-mensagem').value.trim();
+    if(!assunto || !mensagem){ alert('Preencha o assunto e a mensagem.'); return; }
+    const dataAdmin = getSharedAdminData();
+    const registro = dataAdmin && Array.isArray(dataAdmin.assinantes)
+      ? dataAdmin.assinantes.find(a => (a.nome||'').trim().toLowerCase() === nome.toLowerCase())
+      : null;
+    const tropa = registro && dataAdmin.tropas ? (dataAdmin.tropas.find(t => t.id === registro.tropaId) || {}).nome : '';
+    const todos = getTickets();
+    todos.push({
+      id: 'tk_' + Date.now(),
+      nome, tropa: tropa || '',
+      assunto,
+      status: 'aberto',
+      mensagens: [{ de:'motorista', texto: mensagem, em: agoraFmt() }],
+      criadoEm: new Date().toISOString(),
+    });
+    saveTickets(todos);
+    fecharNovoTicket();
+    renderSuporte();
+  }
+  document.getElementById('novo-ticket-overlay').addEventListener('click', (e) => {
+    if(e.target.id === 'novo-ticket-overlay') fecharNovoTicket();
+  });
+
+  let ticketAtualId = null;
+  function abrirTicket(id){
+    ticketAtualId = id;
+    renderThreadTicket();
+    document.getElementById('ticket-overlay').classList.add('open');
+  }
+  function fecharTicket(){
+    document.getElementById('ticket-overlay').classList.remove('open');
+    ticketAtualId = null;
+  }
+  function renderThreadTicket(){
+    const t = getTickets().find(x => x.id === ticketAtualId);
+    if(!t){ fecharTicket(); return; }
+    document.getElementById('ticket-titulo').textContent = t.assunto;
+    const encerrado = t.status === 'fechado';
+    document.getElementById('ticket-mensagens').innerHTML = t.mensagens.map(m => `
+      <div class="msg-row ${m.de==='motorista' ? 'mine' : ''}">
+        <div class="msg-bubble" style="background:${m.de==='motorista' ? 'var(--green-dim)' : 'var(--muted-bg)'}; color:${m.de==='motorista' ? '#06210f' : 'var(--text)'};">${m.texto}</div>
+        <div class="msg-meta">${m.de==='motorista' ? 'Você' : 'Suporte'} · ${m.em}</div>
+      </div>`).join('');
+    document.getElementById('ticket-resposta-wrap').style.display = encerrado ? 'none' : 'flex';
+    document.getElementById('ticket-encerrado-nota').style.display = encerrado ? 'block' : 'none';
+    document.getElementById('btn-reabrir-ticket').style.display = encerrado ? 'block' : 'none';
+  }
+  function enviarRespostaTicket(){
+    const texto = document.getElementById('ticket-resposta').value.trim();
+    if(!texto) return;
+    const todos = getTickets();
+    const t = todos.find(x => x.id === ticketAtualId);
+    if(!t) return;
+    t.mensagens.push({ de:'motorista', texto, em: agoraFmt() });
+    t.status = 'aberto';
+    saveTickets(todos);
+    document.getElementById('ticket-resposta').value = '';
+    renderThreadTicket();
+    renderSuporte();
+  }
+  function encerrarTicketMotorista(){
+    const todos = getTickets();
+    const t = todos.find(x => x.id === ticketAtualId);
+    if(!t) return;
+    t.status = 'fechado';
+    saveTickets(todos);
+    renderThreadTicket();
+    renderSuporte();
+  }
+  function reabrirTicketMotorista(){
+    const todos = getTickets();
+    const t = todos.find(x => x.id === ticketAtualId);
+    if(!t) return;
+    t.status = 'aberto';
+    saveTickets(todos);
+    renderThreadTicket();
+    renderSuporte();
+  }
+  document.getElementById('ticket-overlay').addEventListener('click', (e) => {
+    if(e.target.id === 'ticket-overlay') fecharTicket();
+  });
+
+  // ---------- navegação de telas ----------
+  function formularioTemAlteracoes(){
+    const telaNovo = document.getElementById('novo');
+    if(!telaNovo.classList.contains('active') || formSnapshot === null) return false;
+    return JSON.stringify(lerFormulario()) !== formSnapshot;
+  }
+  function showScreen(id, navId, forcarNovo){
+    if(formularioTemAlteracoes() && (id !== 'novo' || forcarNovo)){
+      const sair = confirm('Você tem alterações não salvas em "Novo lançamento". Quer sair mesmo assim e perder essas alterações?');
+      if(!sair) return;
+    }
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.getElementById('bottomnav').style.display = 'flex';
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if(navId) document.getElementById(navId).classList.add('active');
+
+    if(id === 'dashboard') renderDashboard();
+    if(id === 'analise') renderAnalise();
+    if(id === 'historico') renderHistorico();
+    if(id === 'suporte') renderSuporte();
+    if(id === 'novo') prepararFormulario(forcarNovo ? todayISO() : null);
+  }
+
+  // atalho direto pra edição (usado pelo histórico e pelo link "Editar hoje" no painel)
+  function editarLancamento(dataISO){
+    showScreen('novo', 'nav-novo');
+    document.getElementById('in-data').value = dataISO;
+    carregarLancamentoNoForm(dataISO);
+    atualizarBotaoExcluir(dataISO);
+    atualizarEstimativa();
+    formSnapshot = JSON.stringify(lerFormulario());
+  }
+
+  // ---------- form: botoes de combustivel ----------
+  document.querySelectorAll('.fuel-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.fuel-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      fuelSelecionado = btn.dataset.fuel;
+    });
+  });
+
+  // ---------- preparar formulario (carrega lancamento do dia se ja existir) ----------
+  function prepararFormulario(forcarDataISO){
+    const dataInput = document.getElementById('in-data');
+    if(forcarDataISO) dataInput.value = forcarDataISO;
+    if(!dataInput.value) dataInput.value = todayISO();
+    document.getElementById('in-meta').value = getMeta() || '';
+    carregarLancamentoNoForm(dataInput.value);
+    atualizarBotaoExcluir(dataInput.value);
+    document.getElementById('save-msg').style.display = 'none';
+    atualizarEstimativa();
+    formSnapshot = JSON.stringify(lerFormulario());
+  }
+
+  function atualizarBotaoExcluir(dataISO){
+    const registros = getLancamentos();
+    document.getElementById('btn-excluir').style.display = registros[dataISO] ? 'block' : 'none';
+  }
+
+  function carregarLancamentoNoForm(dataISO){
+    const registros = getLancamentos();
+    const r = registros[dataISO];
+    const campos = ['in-uber','in-99','in-promo','in-outroapp','in-km','in-horas','in-combustivel','in-precolitro','in-alimentacao','in-carro','in-lavagem','in-outros'];
+    document.querySelectorAll('.fuel-btn').forEach(b => b.classList.remove('active'));
+    fuelSelecionado = null;
+    if(!r){
+      campos.forEach(id => document.getElementById(id).value = '');
+      atualizarLitrosCalc();
+      return;
+    }
+    document.getElementById('in-uber').value = r.uber || '';
+    document.getElementById('in-99').value = r.n99 || '';
+    document.getElementById('in-promo').value = r.promo || '';
+    document.getElementById('in-outroapp').value = r.outroApp || '';
+    document.getElementById('in-km').value = r.km || '';
+    document.getElementById('in-horas').value = r.horas || '';
+    document.getElementById('in-combustivel').value = r.combustivel || '';
+    document.getElementById('in-precolitro').value = r.precoLitro || '';
+    document.getElementById('in-alimentacao').value = r.alimentacao || '';
+    document.getElementById('in-carro').value = r.carro || '';
+    document.getElementById('in-lavagem').value = r.lavagem || '';
+    document.getElementById('in-outros').value = r.outros || '';
+    if(r.combustivelTipo){
+      fuelSelecionado = r.combustivelTipo;
+      const b = document.querySelector(`.fuel-btn[data-fuel="${r.combustivelTipo}"]`);
+      if(b) b.classList.add('active');
+    }
+    atualizarLitrosCalc();
+  }
+
+  function atualizarLitrosCalc(){
+    const combustivel = parseFloat(document.getElementById('in-combustivel').value) || 0;
+    const precoLitro = parseFloat(document.getElementById('in-precolitro').value) || 0;
+    const display = document.getElementById('in-litros-display');
+    display.textContent = precoLitro > 0 ? (combustivel/precoLitro).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}) + ' L' : '—';
+  }
+
+  document.getElementById('in-data').addEventListener('change', (e) => {
+    carregarLancamentoNoForm(e.target.value);
+    atualizarBotaoExcluir(e.target.value);
+    atualizarEstimativa();
+    formSnapshot = JSON.stringify(lerFormulario());
+  });
+
+  // recalcula o "lucro estimado" ao vivo enquanto o usuario digita
+  ['in-uber','in-99','in-promo','in-outroapp','in-combustivel','in-precolitro','in-alimentacao','in-carro','in-lavagem','in-outros'].forEach(id => {
+    document.getElementById(id).addEventListener('input', atualizarEstimativa);
+  });
+  ['in-combustivel','in-precolitro'].forEach(id => {
+    document.getElementById(id).addEventListener('input', atualizarLitrosCalc);
+  });
+
+  function lerFormulario(){
+    const num = id => parseFloat(document.getElementById(id).value) || 0;
+    return {
+      uber: num('in-uber'),
+      n99: num('in-99'),
+      promo: num('in-promo'),
+      outroApp: num('in-outroapp'),
+      km: num('in-km'),
+      horas: num('in-horas'),
+      combustivel: num('in-combustivel'),
+      combustivelTipo: fuelSelecionado,
+      precoLitro: num('in-precolitro'),
+      alimentacao: num('in-alimentacao'),
+      carro: num('in-carro'),
+      lavagem: num('in-lavagem'),
+      outros: num('in-outros')
+    };
+  }
+
+  function calcularMetricas(r){
+    const faturamento = r.uber + r.n99 + r.promo + r.outroApp;
+    const gastos = r.combustivel + r.alimentacao + (r.carro || 0) + (r.lavagem || 0) + r.outros;
+    const lucro = faturamento - gastos;
+    const horas = r.horas || 0;
+    const km = r.km || 0;
+    return {
+      faturamento, gastos, lucro,
+      fatH: horas ? faturamento/horas : 0,
+      fatKm: km ? faturamento/km : 0,
+      custoH: horas ? gastos/horas : 0,
+      custoKm: km ? gastos/km : 0,
+      lucroH: horas ? lucro/horas : 0,
+      lucroKm: km ? lucro/km : 0
+    };
+  }
+
+  function atualizarEstimativa(){
+    const r = lerFormulario();
+    const m = calcularMetricas(r);
+    document.getElementById('estimate-value').textContent = fmtMoney(m.lucro);
+  }
+
+  // ---------- salvar lançamento ----------
+  document.getElementById('btn-salvar').addEventListener('click', () => {
+    const dataISO = document.getElementById('in-data').value || todayISO();
+    const registro = lerFormulario();
+    registro.data = dataISO;
+
+    const tudoZerado = !registro.uber && !registro.n99 && !registro.promo && !registro.outroApp &&
+      !registro.km && !registro.horas && !registro.combustivel && !registro.precoLitro &&
+      !registro.alimentacao && !registro.carro && !registro.lavagem && !registro.outros;
+    if(tudoZerado){
+      const confirmar = confirm('Todos os valores estão zerados (sem ganhos, gastos, km ou horas). Quer salvar mesmo assim?');
+      if(!confirmar) return;
+    }
+
+    const registros = getLancamentos();
+    registros[dataISO] = registro;
+    saveLancamentos(registros);
+
+    const metaVal = parseFloat(document.getElementById('in-meta').value);
+    if(!isNaN(metaVal) && metaVal > 0) setMeta(metaVal);
+
+    const msg = document.getElementById('save-msg');
+    msg.textContent = '✓ Lançamento salvo com sucesso';
+    msg.style.display = 'block';
+    atualizarBotaoExcluir(dataISO);
+    formSnapshot = JSON.stringify(lerFormulario()); // marca como "sem alterações pendentes"
+
+    setTimeout(() => showScreen('dashboard','nav-dash'), 700);
+  });
+
+  // ---------- excluir lançamento ----------
+  function excluirLancamentoAtual(){
+    const dataISO = document.getElementById('in-data').value;
+    excluirLancamento(dataISO);
+  }
+
+  function excluirLancamento(dataISO, event){
+    if(event) event.stopPropagation(); // evita abrir edição ao clicar na lixeira do histórico
+    if(!confirm(`Excluir o lançamento de ${fmtDateBR(dataISO)}? Essa ação não pode ser desfeita.`)) return;
+
+    const registros = getLancamentos();
+    delete registros[dataISO];
+    saveLancamentos(registros);
+
+    // se a exclusão veio do formulário, limpa os campos e some com o botão
+    if(document.getElementById('in-data').value === dataISO){
+      carregarLancamentoNoForm(dataISO);
+      atualizarBotaoExcluir(dataISO);
+      atualizarEstimativa();
+    }
+    renderHistorico();
+    renderDashboard();
+  }
+
+  // ---------- exportar / importar dados (backup) ----------
+  function baixarArquivo(conteudo, nomeArquivo, tipo){
+    const blob = new Blob([conteudo], { type: tipo });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nomeArquivo;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function exportarJSON(){
+    const dados = {};
+    ALL_KEYS.forEach(k => {
+      const v = localStorage.getItem(k);
+      if(v !== null) dados[k] = v;
+    });
+    dados._formato = 'painelMotorista-backup';
+    dados._exportadoEm = new Date().toISOString();
+    baixarArquivo(JSON.stringify(dados, null, 2), `drivewin-backup-${todayISO()}.json`, 'application/json');
+  }
+
+  function exportarCSV(){
+    const registros = getLancamentos();
+    const datas = Object.keys(registros).sort();
+    const cabecalho = ['data','uber','99','promo','outroApp','km','horas','combustivel','combustivelTipo','precoLitro','alimentacao','carro','lavagem','outros','faturamento','gastos','lucro'];
+    const linhas = [cabecalho.join(',')];
+    datas.forEach(d => {
+      const r = registros[d];
+      const m = calcularMetricas(r);
+      const linha = [
+        d, r.uber||0, r.n99||0, r.promo||0, r.outroApp||0, r.km||0, r.horas||0,
+        r.combustivel||0, r.combustivelTipo||'', r.precoLitro||0, r.alimentacao||0,
+        r.carro||0, r.lavagem||0, r.outros||0,
+        m.faturamento.toFixed(2), m.gastos.toFixed(2), m.lucro.toFixed(2)
+      ];
+      linhas.push(linha.join(','));
+    });
+    if(datas.length === 0) linhas.push('(nenhum lançamento registrado ainda)');
+    baixarArquivo('\uFEFF' + linhas.join('\n'), `drivewin-lancamentos-${todayISO()}.csv`, 'text/csv;charset=utf-8');
+  }
+
+  function importarJSON(event){
+    const arquivo = event.target.files[0];
+    if(!arquivo) return;
+    const leitor = new FileReader();
+    leitor.onload = (e) => {
+      let dados;
+      try{
+        dados = JSON.parse(e.target.result);
+      }catch(err){
+        alert('Arquivo inválido. Selecione um JSON exportado pelo próprio DriveWin.');
+        event.target.value = '';
+        return;
+      }
+      if(dados._formato !== 'painelMotorista-backup'){
+        alert('Esse arquivo não parece ser um backup do DriveWin.');
+        event.target.value = '';
+        return;
+      }
+      const confirmar = confirm('Importar esse backup vai substituir todos os lançamentos e metas salvos neste aparelho. Quer continuar?');
+      if(!confirmar){ event.target.value = ''; return; }
+
+      ALL_KEYS.forEach(k => {
+        if(dados[k] !== undefined) localStorage.setItem(k, dados[k]);
+      });
+
+      event.target.value = '';
+      fecharConfigMeta();
+      renderDashboard();
+      renderAnalise();
+      renderHistorico();
+      alert('Backup importado com sucesso!');
+    };
+    leitor.readAsText(arquivo);
+  }
+
+  // ---------- nível do motorista (gamificação) ----------
+  const RANKS_NIVEL = [
+    { nome: 'Não sabe de nada',  emoji: '🥶', min: 0,   max: 50,  cor: '#8a8a8a' },
+    { nome: 'Ruim de pista',     emoji: '😬', min: 50,  max: 100, cor: '#ff5470' },
+    { nome: 'Iniciante',         emoji: '🌱', min: 100, max: 200, cor: '#e8c547' },
+    { nome: 'Alta performance',  emoji: '🚀', min: 200, max: 400, cor: '#1c8f00' },
+    { nome: 'Expert',            emoji: '👑', min: 400, max: 500, cor: '#31f900' }
+  ];
+
+  function calcularMediaFaturamento(){
+    const registros = getLancamentos();
+    const datas = Object.keys(registros);
+    const dias = datas.length;
+    let fatTotal = 0;
+    datas.forEach(d => fatTotal += calcularMetricas(registros[d]).faturamento);
+    return { media: dias > 0 ? fatTotal/dias : 0, dias };
+  }
+
+  function obterRank(media){
+    for(let i = 0; i < RANKS_NIVEL.length - 1; i++){
+      if(media < RANKS_NIVEL[i].max) return RANKS_NIVEL[i];
+    }
+    return RANKS_NIVEL[RANKS_NIVEL.length - 1];
+  }
+
+  function hexParaRgba(hex, alpha){
+    const h = hex.replace('#','');
+    const r = parseInt(h.substring(0,2), 16);
+    const g = parseInt(h.substring(2,4), 16);
+    const b = parseInt(h.substring(4,6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function renderNivel(){
+    const { media, dias } = calcularMediaFaturamento();
+    const rank = obterRank(media);
+    const pctBanda = rank.max > rank.min
+      ? Math.min(100, Math.max(0, Math.round(((media - rank.min) / (rank.max - rank.min)) * 100)))
+      : 100;
+
+    const circunferencia = 427; // 2 * π * 68 (raio do anel de nível)
+    const offset = circunferencia - (circunferencia * pctBanda / 100);
+
+    const anel = document.getElementById('nivel-anel');
+    anel.style.strokeDashoffset = offset;
+    anel.setAttribute('stroke', rank.cor);
+    anel.style.filter = `drop-shadow(0 0 5px ${hexParaRgba(rank.cor, 0.85)})`;
+
+    document.getElementById('nivel-emoji').textContent = rank.emoji;
+    document.getElementById('nivel-pct').textContent = pctBanda + '%';
+    document.getElementById('nivel-nome').textContent = rank.nome;
+    document.getElementById('nivel-nome').style.color = rank.cor;
+    document.getElementById('nivel-media').textContent = `Média: ${fmtMoney(media)}/dia`;
+    document.getElementById('nivel-dias').textContent = `${dias} dia${dias === 1 ? '' : 's'} registrado${dias === 1 ? '' : 's'}`;
+
+    const card = document.getElementById('nivel-card');
+    card.style.background = `linear-gradient(135deg, ${hexParaRgba(rank.cor, 0.14)}, var(--card) 65%)`;
+    card.style.borderColor = hexParaRgba(rank.cor, 0.4);
+
+    const ehTopo = rank.nome === 'Expert';
+    if(ehTopo && media >= rank.max){
+      document.getElementById('nivel-prox').textContent = '👑 Nível máximo atingido!';
+    } else {
+      const falta = Math.max(0, rank.max - media);
+      document.getElementById('nivel-prox').textContent = `Falta ${fmtMoney(falta)} de média/dia pro próximo nível`;
+    }
+  }
+
+  // ---------- render dashboard ----------
+  function renderDashboard(){
+    renderNivel();
+
+    const registros = getLancamentos();
+    const hoje = todayISO();
+    const r = registros[hoje];
+    const meta = getMeta();
+
+    if(!r){
+      document.getElementById('d-pct').textContent = '0%';
+      document.getElementById('d-lucro').textContent = 'R$ 0,00';
+      document.getElementById('d-meta').textContent = `de ${fmtMoney(meta)} de meta`;
+      document.getElementById('d-data').textContent = 'Nenhum lançamento hoje';
+      document.getElementById('gauge-circle').style.strokeDashoffset = 540;
+      ['d-horas','d-km'].forEach(id => document.getElementById(id).textContent = '0');
+      ['d-fath','d-fatkm','d-custoh','d-custokm','d-lucroh','d-lucrokm'].forEach(id => document.getElementById(id).textContent = 'R$ 0,00');
+      document.getElementById('d-custokm-destaque').textContent = 'R$ 0,00';
+      ['uber','99','promo','outroapp'].forEach(k => {
+        document.getElementById(`d-${k}-v`).textContent = 'R$ 0,00';
+        document.getElementById(`d-${k}-bar`).style.width = '0%';
+        document.getElementById(`d-${k}-pct`).textContent = '0%';
+      });
+      return;
+    }
+
+    const m = calcularMetricas(r);
+    const pct = meta > 0 ? Math.min(100, Math.round((m.lucro/meta)*100)) : 0;
+    const offset = 540 - (540 * Math.max(0,pct) / 100);
+
+    document.getElementById('d-pct').textContent = pct + '%';
+    document.getElementById('d-lucro').textContent = fmtMoney(m.lucro);
+    document.getElementById('d-meta').textContent = `de ${fmtMoney(meta)} de meta`;
+    document.getElementById('d-data').textContent = new Date(hoje + 'T00:00:00').toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long'});
+    document.getElementById('gauge-circle').style.strokeDashoffset = offset;
+
+    document.getElementById('d-horas').textContent = (r.horas || 0).toLocaleString('pt-BR') + ' h';
+    document.getElementById('d-km').textContent = (r.km || 0).toLocaleString('pt-BR');
+    document.getElementById('d-fath').textContent = fmtMoney(m.fatH);
+    document.getElementById('d-fatkm').textContent = fmtMoney(m.fatKm);
+    document.getElementById('d-custoh').textContent = fmtMoney(m.custoH);
+    document.getElementById('d-custokm').textContent = fmtMoney(m.custoKm);
+    document.getElementById('d-lucroh').textContent = fmtMoney(m.lucroH);
+    document.getElementById('d-lucrokm').textContent = fmtMoney(m.lucroKm);
+    document.getElementById('d-custokm-destaque').textContent = fmtMoney(m.custoKm);
+
+    const apps = [['uber', r.uber], ['99', r.n99], ['promo', r.promo], ['outroapp', r.outroApp]];
+    apps.forEach(([k, v]) => {
+      const pctApp = m.faturamento > 0 ? Math.round((v/m.faturamento)*100) : 0;
+      document.getElementById(`d-${k}-v`).textContent = fmtMoney(v);
+      document.getElementById(`d-${k}-bar`).style.width = pctApp + '%';
+      document.getElementById(`d-${k}-pct`).textContent = pctApp + '%';
+    });
+  }
+
+  // ---------- render análise / acompanhamento (somente leitura) ----------
+  // ---------- metas (dia / semana / mês) ----------
+  function calcularLucroPeriodo(inicioISO, fimISO){
+    const registros = getLancamentos();
+    let total = 0;
+    Object.keys(registros).forEach(d => {
+      if(d >= inicioISO && d <= fimISO) total += calcularMetricas(registros[d]).lucro;
+    });
+    return total;
+  }
+
+  function preencherGoalRow(key, atual, meta){
+    const pct = meta > 0 ? Math.min(100, Math.max(0, Math.round((atual/meta)*100))) : 0;
+    const falta = Math.max(0, meta - atual);
+    const batida = meta > 0 && atual >= meta;
+
+    document.getElementById(`mt-${key}-valores`).textContent = `${fmtMoney(atual)} / ${fmtMoney(meta)}`;
+    document.getElementById(`mt-${key}-bar`).style.width = pct + '%';
+    document.getElementById(`mt-${key}-bar`).style.background = batida ? 'var(--green)' : (atual < 0 ? 'var(--pink)' : 'var(--green)');
+    document.getElementById(`mt-${key}-pct`).textContent = pct + '%';
+    document.getElementById(`mt-${key}-falta`).textContent = batida ? '🎉 Meta batida' : `Falta ${fmtMoney(falta)}`;
+    document.getElementById(`mt-${key}-row`).classList.toggle('batida', batida);
+  }
+
+  function preencherGoalRowUnidade(key, atual, meta, unidade, casas){
+    const pct = meta > 0 ? Math.min(100, Math.max(0, Math.round((atual/meta)*100))) : 0;
+    const batida = meta > 0 && atual >= meta;
+    const fmt = (n) => n.toLocaleString('pt-BR', {minimumFractionDigits:casas, maximumFractionDigits:casas});
+
+    document.getElementById(`mt-${key}-valores`).textContent = `${fmt(atual)}/${fmt(meta)}${unidade}`;
+    document.getElementById(`mt-${key}-bar`).style.width = pct + '%';
+    document.getElementById(`mt-${key}-bar`).style.background = batida ? 'var(--green)' : 'var(--pink)';
+  }
+
+  function atualizarMetasCard(){
+    const hoje = todayISO();
+    const inicioSemanaISO = diasNoRange('semana').toISOString().slice(0,10);
+    const inicioMesISO = diasNoRange('mes').toISOString().slice(0,10);
+
+    const lucroDia = calcularLucroPeriodo(hoje, hoje);
+    const lucroSemana = calcularLucroPeriodo(inicioSemanaISO, hoje);
+    const lucroMes = calcularLucroPeriodo(inicioMesISO, hoje);
+
+    preencherGoalRow('dia', lucroDia, getMeta());
+    preencherGoalRow('semana', lucroSemana, getMetaSemana());
+    preencherGoalRow('mes', lucroMes, getMetaMes());
+  }
+
+  function periodoAnterior(range){
+    const hoje = new Date();
+    if(range === 'dia'){
+      const ontem = new Date(hoje); ontem.setDate(hoje.getDate() - 1);
+      const iso = ontem.toISOString().slice(0,10);
+      return { inicio: iso, fim: iso, label: 'ontem' };
+    }
+    if(range === 'semana'){
+      const fimAnt = new Date(hoje); fimAnt.setDate(hoje.getDate() - 7);
+      const inicioAnt = new Date(hoje); inicioAnt.setDate(hoje.getDate() - 13);
+      return { inicio: inicioAnt.toISOString().slice(0,10), fim: fimAnt.toISOString().slice(0,10), label: 'semana passada' };
+    }
+    const inicioMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const fimMesAnterior = new Date(inicioMesAtual); fimMesAnterior.setDate(fimMesAnterior.getDate() - 1);
+    const inicioMesAnterior = new Date(fimMesAnterior.getFullYear(), fimMesAnterior.getMonth(), 1);
+    return { inicio: inicioMesAnterior.toISOString().slice(0,10), fim: fimMesAnterior.toISOString().slice(0,10), label: 'mês passado' };
+  }
+
+  function renderComparacaoPeriodo(range, lucroAtual){
+    const wrap = document.getElementById('a-comparacao-wrap');
+    const badge = document.getElementById('a-comparacao-badge');
+    if(range === 'geral'){
+      wrap.style.display = 'none';
+      return;
+    }
+    const { inicio, fim, label } = periodoAnterior(range);
+    const lucroAnterior = calcularLucroPeriodo(inicio, fim);
+
+    let texto, classe;
+    if(lucroAnterior === 0 && lucroAtual === 0){
+      texto = `Sem lançamentos ${label} pra comparar`;
+      classe = 'flat';
+    } else if(lucroAnterior === 0){
+      texto = `▲ novo lucro (sem base ${label})`;
+      classe = 'up';
+    } else {
+      const variacao = Math.round(((lucroAtual - lucroAnterior) / Math.abs(lucroAnterior)) * 100);
+      if(variacao > 0){ texto = `▲ +${variacao}% vs ${label}`; classe = 'up'; }
+      else if(variacao < 0){ texto = `▼ ${variacao}% vs ${label}`; classe = 'down'; }
+      else { texto = `= igual a ${label}`; classe = 'flat'; }
+    }
+    badge.textContent = texto;
+    badge.className = 'compare-badge ' + classe;
+    wrap.style.display = 'block';
+  }
+
+  function renderAnalise(){
+    atualizarMetasCard();
+
+    const registros = getLancamentos();
+    const todasDatas = Object.keys(registros).sort();
+
+    if(todasDatas.length === 0){
+      document.getElementById('a-vazio').innerHTML = 'Sem dados ainda.<br>Lance seus ganhos pra ver o acompanhamento completo aqui.';
+      document.getElementById('a-vazio').style.display = 'block';
+      document.getElementById('a-conteudo').style.display = 'none';
+      document.getElementById('a-comparacao-wrap').style.display = 'none';
+      return;
+    }
+
+    // filtra pelas datas do periodo selecionado (Geral = sem filtro)
+    let datas = todasDatas;
+    if(currentRangeAnalise !== 'geral'){
+      const inicioISO = diasNoRange(currentRangeAnalise).toISOString().slice(0,10);
+      const hojeISO = todayISO();
+      datas = todasDatas.filter(d => d >= inicioISO && d <= hojeISO);
+    }
+
+    if(datas.length === 0){
+      document.getElementById('a-vazio').style.display = 'block';
+      document.getElementById('a-vazio').innerHTML = 'Sem lançamentos nesse período.<br>Tente "Geral" ou registre um novo dia.';
+      document.getElementById('a-conteudo').style.display = 'none';
+      document.getElementById('a-comparacao-wrap').style.display = 'none';
+      return;
+    }
+    document.getElementById('a-vazio').style.display = 'none';
+    document.getElementById('a-conteudo').style.display = 'block';
+
+    let fatTotal=0, gastoTotal=0, kmTotal=0, hTotal=0, litrosTotal=0;
+    let catCombustivel=0, catAlimentacao=0, catCarro=0, catLavagem=0, catOutros=0;
+    let appUber=0, app99=0, appPromo=0, appOutro=0;
+    let melhor = null, pior = null;
+
+    datas.forEach(d => {
+      const r = registros[d];
+      const m = calcularMetricas(r);
+      fatTotal += m.faturamento;
+      gastoTotal += m.gastos;
+      kmTotal += (r.km||0);
+      hTotal += (r.horas||0);
+      litrosTotal += (r.combustivel > 0 && r.precoLitro > 0) ? r.combustivel/r.precoLitro : 0;
+      catCombustivel += r.combustivel||0;
+      catAlimentacao += r.alimentacao||0;
+      catCarro += r.carro||0;
+      catLavagem += r.lavagem||0;
+      catOutros += r.outros||0;
+      appUber += r.uber||0;
+      app99 += r.n99||0;
+      appPromo += r.promo||0;
+      appOutro += r.outroApp||0;
+      if(!melhor || m.lucro > melhor.lucro) melhor = {data:d, lucro:m.lucro};
+      if(!pior || m.lucro < pior.lucro) pior = {data:d, lucro:m.lucro};
+    });
+
+    const lucroTotal = fatTotal - gastoTotal;
+    const margem = fatTotal > 0 ? Math.round((lucroTotal/fatTotal)*100) : 0;
+
+    // metas de produção (horas/km são diárias, multiplicadas pelos dias do período; dias é a meta do período)
+    const metaHorasDia = getMetaHoras();
+    const metaKmDia = getMetaKm();
+    const metaDiasPeriodo = getMetaDias();
+    preencherGoalRowUnidade('horas', hTotal, metaHorasDia * datas.length, 'h', 1);
+    const fatKmMedio = kmTotal > 0 ? fatTotal/kmTotal : 0;
+    preencherGoalRowUnidade('km', fatKmMedio, metaKmDia, ' R$/km', 2);
+    preencherGoalRowUnidade('dias', datas.length, metaDiasPeriodo, '', 0);
+
+    document.getElementById('a-fat-total').textContent = fmtMoney(fatTotal);
+    document.getElementById('a-gasto-total').textContent = fmtMoney(gastoTotal);
+    document.getElementById('a-lucro-total').textContent = fmtMoney(lucroTotal);
+    document.getElementById('a-margem').textContent = margem + '%';
+
+    document.getElementById('a-custokm-destaque').textContent = fmtMoney(kmTotal > 0 ? gastoTotal/kmTotal : 0);
+    const kml = (litrosTotal > 0 && kmTotal > 0) ? kmTotal/litrosTotal : null;
+    const precoL = litrosTotal > 0 ? catCombustivel/litrosTotal : null;
+    document.getElementById('a-kml').textContent = kml !== null ? kml.toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}) + ' km/l' : '—';
+    document.getElementById('a-precolitro').textContent = precoL !== null ? fmtMoney(precoL) : '—';
+    document.getElementById('a-consumo-nota').style.display = litrosTotal > 0 ? 'none' : 'block';
+
+    renderComparacaoPeriodo(currentRangeAnalise, lucroTotal);
+
+    // grafico receita x despesa por dia
+    const dualChart = document.getElementById('a-dual-chart');
+    dualChart.innerHTML = '';
+    const maxVal = Math.max(...datas.map(d => {
+      const m = calcularMetricas(registros[d]);
+      return Math.max(m.faturamento, m.gastos);
+    }), 1);
+    datas.forEach(d => {
+      const m = calcularMetricas(registros[d]);
+      const pair = document.createElement('div');
+      pair.className = 'dual-pair';
+      pair.title = `${fmtDateBR(d)} — Receita: ${fmtMoney(m.faturamento)} / Despesa: ${fmtMoney(m.gastos)}`;
+      const bReceita = document.createElement('div');
+      bReceita.className = 'dual-bar receita';
+      bReceita.style.height = Math.max(2, m.faturamento/maxVal*100) + 'px';
+      const bDespesa = document.createElement('div');
+      bDespesa.className = 'dual-bar despesa';
+      bDespesa.style.height = Math.max(2, m.gastos/maxVal*100) + 'px';
+      pair.appendChild(bReceita);
+      pair.appendChild(bDespesa);
+      dualChart.appendChild(pair);
+    });
+    document.getElementById('a-dual-x').innerHTML =
+      `<span>${fmtDateBR(datas[0])}</span><span>${fmtDateBR(datas[datas.length-1])}</span>`;
+
+    // barra de margem: verde (atingido) sobre trilho roxo (restante)
+    const margemMedia = margem; // já calculada acima (lucroTotal/fatTotal)
+    document.getElementById('a-margem-media').textContent = margemMedia + '%';
+    document.getElementById('a-margem-media').style.color = margemMedia >= 20 ? 'var(--green)' : 'var(--pink)';
+    document.getElementById('a-margem-linha').style.width = Math.max(0, Math.min(100, margemMedia)) + '%';
+
+    // despesas por categoria
+    const categorias = [
+      ['⛽ Combustível', catCombustivel],
+      ['🍔 Alimentação', catAlimentacao],
+      ['🚗 Carro/Aluguel', catCarro],
+      ['🧼 Lavagem', catLavagem],
+      ['🔧 Outros', catOutros]
+    ];
+    document.getElementById('a-despesas-rows').innerHTML = categorias.map(([nome, valor]) => {
+      const pct = gastoTotal > 0 ? Math.round((valor/gastoTotal)*100) : 0;
+      return `<div class="app-row">
+        <div class="app-info">
+          <div class="app-name-row"><b>${nome}</b><span>${fmtMoney(valor)}</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:var(--pink);"></div></div>
+        </div>
+        <div class="app-pct">${pct}%</div>
+      </div>`;
+    }).join('');
+
+    // receita por app (geral)
+    const apps = [['Uber', appUber], ['99', app99], ['Promoção', appPromo], ['Outro app', appOutro]];
+    document.getElementById('a-apps-rows').innerHTML = apps.map(([nome, valor]) => {
+      const pct = fatTotal > 0 ? Math.round((valor/fatTotal)*100) : 0;
+      return `<div class="app-row">
+        <div class="app-info">
+          <div class="app-name-row"><b>${nome}</b><span>${fmtMoney(valor)}</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        </div>
+        <div class="app-pct">${pct}%</div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('a-media-fatkm').textContent = fmtMoney(kmTotal>0 ? fatTotal/kmTotal : 0);
+    document.getElementById('a-media-fath').textContent = fmtMoney(hTotal>0 ? fatTotal/hTotal : 0);
+    document.getElementById('a-media-lucrokm').textContent = fmtMoney(kmTotal>0 ? lucroTotal/kmTotal : 0);
+    document.getElementById('a-media-lucroh').textContent = fmtMoney(hTotal>0 ? lucroTotal/hTotal : 0);
+
+    document.getElementById('a-melhor').innerHTML = melhor ? `${fmtDateBR(melhor.data)}<br>${fmtMoney(melhor.lucro)}` : '—';
+    document.getElementById('a-pior').innerHTML = pior ? `${fmtDateBR(pior.data)}<br>${fmtMoney(pior.lucro)}` : '—';
+    document.getElementById('a-dias').textContent = datas.length;
+    document.getElementById('a-km-total').textContent = kmTotal.toLocaleString('pt-BR') + ' km';
+    document.getElementById('a-h-total').textContent = hTotal.toLocaleString('pt-BR') + ' h';
+  }
+
+  // ---------- render historico ----------
+  function setRange(range, el){
+    currentRange = range;
+    document.querySelectorAll('#historico .tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    renderHistorico();
+  }
+
+  function setRangeAnalise(range, el){
+    currentRangeAnalise = range;
+    document.querySelectorAll('#analise .tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    renderAnalise();
+  }
+
+  function diasNoRange(range){
+    const hoje = new Date();
+    let inicio = new Date(hoje);
+    if(range === 'dia'){
+      // apenas hoje
+    } else if(range === 'semana'){
+      inicio.setDate(hoje.getDate() - 6);
+    } else {
+      inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    }
+    return inicio;
+  }
+
+  function renderHistorico(){
+    const registros = getLancamentos();
+    const todasDatas = Object.keys(registros).sort();
+    const inicio = diasNoRange(currentRange);
+    const inicioISO = inicio.toISOString().slice(0,10);
+    const hojeISO = todayISO();
+
+    const filtradas = todasDatas.filter(d => d >= inicioISO && d <= hojeISO);
+
+    let totalFat = 0, totalLucro = 0;
+    filtradas.forEach(d => {
+      const m = calcularMetricas(registros[d]);
+      totalFat += m.faturamento;
+      totalLucro += m.lucro;
+    });
+
+    document.getElementById('h-faturado').textContent = fmtMoney(totalFat);
+    document.getElementById('h-lucro').textContent = fmtMoney(totalLucro);
+    document.getElementById('h-diascount').textContent = `${filtradas.length} dia${filtradas.length===1?'':'s'} com lançamento`;
+
+    // grafico
+    const chartWrap = document.getElementById('chartBars');
+    const chartEmpty = document.getElementById('chart-empty');
+    chartWrap.innerHTML = '';
+    if(filtradas.length === 0){
+      chartEmpty.style.display = 'block';
+      chartWrap.style.display = 'none';
+      document.getElementById('chart-x').innerHTML = '<span></span>';
+    } else {
+      chartEmpty.style.display = 'none';
+      chartWrap.style.display = 'flex';
+      const lucros = filtradas.map(d => calcularMetricas(registros[d]).lucro);
+      const maxAbs = Math.max(...lucros.map(v => Math.abs(v)), 1);
+      filtradas.forEach(d => {
+        const l = calcularMetricas(registros[d]).lucro;
+        const bar = document.createElement('div');
+        bar.className = 'chart-bar' + (l < 0 ? ' neg' : '');
+        bar.style.height = Math.max(3, Math.abs(l)/maxAbs*100) + 'px';
+        bar.title = `${fmtDateBR(d)}: ${fmtMoney(l)}`;
+        chartWrap.appendChild(bar);
+      });
+      document.getElementById('chart-x').innerHTML =
+        `<span>${fmtDateBR(filtradas[0])}</span><span>${fmtDateBR(filtradas[filtradas.length-1])}</span>`;
+    }
+
+    // lista de dias recentes (mais novo primeiro)
+    const dayRows = document.getElementById('day-rows');
+    const recentes = [...filtradas].reverse().slice(0, 10);
+    if(recentes.length === 0){
+      dayRows.innerHTML = `<div style="text-align:center; color:var(--text-dim); font-size:12px; padding:18px 0;">
+        Nenhum dia lançado ainda.<br>Toque em "+ Novo" pra registrar seu primeiro dia.</div>`;
+      return;
+    }
+    dayRows.innerHTML = recentes.map(d => {
+      const m = calcularMetricas(registros[d]);
+      const cls = m.lucro >= 0 ? 'pos' : 'neg';
+      const sinal = m.lucro >= 0 ? '+' : '-';
+      return `<div class="day-row" style="cursor:pointer;" onclick="editarLancamento('${d}')">
+        <div class="day-date">${fmtDateBR(d)}</div>
+        <div class="day-mid"><span class="day-amt">${fmtMoney(m.faturamento)}</span><span class="day-delta ${cls}">${sinal}${fmtMoney(Math.abs(m.lucro))}</span></div>
+        <div class="day-km">${(registros[d].km||0)} km</div>
+        <div class="chev" style="color:var(--pink); font-size:15px; padding-left:8px;" onclick="excluirLancamento('${d}', event)">🗑</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ---------- config de metas (menu ☰) ----------
+  function abrirConfigMeta(){
+    document.getElementById('cfg-meta').value = getMeta() || '';
+    document.getElementById('cfg-meta-semana').value = getMetaSemana() || '';
+    document.getElementById('cfg-meta-mes').value = getMetaMes() || '';
+    document.getElementById('cfg-meta-horas').value = getMetaHoras() || '';
+    document.getElementById('cfg-meta-km').value = getMetaKm() || '';
+    document.getElementById('cfg-meta-dias').value = getMetaDias() || '';
+    document.getElementById('cfg-lembrete-on').checked = localStorage.getItem(LEMBRETE_ON_KEY) === 'true';
+    document.getElementById('cfg-lembrete-hora').value = localStorage.getItem(LEMBRETE_HORA_KEY) || '20:00';
+    document.getElementById('config-save-msg').style.display = 'none';
+    document.getElementById('config-overlay').classList.add('open');
+  }
+  function fecharConfigMeta(){
+    document.getElementById('config-overlay').classList.remove('open');
+  }
+  function salvarConfigMeta(){
+    const metaDia = parseFloat(document.getElementById('cfg-meta').value);
+    const metaSemana = parseFloat(document.getElementById('cfg-meta-semana').value);
+    const metaMes = parseFloat(document.getElementById('cfg-meta-mes').value);
+    const metaHoras = parseFloat(document.getElementById('cfg-meta-horas').value);
+    const metaKm = parseFloat(document.getElementById('cfg-meta-km').value);
+    const metaDias = parseFloat(document.getElementById('cfg-meta-dias').value);
+    let salvouAlgo = false;
+
+    if(!isNaN(metaDia) && metaDia > 0){ setMeta(metaDia); salvouAlgo = true; }
+    if(!isNaN(metaSemana) && metaSemana > 0){ setMetaSemana(metaSemana); salvouAlgo = true; }
+    if(!isNaN(metaMes) && metaMes > 0){ setMetaMes(metaMes); salvouAlgo = true; }
+    if(!isNaN(metaHoras) && metaHoras > 0){ setMetaHoras(metaHoras); salvouAlgo = true; }
+    if(!isNaN(metaKm) && metaKm > 0){ setMetaKm(metaKm); salvouAlgo = true; }
+    if(!isNaN(metaDias) && metaDias > 0){ setMetaDias(metaDias); salvouAlgo = true; }
+
+    if(salvouAlgo){
+      const msg = document.getElementById('config-save-msg');
+      msg.style.display = 'block';
+      renderDashboard();
+      renderAnalise();
+      setTimeout(fecharConfigMeta, 700);
+    }
+  }
+  document.getElementById('config-overlay').addEventListener('click', (e) => {
+    if(e.target.id === 'config-overlay') fecharConfigMeta();
+  });
+
+  // ---------- inicialização ----------
+  document.getElementById('in-data').value = todayISO();
+
+  // avisa antes de fechar/recarregar a aba com alterações não salvas em "Novo lançamento"
+  window.addEventListener('beforeunload', (e) => {
+    if(formularioTemAlteracoes()){
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  // Enter finaliza o preenchimento do campo (fecha teclado, não recarrega a página)
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && e.target.tagName === 'INPUT'){
+      e.preventDefault();
+      e.target.blur();
+    }
+  });
+</script>
+
+</body>
+</html>
