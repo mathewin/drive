@@ -752,6 +752,10 @@
       <input class="form-input" id="na-nome" type="text" placeholder="Nome completo do motorista">
     </div>
     <div class="form-group">
+      <label class="form-label">E-mail do motorista (para ele entrar)</label>
+      <input class="form-input" id="na-email" type="email" placeholder="email@exemplo.com">
+    </div>
+    <div class="form-group">
       <label class="form-label">Tropa</label>
       <select class="form-input" id="na-tropa" style="background:var(--card); color:var(--text);"></select>
     </div>
@@ -936,7 +940,7 @@
     __db.parceiros = (parceiros.data||[]).map(p => ({ id:p.id, tropaId:p.tropa_id, nome:p.nome, cupom:p.cupom, comissaoMes:p.comissao_mes, comissaoTotal:p.comissao_total }));
     __db.candidatos = (candidatos.data||[]).map(c => ({ id:c.id, nome:c.nome, perfil:c.perfil }));
     __db.colaboradores = (colaboradores.data||[]).map(x => ({ id:x.id, nome:x.nome, email:x.email, todasTropas:x.todas_tropas, tropaIds:x.tropa_ids||[] }));
-    __db.assinantes = (assinantes.data||[]).map(a => ({ id:a.id, nome:a.nome, tropaId:a.tropa_id, status:a.status, ativo:a.ativo, venc:a.venc, historico:a.historico||[], criadoEm:a.criado_em }));
+    __db.assinantes = (assinantes.data||[]).map(a => ({ id:a.id, nome:a.nome, email:a.email||null, tropaId:a.tropa_id, status:a.status, ativo:a.ativo, venc:a.venc, historico:a.historico||[], criadoEm:a.criado_em }));
     __db.filaPagamento = (fila.data||[]).map(f => ({ id:f.id, assinante:f.assinante, valor:f.valor, motivo:f.motivo }));
     __db.alertasFraude = (alertas.data||[]).map(x => ({ titulo:x.titulo, desc:x.descricao }));
     __db.rankingRegiao = (ranking.data||[]).map(r => ({ nome:r.nome, tropa:r.tropa, valor:r.valor }));
@@ -1150,7 +1154,11 @@
       const label = a.status === 'pago' ? 'Pago' : a.status === 'pendente' ? 'Pendente' : 'Atrasado';
       const bloqueado = a.status === 'atrasado';
       return `<tr>
-        <td><b class="link-name" onclick="abrirHistorico('${a.id}')">${a.nome}</b></td>
+        <td><b class="link-name" onclick="abrirHistorico('${a.id}')">${a.nome}</b>
+          ${a.email
+            ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${a.email}</div>`
+            : `<div style="font-size:11px;margin-top:2px;"><span class="btn-sm" onclick="definirEmailAssinante('${a.id}')">+ e-mail</span></div>`}
+        </td>
         <td>${tropa ? tropa.nome : '—'}</td>
         <td><span class="badge ${badge}">${label}</span></td>
         <td>${fmtDate(a.venc)}</td>
@@ -1193,6 +1201,23 @@
     logAuditoria(a.status === 'atrasado' ? 'Acesso bloqueado' : 'Acesso liberado', a.nome);
     toast(a.status === 'atrasado' ? `Acesso de ${a.nome} bloqueado` : `Acesso de ${a.nome} liberado`);
     renderAssinantes(); renderDashboard();
+  }
+  async function definirEmailAssinante(id){
+    const d = getData();
+    const a = d.assinantes.find(x => x.id === id);
+    if(!a) return;
+    const email = (prompt(`E-mail do motorista (para ele entrar no app) — ${a.nome}`, a.email || '') || '').trim().toLowerCase();
+    if(!email) return;
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast('E-mail inválido'); return; }
+    if(d.assinantes.some(x => x.id !== id && (x.email||'').trim().toLowerCase() === email)){
+      toast('Já existe outro assinante com esse e-mail');
+      return;
+    }
+    a.email = email;
+    await DWClient.from('assinantes').update({ email }).eq('id', a.id);
+    logAuditoria('E-mail do assinante definido', `${a.nome} — ${email}`);
+    toast(`E-mail de ${a.nome} definido`);
+    renderAssinantes();
   }
 
   function abrirHistorico(id){
@@ -1318,10 +1343,15 @@
   });
   async function salvarNovoAssinante(){
     const nome = document.getElementById('na-nome').value.trim();
+    const email = (document.getElementById('na-email').value || '').trim().toLowerCase();
     const tropaId = document.getElementById('na-tropa').value;
     const status = document.getElementById('na-status').value;
     if(!nome){
       toast('Informe o nome do assinante');
+      return;
+    }
+    if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+      toast('E-mail inválido');
       return;
     }
     const d = getData();
@@ -1329,10 +1359,15 @@
       toast('Já existe um assinante com esse nome');
       return;
     }
+    if(email && d.assinantes.some(a => (a.email||'').trim().toLowerCase() === email)){
+      toast('Já existe um assinante com esse e-mail');
+      return;
+    }
     const venc = new Date();
     venc.setDate(venc.getDate() + 30);
     const novo = {
       nome,
+      email: email || null,
       tropa_id: tropaId || null,
       status,
       ativo: true,
@@ -1343,13 +1378,14 @@
     d.assinantes.push({
       id: inserido.id,
       nome,
+      email: email || null,
       tropaId: tropaId || null,
       status,
       ativo: true,
       venc: novo.venc,
       historico: novo.historico,
     });
-    logAuditoria('Acesso vendido', `${nome} — ${status}`);
+    logAuditoria('Acesso vendido', `${nome}${email ? ' — ' + email : ''} — ${status}`);
     toast(`Acesso de ${nome} cadastrado`);
     fecharNovoAssinante();
     renderAssinantes();

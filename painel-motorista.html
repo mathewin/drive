@@ -1199,11 +1199,17 @@
       _meuNome = (perfil && perfil.nome) || '';
     }
 
-    // checagem de acesso ativo
-    const { data: assinantes } = await DWClient.from('assinantes')
-      .select('*')
-      .ilike('nome', _meuNome.trim());
-    const registro = (assinantes||[]).find(a => (a.nome||'').trim().toLowerCase() === _meuNome.trim().toLowerCase());
+    // checagem de acesso ativo — prioriza o e-mail (seguro); o nome só p/ assinantes antigos sem e-mail
+    const emailLogin = (user.email || '').trim().toLowerCase();
+    let registro = null;
+    if(emailLogin){
+      const { data: porEmail } = await DWClient.from('assinantes').select('*').ilike('email', emailLogin);
+      registro = (porEmail||[]).find(a => (a.email||'').trim().toLowerCase() === emailLogin);
+    }
+    if(!registro){
+      const { data: porNome } = await DWClient.from('assinantes').select('*').ilike('nome', _meuNome.trim());
+      registro = (porNome||[]).find(a => !(a.email||'').trim() && (a.nome||'').trim().toLowerCase() === _meuNome.trim().toLowerCase());
+    }
     if(!registro){
       mostrarErroLogin('Acesso não encontrado. Fale com um parceiro para assinar o DriveWin.');
       return;

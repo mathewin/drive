@@ -6,11 +6,12 @@ function seedDb(){
     perfis: [
       { id:'u-moto', nome:'Joao', papel:'motorista', email:'joao@x.com', todas_tropas:false, tropa_ids:[] },
       { id:'u-moto2', nome:'Pedro', papel:'motorista', email:'pedro@x.com', todas_tropas:false, tropa_ids:[] },
+      { id:'u-falso', nome:'Joao', papel:'motorista', email:'falso@x.com', todas_tropas:false, tropa_ids:[] },
     ],
     tropas: [ { id:'t1', nome:'Tropa do Carlos', ativa:true } ],
     parceiros: [], candidatos: [],
     assinantes: [
-      { id:'a1', nome:'Joao', tropa_id:'t1', status:'pago', ativo:true, historico:[] },
+      { id:'a1', nome:'Joao', email:'joao@x.com', tropa_id:'t1', status:'pago', ativo:true, historico:[] },
       { id:'a2', nome:'Pedro', tropa_id:'t1', status:'pago', ativo:false, historico:[] },
     ],
     fila_pagamento: [], alertas_fraude: [], ranking_regiao: [], premios: [],
@@ -96,6 +97,30 @@ async function main(){
     process.exit(1);
   }
   console.log('[moto] abrir chamado ok → tropa', ch.tropa);
+
+  // --- segurança: mesmo nome, e-mail diferente NÃO entra (assinante tem e-mail) ---
+  auth.signInWithPassword = async ({email,password}) => ({ data:{ user:{ id:'u-falso', email } }, error:null });
+  document.getElementById('login-email').value = 'falso@x.com';
+  document.getElementById('login-senha').value = 'senha';
+  await window.entrarMotorista();
+  const erroImpostor = document.getElementById('login-erro');
+  if(!(erroImpostor.style.display === 'block' && (erroImpostor.textContent||'').includes('Acesso não encontrado'))){
+    console.error('[moto] FALHOU: impostor (mesmo nome, outro e-mail) conseguiu acesso');
+    process.exit(1);
+  }
+  console.log('[moto] segurança ok → impostor (mesmo nome, outro e-mail) bloqueado');
+
+  // --- fallback legado: assinante sem e-mail é achado pelo nome; Pedro suspenso (ativo=false) bloqueia ---
+  auth.signInWithPassword = async ({email,password}) => ({ data:{ user:{ id:'u-moto2', email } }, error:null });
+  document.getElementById('login-email').value = 'pedro@x.com';
+  document.getElementById('login-senha').value = 'senha';
+  await window.entrarMotorista();
+  const erroPedro = document.getElementById('login-erro');
+  if(!(erroPedro.style.display === 'block' && (erroPedro.textContent||'').includes('suspenso'))){
+    console.error('[moto] FALHOU: Pedro (sem e-mail, ativo=false) não foi bloqueado por suspensão');
+    process.exit(1);
+  }
+  console.log('[moto] fallback nome ok → Pedro (sem e-mail) encontrado e bloqueado por suspensão');
 
   console.log('\n=== TESTES MOTORISTA PASSARAM ===');
 }
