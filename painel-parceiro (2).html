@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DriveWin Parceiro — Prévia</title>
+<style>
+  :root{
+    --bg: #0a0a0a;
+    --card: #161616;
+    --card-border: #262626;
+    --green: #31f900;
+    --green-dim: #1c8f00;
+    --green-lucro: #00e6a0;
+    --pink: #c864af;
+    --pink-vivid: #ff2e92;
+    --text: #f2f2f2;
+    --text-dim: #8a8a8a;
+    --red: #ff5470;
+    --amber: #ffb100;
+    --track-bg: #222;
+    --divider: #1c1c1c;
+    --muted-bg: #1c1c1c;
+    --tab-active-bg: #2a2a2a;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text); display:flex; flex-direction:column; align-items:center; min-height:100vh;
+  }
+  .phone{ width:100%; max-width:480px; background: var(--bg); min-height:100vh; display:flex; flex-direction:column; position:relative; }
+  .screen{ flex:1; display:none; flex-direction:column; padding:10px 20px 90px; overflow-y:auto; }
+  .screen.active{ display:flex; }
+
+  /* ---------- LOGIN ---------- */
+  #login{ justify-content:center; text-align:center; padding-bottom:20px; position:relative; overflow:hidden; }
+  .login-glow{
+    width:100%; height:260px;
+    background: radial-gradient(circle at 35% 25%, rgba(49,249,0,0.22), transparent 60%),
+                radial-gradient(circle at 70% 35%, rgba(255,46,146,0.18), transparent 55%);
+    position:absolute; top:20px; left:0; pointer-events:none;
+  }
+  .login-badge{
+    display:inline-flex; align-items:center; gap:6px; background: rgba(255,46,146,0.12);
+    border:1px solid rgba(255,46,146,0.45); color: var(--pink-vivid); font-size:10.5px; font-weight:800;
+    letter-spacing:.03em; padding:6px 14px; border-radius:20px; margin-top:38px; position:relative;
+  }
+  .login-title{ font-size:32px; font-weight:800; margin-top:14px; }
+  .login-title span{ color: var(--green); text-shadow: 0 0 18px rgba(49,249,0,0.55); }
+  .login-sub{ color: var(--text-dim); font-size:13px; margin-top:8px; margin-bottom:34px; }
+  .field{
+    background: var(--card); border:1px solid var(--card-border); border-radius:14px; padding:14px 16px;
+    text-align:left; color: var(--text-dim); font-size:14px; margin-bottom:14px; display:flex; align-items:center; gap:10px;
+  }
+  .btn-primary{
+    background: linear-gradient(135deg, var(--green), var(--green-lucro)); color:#06210f; border:none;
+    border-radius:14px; padding:15px; font-weight:800; font-size:15px; width:100%; margin-top:10px; cursor:pointer;
+    box-shadow: 0 0 22px rgba(49,249,0,0.35);
+  }
+  .privacy-note{ margin-top:auto; color: var(--text-dim); font-size:11px; padding-top:30px; }
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{ display:flex; justify-content:space-between; align-items:center; padding-top:6px; margin-bottom:4px; }
+  .topbar-title{ font-size:17px; font-weight:800; }
+  .topbar-title span{ color: var(--green); }
+  .bell-btn{ width:36px; height:36px; border-radius:10px; background: var(--card); border:1px solid var(--card-border);
+    display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; position:relative; }
+  .bell-dot{ position:absolute; top:6px; right:6px; width:7px; height:7px; border-radius:50%; background: var(--pink-vivid); display:none; }
+  .bell-dot.on{ display:block; }
+
+  /* ---------- CARDS ---------- */
+  .section-card{ background: var(--card); border:1px solid var(--card-border); border-radius:14px; padding:14px 16px; margin-top:14px; }
+  .section-title{ font-size:12px; font-weight:700; color: var(--text-dim); margin-bottom:12px; letter-spacing:.04em; text-transform:uppercase; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat-card{ background: var(--card); border:1px solid var(--card-border); border-radius:14px; padding:12px 14px; }
+  .stat-label{ color: var(--text-dim); font-size:12px; margin-bottom:6px; }
+  .stat-value{ font-size:18px; font-weight:800; }
+  .stat-value.green{ color: var(--green); }
+  .stat-value.pink{ color: var(--pink-vivid); }
+
+  .bar-track{ height:8px; background: var(--track-bg); border-radius:6px; overflow:hidden; }
+  .bar-fill{ height:100%; background: var(--green); border-radius:6px; transition: width .3s ease; }
+  .progress-line{ display:flex; justify-content:space-between; font-size:11.5px; color: var(--text-dim); margin-top:8px; }
+
+  .tropa-hero{
+    background: linear-gradient(135deg, rgba(49,249,0,0.12), rgba(200,100,175,0.08));
+    border:1px solid var(--green-dim); border-radius:16px; padding:18px; margin-top:12px; text-align:center;
+  }
+  .tropa-hero .nome{ font-size:19px; font-weight:800; }
+  .tropa-hero .qtd{ font-size:34px; font-weight:800; color: var(--green); margin-top:6px; }
+  .tropa-hero .qtd-label{ color: var(--text-dim); font-size:11.5px; }
+
+  .badges-row{ display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+  .marco-badge{ flex:1; min-width:90px; text-align:center; padding:10px 6px; border-radius:12px; font-size:11px; font-weight:700; background: var(--muted-bg); color: var(--text-dim); border:1px solid var(--card-border); }
+  .marco-badge .val{ display:block; font-size:14px; margin-top:2px; }
+  .marco-badge.liberado{ background: rgba(49,249,0,0.1); color: var(--green); border-color: var(--green-dim); }
+
+  .day-row{ display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--divider); font-size:13px; }
+  .day-row:last-child{ border-bottom:none; }
+  .badge{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; }
+  .badge.green{ color: var(--green); background: rgba(49,249,0,0.1); }
+  .badge.red{ color: var(--red); background: rgba(255,84,112,0.12); }
+
+  .cupom-box{ display:flex; align-items:center; justify-content:space-between; background: var(--muted-bg); border:1px dashed var(--card-border); border-radius:12px; padding:14px 16px; margin-top:8px; }
+  .cupom-code{ font-family: monospace; font-size:19px; font-weight:800; letter-spacing:.04em; color: var(--pink-vivid); }
+  .btn-copy{ background: var(--card); border:1px solid var(--card-border); border-radius:10px; padding:8px 12px; font-size:12px; font-weight:700; cursor:pointer; }
+  .btn-share{ margin-top:10px; display:block; text-align:center; background: linear-gradient(135deg, var(--pink), var(--pink-vivid)); color:#fff; border-radius:12px; padding:13px; font-weight:800; font-size:13.5px; cursor:pointer; }
+
+  .notif-row{ padding:12px 0; border-bottom:1px solid var(--divider); font-size:12.5px; }
+  .notif-row:last-child{ border-bottom:none; }
+  .notif-row .t{ color: var(--text-dim); font-size:10.5px; margin-top:3px; }
+  .empty-note-parceiro{ color: var(--text-dim); font-size:12px; text-align:center; padding:16px 6px; line-height:1.5; }
+
+  /* ---------- SIMULADOR ---------- */
+  .sim-row{ display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .sim-row input[type=range]{ flex:1; accent-color: var(--green); }
+  .sim-count{ font-size:14px; font-weight:800; width:48px; text-align:right; }
+  .sim-result{ display:flex; justify-content:space-between; align-items:center; background: var(--muted-bg); border-radius:10px; padding:10px 12px; margin-top:12px; }
+  .sim-result .lbl{ font-size:12px; color: var(--text-dim); }
+  .sim-result .val{ font-size:16px; font-weight:800; color: var(--green); }
+  .sim-marco-note{ font-size:11.5px; color: var(--pink-vivid); font-weight:700; margin-top:8px; }
+
+  /* ---------- MATERIAL DE DIVULGAÇÃO ---------- */
+  .material-card{ background: var(--muted-bg); border:1px solid var(--card-border); border-radius:12px; padding:12px; margin-top:10px; }
+  .material-banner{
+    height:90px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    text-align:center; font-weight:800; font-size:13px; color:#fff; padding:10px;
+    background: linear-gradient(135deg, var(--pink), var(--pink-vivid));
+  }
+  .material-banner.alt{ background: linear-gradient(135deg, var(--green-dim), var(--green)); color:#06210f; }
+  .material-legenda{ font-size:11.5px; color: var(--text-dim); margin-top:8px; line-height:1.5; }
+  .material-actions{ display:flex; gap:8px; margin-top:8px; }
+
+  /* ---------- TERMOS ---------- */
+  .terms-row{ display:flex; align-items:flex-start; gap:8px; text-align:left; font-size:11.5px; color: var(--text-dim); width:100%; margin-top:4px; line-height:1.5; }
+  .terms-row input{ margin-top:2px; accent-color: var(--green); flex-shrink:0; }
+  .terms-row a{ color: var(--pink-vivid); font-weight:700; }
+
+  /* ---------- BOTTOM NAV ---------- */
+  .bottomnav{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px;
+    background: rgba(10,10,10,0.95); backdrop-filter: blur(6px); border-top:1px solid var(--divider);
+    display:flex; justify-content:space-around; align-items:center; padding:10px 0 18px; z-index:20;
+  }
+  .nav-item{ display:flex; flex-direction:column; align-items:center; gap:3px; color: var(--text-dim); font-size:10px; font-weight:600; cursor:pointer; }
+  .nav-item.active{ color: var(--green); }
+  .nav-icon{ font-size:18px; }
+
+  /* ---------- overlay notificações ---------- */
+  .overlay{ position:absolute; inset:0; background:rgba(0,0,0,0.55); display:none; align-items:flex-start; justify-content:center; z-index:50; padding-top:60px; }
+  .overlay.open{ display:flex; }
+  .overlay-panel{ width: calc(100% - 40px); max-width:400px; background: var(--card); border:1px solid var(--card-border); border-radius:16px; padding:18px; max-height:70vh; overflow-y:auto; }
+  .overlay-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .overlay-title{ font-size:15px; font-weight:800; }
+  .overlay-close{ color: var(--text-dim); font-size:20px; cursor:pointer; line-height:1; }
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+
+  <!-- LOGIN -->
+  <div class="screen active" id="login">
+    <div class="login-glow"></div>
+    <div class="login-badge">🤝 ÁREA DO PARCEIRO</div>
+    <div class="login-title">Drive<span>Win</span></div>
+    <div class="login-sub">Acompanhe sua tropa e sua comissão</div>
+    <div class="field"><span>📧</span>seuemail@exemplo.com</div>
+    <div class="field"><span>🔒</span>••••••••</div>
+    <label class="terms-row"><input type="checkbox" id="terms-check">Li e aceito os <a href="#">Termos de Uso</a> e a <a href="#">Política de Privacidade</a></label>
+    <button class="btn-primary" onclick="entrar()">Entrar</button>
+    <div class="privacy-note">🔒 Você só vê os dados da sua própria tropa</div>
+  </div>
+
+  <!-- VISÃO GERAL -->
+  <div class="screen" id="visao">
+    <div class="topbar">
+      <div class="topbar-title">Tropa do <span id="vg-nome-parceiro">Marcos</span></div>
+      <div class="bell-btn" onclick="abrirNotificacoes()">🔔<span class="bell-dot" id="bell-dot"></span></div>
+    </div>
+
+    <div class="tropa-hero">
+      <div class="nome" id="vg-tropa-nome">Tropa do Marcos</div>
+      <div class="qtd" id="vg-qtd">0</div>
+      <div class="qtd-label">assinantes ativos</div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">PROGRESSO ATÉ O PRÓXIMO MARCO</div>
+      <div class="bar-track"><div class="bar-fill" id="vg-bar" style="width:0%;"></div></div>
+      <div class="progress-line"><span id="vg-progresso-texto">—</span><span id="vg-progresso-pct">0%</span></div>
+      <div class="badges-row">
+        <div class="marco-badge" id="marco-60">60<span class="val">Diário</span></div>
+        <div class="marco-badge" id="marco-90">90<span class="val">Semanal</span></div>
+        <div class="marco-badge" id="marco-120">120<span class="val">Mensal</span></div>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:14px;">
+      <div class="stat-card">
+        <div class="stat-label">💰 Comissão no mês</div>
+        <div class="stat-value green" id="vg-comissao-mes">R$ 0,00</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">📈 Total já recebido</div>
+        <div class="stat-value" id="vg-comissao-total">R$ 0,00</div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">SIMULE SUA COMISSÃO</div>
+      <div style="font-size:12px; color:var(--text-dim);">Arraste pra ver quanto você ganharia trazendo mais assinantes</div>
+      <div class="sim-row">
+        <input type="range" id="sim-slider" min="0" max="1000" step="5" value="0" oninput="renderSimulador()">
+        <span class="sim-count" id="sim-count">+0</span>
+      </div>
+      <div class="sim-result">
+        <span class="lbl">Nova comissão mensal</span>
+        <span class="val" id="sim-comissao">R$ 0,00</span>
+      </div>
+      <div class="sim-marco-note" id="sim-marco-note"></div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">HISTÓRICO DE COMISSÕES</div>
+      <div id="vg-historico"></div>
+    </div>
+  </div>
+
+  <!-- MEMBROS -->
+  <div class="screen" id="membros">
+    <div class="topbar"><div class="topbar-title">Membros da tropa</div></div>
+    <div class="section-card" style="margin-top:6px;">
+      <div class="section-title">ASSINANTES QUE ENTRARAM COM SEU CUPOM</div>
+      <div id="membros-list"></div>
+    </div>
+  </div>
+
+  <!-- RANKING -->
+  <div class="screen" id="ranking">
+    <div class="topbar"><div class="topbar-title">Ranking da tropa</div></div>
+    <div class="section-card" style="margin-top:6px;">
+      <div class="section-title">QUEM MAIS FATUROU ESTA SEMANA</div>
+      <div id="ranking-list"></div>
+    </div>
+  </div>
+
+  <!-- CUPOM -->
+  <div class="screen" id="cupom">
+    <div class="topbar"><div class="topbar-title">Cupom &amp; divulgação</div></div>
+    <div class="section-card" style="margin-top:6px;">
+      <div class="section-title">SEU CÓDIGO DE CUPOM</div>
+      <div class="cupom-box">
+        <span class="cupom-code" id="cupom-codigo">MARCOS10</span>
+        <span class="btn-copy" onclick="copiarCupom()">Copiar</span>
+      </div>
+      <div class="btn-share" onclick="compartilhar()">📤 Compartilhar no Instagram</div>
+    </div>
+    <div class="section-card">
+      <div class="section-title">COMO FUNCIONA</div>
+      <div style="font-size:12.5px; color:var(--text-dim); line-height:1.6;">
+        Todo motorista que assinar o DriveWin usando seu cupom entra automaticamente na sua tropa.
+        Você ganha R$1,49 por assinante ativo, todo mês em que ele renovar.
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">MATERIAL PRONTO PRA DIVULGAR</div>
+      <div id="materiais-list"></div>
+    </div>
+  </div>
+
+  <!-- NOTIFICACOES (overlay) -->
+  <div class="overlay" id="notif-overlay">
+    <div class="overlay-panel">
+      <div class="overlay-header">
+        <div class="overlay-title">Notificações</div>
+        <div class="overlay-close" onclick="fecharNotificacoes()">✕</div>
+      </div>
+      <div id="notif-list"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottomnav" id="bottomnav" style="display:none;">
+    <div class="nav-item active" id="nav-visao" onclick="showScreen('visao','nav-visao')"><span class="nav-icon">🏁</span>Início</div>
+    <div class="nav-item" id="nav-membros" onclick="showScreen('membros','nav-membros')"><span class="nav-icon">👥</span>Membros</div>
+    <div class="nav-item" id="nav-ranking" onclick="showScreen('ranking','nav-ranking')"><span class="nav-icon">🏆</span>Ranking</div>
+    <div class="nav-item" id="nav-cupom" onclick="showScreen('cupom','nav-cupom')"><span class="nav-icon">🎟️</span>Cupom</div>
+  </div>
+
+</div>
+
+<script>
+  const STORAGE_KEY = 'drivewin_parceiro_mock_v2';
+
+  function seed(){
+    return {
+      parceiro: { nome:'Marcos', tropaNome:'Tropa do Marcos', cupom:'MARCOS10' },
+      assinantesAtivos: 0,
+      comissaoMes: 0,
+      comissaoTotal: 0,
+      historico: [],
+      membros: [],
+      rankingSemana: [],
+      notificacoes: [
+        { texto:'👋 Bem-vindo à sua área de parceiro! Divulgue seu cupom pra começar a formar sua tropa.', tempo:'agora' },
+      ],
+      materiais: [
+        { estilo:'', titulo:'🏁 Bora rodar com mais lucro?', legenda:'Chega de anotar ganho no caderno! Baixe o DriveWin e use meu cupom MARCOS10 pra ganhar desconto na assinatura. 🚗💨' },
+        { estilo:'alt', titulo:'💰 Cupom de desconto liberado', legenda:'Use o cupom MARCOS10 no DriveWin e pague menos por mês. Controle seus ganhos e ainda concorra a prêmios em dinheiro!' },
+        { estilo:'', titulo:'🏆 Prêmios toda semana', legenda:'Motorista de app parceiro do DriveWin concorre a prêmio semanal e mensal. Entra na Tropa do Marcos com o cupom MARCOS10.' },
+      ],
+    };
+  }
+  function getData(){
+    let raw = localStorage.getItem(STORAGE_KEY);
+    const base = seed();
+    if(!raw){ localStorage.setItem(STORAGE_KEY, JSON.stringify(base)); return base; }
+    const saved = JSON.parse(raw);
+    // preenche com valores padrão qualquer campo novo que não existia em dados salvos antigos
+    const merged = Object.assign({}, base, saved);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    return merged;
+  }
+  function fmtMoney(v){ return 'R$ ' + (v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+  function entrar(){
+    if(!document.getElementById('terms-check').checked){
+      alert('Pra continuar, você precisa aceitar os Termos de Uso e a Política de Privacidade.');
+      return;
+    }
+    document.getElementById('bottomnav').style.display = 'flex';
+    showScreen('visao', document.getElementById('nav-visao'));
+    renderTudo();
+  }
+
+  function showScreen(id, el){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if(el) el.classList.add('active');
+  }
+
+  function renderVisaoGeral(){
+    const d = getData();
+    document.getElementById('vg-nome-parceiro').textContent = d.parceiro.nome;
+    document.getElementById('vg-tropa-nome').textContent = d.parceiro.tropaNome;
+    document.getElementById('vg-qtd').textContent = d.assinantesAtivos;
+
+    const n = d.assinantesAtivos;
+    let proximo, faltam, base;
+    if(n < 60){ proximo = 60; base = 0; }
+    else if(n < 90){ proximo = 90; base = 60; }
+    else if(n < 120){ proximo = 120; base = 90; }
+    else { proximo = null; }
+
+    if(proximo){
+      faltam = proximo - n;
+      const pct = Math.round(((n-base)/(proximo-base))*100);
+      document.getElementById('vg-bar').style.width = pct + '%';
+      document.getElementById('vg-progresso-pct').textContent = pct + '%';
+      const label = proximo === 60 ? 'prêmio diário' : proximo === 90 ? 'prêmio semanal' : 'prêmio mensal (campeonato completo)';
+      document.getElementById('vg-progresso-texto').textContent = `Faltam ${faltam} assinantes para liberar o ${label}`;
+    } else {
+      document.getElementById('vg-bar').style.width = '100%';
+      document.getElementById('vg-progresso-pct').textContent = '100%';
+      document.getElementById('vg-progresso-texto').textContent = 'Todos os marcos liberados 🎉';
+    }
+
+    document.getElementById('marco-60').classList.toggle('liberado', n >= 60);
+    document.getElementById('marco-90').classList.toggle('liberado', n >= 90);
+    document.getElementById('marco-120').classList.toggle('liberado', n >= 120);
+
+    document.getElementById('vg-comissao-mes').textContent = fmtMoney(d.comissaoMes);
+    document.getElementById('vg-comissao-total').textContent = fmtMoney(d.comissaoTotal);
+
+    document.getElementById('vg-historico').innerHTML = d.historico.length ? d.historico.map(h => `
+      <div class="day-row"><span style="color:var(--text-dim);">${h.mes}</span><b>${fmtMoney(h.valor)}</b></div>
+    `).join('') : '<div class="empty-note-parceiro">Você ainda não recebeu nenhuma comissão. Assim que alguém assinar com seu cupom, o valor aparece aqui.</div>';
+  }
+
+  function renderMembros(){
+    const d = getData();
+    document.getElementById('membros-list').innerHTML = d.membros.length ? d.membros.map(m => `
+      <div class="day-row">
+        <span>${m.nome}</span>
+        <span class="badge ${m.status==='ativo' ? 'green':'red'}">${m.status==='ativo' ? 'Ativo' : 'Atrasado'}</span>
+      </div>
+    `).join('') : '<div class="empty-note-parceiro">Sua tropa ainda não tem membros. Compartilhe seu cupom na aba Cupom pra começar a formar sua tropa.</div>';
+  }
+
+  function renderRanking(){
+    const d = getData();
+    document.getElementById('ranking-list').innerHTML = d.rankingSemana.length ? d.rankingSemana.map((r,i) => `
+      <div class="day-row"><span>${i+1}º · ${r[0]}</span><b>${fmtMoney(r[1])}</b></div>
+    `).join('') : '<div class="empty-note-parceiro">Sem lançamentos ainda. O ranking aparece assim que os membros da tropa começarem a registrar corridas.</div>';
+  }
+
+  function renderSimulador(){
+    const d = getData();
+    const extra = parseInt(document.getElementById('sim-slider').value, 10);
+    document.getElementById('sim-count').textContent = '+' + extra;
+    const novoTotal = d.assinantesAtivos + extra;
+    document.getElementById('sim-comissao').textContent = fmtMoney(novoTotal * 1.49);
+
+    const note = document.getElementById('sim-marco-note');
+    let proximo = null;
+    if(d.assinantesAtivos < 60) proximo = 60;
+    else if(d.assinantesAtivos < 90) proximo = 90;
+    else if(d.assinantesAtivos < 120) proximo = 120;
+
+    if(proximo && novoTotal >= proximo){
+      const label = proximo === 60 ? 'prêmio diário' : proximo === 90 ? 'prêmio semanal' : 'prêmio mensal';
+      note.textContent = `🎉 Com +${extra} assinantes você libera o ${label} da tropa!`;
+    } else if(proximo){
+      note.textContent = `Faltariam ${proximo - novoTotal} assinantes pra liberar o próximo marco.`;
+    } else {
+      note.textContent = '';
+    }
+  }
+
+  function renderMateriais(){
+    const d = getData();
+    document.getElementById('materiais-list').innerHTML = d.materiais.map((m,i) => `
+      <div class="material-card">
+        <div class="material-banner ${m.estilo}">${m.titulo}</div>
+        <div class="material-legenda">${m.legenda}</div>
+        <div class="material-actions">
+          <span class="btn-copy" onclick="copiarLegenda(${i})">Copiar legenda</span>
+        </div>
+      </div>
+    `).join('');
+  }
+  function copiarLegenda(i){
+    const d = getData();
+    const legenda = d.materiais[i].legenda;
+    navigator.clipboard && navigator.clipboard.writeText(legenda).catch(()=>{});
+    const el = event.target; const old = el.textContent;
+    el.textContent = 'Copiado!'; setTimeout(()=> el.textContent = old, 1200);
+  }
+
+  function renderCupom(){
+    const d = getData();
+    document.getElementById('cupom-codigo').textContent = d.parceiro.cupom;
+    renderMateriais();
+  }
+  function copiarCupom(){
+    const d = getData();
+    navigator.clipboard && navigator.clipboard.writeText(d.parceiro.cupom).catch(()=>{});
+    const el = event.target; const old = el.textContent;
+    el.textContent = 'Copiado!'; setTimeout(()=> el.textContent = old, 1200);
+  }
+  function compartilhar(){
+    const d = getData();
+    alert(`Link pronto para compartilhar:\nAssine o DriveWin com meu cupom ${d.parceiro.cupom} e economize! 🚗💰`);
+  }
+
+  function renderNotificacoes(){
+    const d = getData();
+    document.getElementById('notif-list').innerHTML = d.notificacoes.map(n => `
+      <div class="notif-row">${n.texto}<div class="t">${n.tempo}</div></div>
+    `).join('');
+    document.getElementById('bell-dot').classList.toggle('on', d.notificacoes.length > 0);
+  }
+  function abrirNotificacoes(){ document.getElementById('notif-overlay').classList.add('open'); }
+  function fecharNotificacoes(){ document.getElementById('notif-overlay').classList.remove('open'); }
+  document.getElementById('notif-overlay').addEventListener('click', e => {
+    if(e.target.id === 'notif-overlay') fecharNotificacoes();
+  });
+
+  function renderTudo(){
+    renderVisaoGeral();
+    renderMembros();
+    renderRanking();
+    renderCupom();
+    renderNotificacoes();
+    renderSimulador();
+  }
+</script>
+</body>
+</html>
