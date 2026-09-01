@@ -23,13 +23,16 @@ Para trocar de painel, use o link "Trocar painel" / "Central" disponível em cad
 
 Todo pagamento é manual via Pix — o sistema organiza o fluxo de **receber antes de liberar**:
 
-1. **Admin define a chave Pix e a mensalidade** na seção "Pix e mensalidade" (fica na tabela `config`).
-2. **Admin vende o acesso** cadastrando o assinante (com o e-mail do motorista). Acesso "pendente" nasce **bloqueado**.
-3. **Motorista tenta entrar** → vê a tela de pagamento com a chave Pix e o valor, paga e clica em **"Já fiz o Pix"**.
-4. O aviso entra na **Fila de avisos de pagamento** do Admin. O admin confere o recebido no banco e clica em **confirmar** → o acesso é liberado e o vencimento ganha +30 dias.
-5. **Renovação**: quando o `venc` passa, o motorista é redirecionado para a mesma tela de pagamento até renovar.
+1. **Admin define a chave Pix, os preços e as comissões** na seção "Pix e mensalidade" (tabela `config`): preço cheio (sem código), preço com parceiro, comissão do parceiro, WhatsApp do suporte e prêmios dos campeonatos.
+2. **Assinatura direta (sem código)**: o motorista entra no app, assina pelo **preço cheio**, paga via Pix e o admin confirma.
+3. **Com código de parceiro**: o motorista escolhe um parceiro na lista do app (ou digita o código do Instagram), o preço cai para o **preço com parceiro** e ele entra automaticamente na **Tropa do [parceiro]**.
+4. Em ambos os casos o acesso nasce **pendente/bloqueado**. O motorista vê a chave Pix e o valor, paga e clica em **"Já fiz o Pix"** — o aviso entra na **Fila de avisos de pagamento** do Admin.
+5. O admin (ou colaborador da tropa) confere o recebido no banco e **confirma** → acesso liberado + vencimento +30 dias.
+6. **Comissão recorrente**: cada renovação confirmada de um assinante com cupom credita a comissão do parceiro (todo mês, não só na 1ª venda).
+7. **Renovação**: acesso com `venc` vencido volta para a tela de pagamento; o app avisa **1 dia antes** do vencimento. Alternativa de suporte pelo **WhatsApp** configurado.
+8. **Campeonatos por tropa**: 60 assinantes ativos = campeonato diário, 90 = + semanal, 120 = + mensal (status visível no Admin e no Colaborador, com prêmios configuráveis).
 
-SQL necessário (uma vez): `supabase/addon_pix.sql` — cria a tabela `config` e as políticas para o motorista ver a chave e avisar o pagamento.
+SQL necessário (uma vez): `supabase/addon_pix.sql` (config + políticas de aviso de pagamento) e `supabase/addon_parceiros.sql` (colunas `valor`/`cupom`, auto-assinatura segura e leitura de parceiros/tropas pelo motorista).
 
 ## Banco de dados
 
@@ -41,6 +44,7 @@ Os dados ficam no Supabase (PostgreSQL). A configuração de acesso está em `su
 - `supabase/addon_operacional.sql` — **aplicado**: políticas de colaboradores e colunas de chamados.
 - `supabase/addon_acesso_email.sql` — **aplicado**: coluna `email` em assinantes e acesso validado por e-mail.
 - `supabase/addon_pix.sql` — **aplicar uma vez no SQL Editor**: tabela `config` (chave Pix + mensalidade) e políticas do fluxo de pagamento.
+- `supabase/addon_parceiros.sql` — **aplicar uma vez no SQL Editor**: colunas `valor`/`cupom` em assinantes, auto-assinatura segura e leitura de parceiros/tropas pelo motorista.
 
 Segurança por RLS (Row Level Security): cada motorista só vê os próprios lançamentos/metas/chamados; a equipe (admin/colaborador) vê tudo.
 
@@ -50,7 +54,7 @@ O projeto é 100% estático (HTML + JS) e o banco é o Supabase na nuvem — nã
 
 ### 1. Antes de subir (uma única vez)
 
-- Aplicar `supabase/addon_pix.sql` no SQL Editor do Supabase (fluxo de pagamento Pix).
+- Aplicar `supabase/addon_pix.sql` e `supabase/addon_parceiros.sql` no SQL Editor do Supabase (fluxo de pagamento Pix com código de parceiro).
 - Garantir que a conta admin existe com `papel = 'admin'` na tabela `perfis` (o admin entra por e-mail/senha).
 - Opcional: desativar **signups abertos** no Supabase (Auth → Providers → Email → "Allow new users to sign up") e liberar só os motoristas cadastrados pelo admin. Se desativado, motoristas não conseguem criar conta — para vender acesso, o admin cadastra a conta do motorista manualmente em Authentication → Users → Add user com o nome exato do assinante.
 

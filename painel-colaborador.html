@@ -602,6 +602,11 @@
   }
   function renderBlocoTropa(nomeTropa, membros){
     const ativos = membros.filter(a => a.ativo !== false).length;
+    const champs = [];
+    if(ativos >= 60) champs.push('Diário');
+    if(ativos >= 90) champs.push('Semanal');
+    if(ativos >= 120) champs.push('Mensal');
+    const champsLabel = champs.length ? champs.join(' + ') : `Faltam ${60-ativos} p/ diário`;
     const rows = membros.map(a => {
       const ativo = a.ativo !== false;
       const stCls = a.status === 'pago' ? 'green' : (a.status === 'pendente' ? 'amber' : 'red');
@@ -620,6 +625,7 @@
         <div class="section-title" style="margin:0;">${nomeTropa.toUpperCase()}</div>
         <span class="stat-note">${ativos}/${membros.length} ativos</span>
       </div>
+      <div class="stat-note" style="margin:0 0 10px; color:${champs.length ? 'var(--green)' : 'var(--text-dim)'};">🏆 Campeonatos: ${champsLabel} (60/90/120 assinantes)</div>
       <table>
         <thead><tr><th>Motorista</th><th>Pagamento</th><th>Acesso</th><th>Ação</th></tr></thead>
         <tbody>${rows || '<tr><td colspan="4" class="empty-note">Nenhum motorista nessa tropa.</td></tr>'}</tbody>

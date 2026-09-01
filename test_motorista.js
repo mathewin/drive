@@ -8,9 +8,11 @@ function seedDb(){
       { id:'u-moto2', nome:'Pedro', papel:'motorista', email:'pedro@x.com', todas_tropas:false, tropa_ids:[] },
       { id:'u-falso', nome:'Joao', papel:'motorista', email:'falso@x.com', todas_tropas:false, tropa_ids:[] },
       { id:'u-novato', nome:'Novato', papel:'motorista', email:'novato@x.com', todas_tropas:false, tropa_ids:[] },
+      { id:'u-carla', nome:'Carla', papel:'motorista', email:'carla@x.com', todas_tropas:false, tropa_ids:[] },
     ],
     tropas: [ { id:'t1', nome:'Tropa do Carlos', ativa:true } ],
-    parceiros: [], candidatos: [],
+    parceiros: [ { id:'p1', nome:'Carlos', cupom:'CAR10', tropa_id:'t1', comissao_mes:0, comissao_total:0 } ],
+    candidatos: [],
     assinantes: [
       { id:'a1', nome:'Joao', email:'joao@x.com', tropa_id:'t1', status:'pago', ativo:true, historico:[] },
       { id:'a2', nome:'Pedro', tropa_id:'t1', status:'pago', ativo:false, historico:[] },
@@ -18,7 +20,9 @@ function seedDb(){
     ],
     config: [
       { chave:'pix_chave', valor:'novato@pix.com' },
-      { chave:'mensalidade', valor:'99.9' },
+      { chave:'preco_cheio', valor:'29.99' },
+      { chave:'preco_parceiro', valor:'21.99' },
+      { chave:'comissao_parceiro', valor:'1.49' },
     ],
     fila_pagamento: [], alertas_fraude: [], ranking_regiao: [], premios: [],
     chamados: [],
@@ -104,17 +108,16 @@ async function main(){
   }
   console.log('[moto] abrir chamado ok → tropa', ch.tropa);
 
-  // --- segurança: mesmo nome, e-mail diferente NÃO entra (assinante tem e-mail) ---
+  // --- segurança: mesmo nome, e-mail diferente NÃO ganha acesso de graça → vai pra assinatura ---
   auth.signInWithPassword = async ({email,password}) => ({ data:{ user:{ id:'u-falso', email } }, error:null });
   document.getElementById('login-email').value = 'falso@x.com';
   document.getElementById('login-senha').value = 'senha';
   await window.entrarMotorista();
-  const erroImpostor = document.getElementById('login-erro');
-  if(!(erroImpostor.style.display === 'block' && (erroImpostor.textContent||'').includes('Acesso não encontrado'))){
-    console.error('[moto] FALHOU: impostor (mesmo nome, outro e-mail) conseguiu acesso');
+  if(!document.getElementById('assinar').classList.contains('active')){
+    console.error('[moto] FALHOU: impostor não foi direcionado à assinatura');
     process.exit(1);
   }
-  console.log('[moto] segurança ok → impostor (mesmo nome, outro e-mail) bloqueado');
+  console.log('[moto] segurança ok → impostor (mesmo nome, outro e-mail) cai na assinatura, sem acesso de graça');
 
   // --- fallback legado: assinante sem e-mail é achado pelo nome; Pedro suspenso (ativo=false) bloqueia ---
   auth.signInWithPassword = async ({email,password}) => ({ data:{ user:{ id:'u-moto2', email } }, error:null });
@@ -148,6 +151,33 @@ async function main(){
     process.exit(1);
   }
   console.log('[moto] fluxo pix ok → pendente vê chave e avisa pagamento');
+
+  // --- assinatura com código de parceiro (novo motorista) ---
+  auth.signInWithPassword = async ({email,password}) => ({ data:{ user:{ id:'u-carla', email } }, error:null });
+  document.getElementById('login-email').value = 'carla@x.com';
+  document.getElementById('login-senha').value = 'senha';
+  await window.entrarMotorista();
+  if(!document.getElementById('assinar').classList.contains('active')){
+    console.error('[moto] FALHOU: Carla sem assinatura não foi pra tela de assinar');
+    process.exit(1);
+  }
+  document.getElementById('ass-cupom').value = 'CAR10';
+  await window.calcularPrecoAssinatura();
+  if(!document.getElementById('ass-valor').textContent.includes('21,99')){
+    console.error('[moto] FALHOU: desconto do parceiro não aplicado', document.getElementById('ass-valor').textContent);
+    process.exit(1);
+  }
+  await window.assinarComPix();
+  const carla = db.assinantes.find(a => a.email === 'carla@x.com');
+  if(!carla || carla.status !== 'pendente' || carla.ativo !== false || carla.tropa_id !== 't1' || carla.cupom !== 'CAR10' || carla.valor !== 21.99){
+    console.error('[moto] FALHOU: assinatura com código de parceiro errada', carla);
+    process.exit(1);
+  }
+  if(!document.getElementById('pagar').classList.contains('active')){
+    console.error('[moto] FALHOU: depois de assinar não foi pro pagamento');
+    process.exit(1);
+  }
+  console.log('[moto] assinatura com código ok → pendente, tropa do Carlos, R$21,99');
 
   console.log('\n=== TESTES MOTORISTA PASSARAM ===');
 }

@@ -512,6 +512,25 @@
   .pix-copy{ margin-top:12px; width:100%; background:rgba(49,249,0,.1); border:1px solid rgba(49,249,0,.3); color:var(--green, #31f900); border-radius:10px; padding:9px; font-weight:800; font-size:12px; cursor:pointer; }
   .pix-valor{ font-size:18px; font-weight:800; margin:10px 0 2px; }
   .pix-msg{ color:var(--green, #31f900); font-size:11.5px; margin-top:8px; line-height:1.4; }
+  .pix-whatsapp{
+    display:inline-block; margin-top:10px; font-size:12px; font-weight:700;
+    color:#25d366; text-decoration:underline; cursor:pointer;
+  }
+  .parceiros-box{
+    width:100%; max-width:300px; background: var(--card-bg, #141414);
+    border:1px solid var(--card-border, #262626); border-radius:14px;
+    padding:12px; margin-top:10px; text-align:left;
+  }
+  .parceiro-chip{
+    background:rgba(200,100,175,.08); border:1px solid rgba(200,100,175,.25);
+    color:#c864af; border-radius:10px; padding:8px 10px; margin-top:6px;
+    font-size:12px; font-weight:700; cursor:pointer;
+  }
+  .renovar-aviso{
+    background:rgba(255,177,0,.1); border:1px solid rgba(255,177,0,.35);
+    color:var(--text); border-radius:12px; padding:10px 12px; margin:10px 0 0;
+    font-size:12.5px; line-height:1.4;
+  }
 </style>
 </head>
 <body>
@@ -552,8 +571,25 @@
       <div class="pix-valor" id="pix-valor">R$ 0,00 / mês</div>
       <button class="btn-primary" onclick="avisarPagamento()" id="btn-avisar-pix">Já fiz o Pix — avisar</button>
       <div class="pix-msg" id="pix-msg" style="display:none;"></div>
+      <a class="pix-whatsapp" id="pix-whatsapp" target="_blank" rel="noopener" style="display:none;">💬 Prefere falar com o suporte no WhatsApp?</a>
       <div class="privacy-note" style="margin-top:10px;">Faça o Pix e avise aqui. Assim que confirmarmos, seu acesso libera na hora.</div>
       <div class="link-pink" style="margin-top:10px; font-size:12px; cursor:pointer;" onclick="voltarLogin()">← Voltar</div>
+      <div class="login-road"></div>
+    </div>
+
+    <!-- TELA ASSINATURA (novo assinante) -->
+    <div class="screen" id="assinar">
+      <div class="login-glow"></div>
+      <div class="login-badge">🔓 ASSINE O DRIVEWIN</div>
+      <div class="login-title" style="margin-top:6px;">Comece <span>agora</span></div>
+      <div class="login-sub"><span id="ass-preco">—</span> / mês — pague via Pix</div>
+      <div class="field" style="margin-top:8px;"><span class="field-icon">🎟️</span><input id="ass-cupom" type="text" placeholder="Código de parceiro (opcional)" oninput="calcularPrecoAssinatura()" autocomplete="off"></div>
+      <div class="pix-msg" id="ass-cupom-msg" style="display:none;"></div>
+      <div class="pix-valor" id="ass-valor" style="font-size:26px; margin:6px 0;">—</div>
+      <button class="btn-primary" onclick="assinarComPix()">Assinar e pagar com Pix</button>
+      <div class="privacy-note" style="margin-top:10px;">Sem código: preço cheio. Com código de parceiro: desconto e você entra na tropa dele pra competir nos campeonatos.</div>
+      <div class="parceiros-box" id="ass-parceiros" style="display:none;"></div>
+      <div class="link-pink" style="margin-top:8px; font-size:12px; cursor:pointer;" onclick="voltarLogin()">← Voltar</div>
       <div class="login-road"></div>
     </div>
 
@@ -565,6 +601,7 @@
           <div class="menu-btn" onclick="abrirConfigMeta()"><span></span><span></span><span></span></div>
         </div>
       </div>
+      <div class="renovar-aviso" id="renovar-aviso" style="display:none;"></div>
 
       <div class="section-card" id="nivel-card">
         <div class="section-title">NÍVEL DO MOTORISTA</div>
@@ -1029,8 +1066,11 @@
   // ---------- estado do motorista (Supabase) ----------
   let _dwUid = null;
   let _meuNome = '';
+  let _meuEmail = '';
   let _minhaTropa = '';
   let _regPagamento = null;
+  let _meuAssinante = null;
+  let _assParceiro = null;
   let _cadastroModo = false;
   let _lancamentosCache = [];   // lista de registros { data, uber, n99, ... }
   let _metaCache = { diaria:0, semanal:0, mensal:0, horas:0, km:0, dias:0 };
@@ -1232,6 +1272,7 @@
 
     // checagem de acesso ativo — prioriza o e-mail (seguro); o nome só p/ assinantes antigos sem e-mail
     const emailLogin = (user.email || '').trim().toLowerCase();
+    _meuEmail = emailLogin;
     let registro = null;
     if(emailLogin){
       const { data: porEmail } = await DWClient.from('assinantes').select('*').ilike('email', emailLogin);
@@ -1242,13 +1283,15 @@
       registro = (porNome||[]).find(a => !(a.email||'').trim() && (a.nome||'').trim().toLowerCase() === _meuNome.trim().toLowerCase());
     }
     if(!registro){
-      mostrarErroLogin('Acesso não encontrado. Fale com um parceiro para assinar o DriveWin.');
+      _meuAssinante = null;
+      await abrirTelaAssinatura();
       return;
     }
     const venceu = registro.venc ? new Date(registro.venc + 'T23:59:59') < new Date() : false;
     const pendentePagamento = registro.ativo === false && registro.status !== 'pago';
     if(pendentePagamento || venceu){
       _regPagamento = registro;
+      _meuAssinante = registro;
       await abrirTelaPagamento(venceu);
       return;
     }
@@ -1256,6 +1299,7 @@
       mostrarErroLogin('Seu acesso foi suspenso. Abra um chamado no Suporte ou fale com sua tropa pra regularizar.');
       return;
     }
+    _meuAssinante = registro;
     const tropaR = registro.tropa_id ? await DWClient.from('tropas').select('nome').eq('id', registro.tropa_id).maybeSingle() : null;
     _minhaTropa = (tropaR && tropaR.data) ? tropaR.data.nome : '';
     _dwUid = user.id;
@@ -1264,6 +1308,7 @@
     await carregarTickets();
     document.getElementById('login').classList.remove('active');
     showScreen('dashboard','nav-dash');
+    renderAvisoRenovacao();
   }
 
   // ---------- tela de pagamento (Pix) ----------
@@ -1277,7 +1322,9 @@
   async function abrirTelaPagamento(vencida){
     const cfg = await carregarConfig();
     const chave = cfg.pix_chave || 'Configurar chave Pix no Painel Admin';
-    const valor = Number(cfg.mensalidade || 0);
+    const valor = _regPagamento && Number(_regPagamento.valor)
+      ? Number(_regPagamento.valor)
+      : (Number(cfg.preco_cheio) || 0);
     document.getElementById('pix-chave').textContent = chave;
     document.getElementById('pix-valor').textContent = valor > 0 ? fmtMoney(valor) + ' / mês' : 'Valor definido pela equipe';
     document.getElementById('pix-msg').style.display = 'none';
@@ -1288,6 +1335,15 @@
     document.getElementById('pagar-sub').textContent = vencida
       ? 'Sua assinatura venceu. Renove para continuar usando.'
       : 'Seu acesso é liberado assim que o pagamento for confirmado.';
+    const wa = document.getElementById('pix-whatsapp');
+    if(wa){
+      if(cfg.whatsapp_suporte){
+        wa.style.display = 'block';
+        wa.href = 'https://wa.me/' + String(cfg.whatsapp_suporte).replace(/[^0-9]/g,'') + '?text=' + encodeURIComponent('Oi! Paguei o Pix do DriveWin e quero liberar meu acesso.');
+      } else {
+        wa.style.display = 'none';
+      }
+    }
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('pagar').classList.add('active');
     document.getElementById('bottomnav').style.display = 'none';
@@ -1311,8 +1367,7 @@
     const msgEl = document.getElementById('pix-msg');
     msgEl.style.display = 'block';
     if(!_regPagamento){ msgEl.textContent = 'Erro: assinatura não localizada. Fale com sua tropa.'; return; }
-    const cfg = await carregarConfig();
-    const valor = Number(cfg.mensalidade || 0);
+    const valor = _regPagamento.valor ? Number(_regPagamento.valor) : 0;
     const { error } = await DWClient.from('fila_pagamento').insert({
       assinante: _regPagamento.nome,
       valor,
@@ -1324,6 +1379,130 @@
     document.getElementById('pagar-badge').textContent = '⏳ AGUARDANDO CONFIRMAÇÃO';
   }
 
+  // ---------- assinatura (novo assinante, com/sem código de parceiro) ----------
+  async function abrirTelaAssinatura(){
+    const cfg = await carregarConfig();
+    document.getElementById('ass-cupom').value = '';
+    document.getElementById('ass-cupom-msg').style.display = 'none';
+    _assParceiro = null;
+    const cheio = Number(cfg.preco_cheio) || 0;
+    document.getElementById('ass-preco').textContent = cheio > 0 ? fmtMoney(cheio) : '—';
+    await calcularPrecoAssinatura();
+    const lista = document.getElementById('ass-parceiros');
+    if(lista){
+      const { data } = await DWClient.from('parceiros').select('*').order('nome');
+      const pars = data||[];
+      if(pars.length){
+        lista.innerHTML = '<div class="pix-label">PARCEIROS COM DESCONTO</div>' + pars.map(p => {
+          const t = p.tropa_id ? '' : '';
+          return `<div class="parceiro-chip" onclick="usarCodigoParceiro('${p.cupom}')">🎟️ ${p.cupom} — ${p.nome}${t}</div>`;
+        }).join('');
+        lista.style.display = 'block';
+      } else {
+        lista.style.display = 'none';
+      }
+    }
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('assinar').classList.add('active');
+    document.getElementById('bottomnav').style.display = 'none';
+  }
+
+  function usarCodigoParceiro(cod){
+    document.getElementById('ass-cupom').value = cod;
+    calcularPrecoAssinatura();
+  }
+
+  async function calcularPrecoAssinatura(){
+    const cfg = await carregarConfig();
+    const cod = document.getElementById('ass-cupom').value.trim().toUpperCase();
+    const msg = document.getElementById('ass-cupom-msg');
+    let preco = Number(cfg.preco_cheio) || 0;
+    let parceiro = null;
+    if(cod){
+      const { data } = await DWClient.from('parceiros').select('*').ilike('cupom', cod);
+      parceiro = (data||[]).find(p => (p.cupom||'').toUpperCase() === cod);
+      if(parceiro){
+        preco = Number(cfg.preco_parceiro) || preco;
+        msg.textContent = `Código válido! Você entra na Tropa de ${parceiro.nome}.`;
+        msg.style.color = 'var(--green)';
+        msg.style.display = 'block';
+      } else {
+        msg.textContent = 'Código não encontrado. Confira no Instagram do parceiro.';
+        msg.style.color = 'var(--pink-vivid)';
+        msg.style.display = 'block';
+      }
+    } else {
+      msg.style.display = 'none';
+    }
+    _assParceiro = parceiro;
+    document.getElementById('ass-valor').textContent = preco > 0 ? fmtMoney(preco) : 'Valor definido pela equipe';
+  }
+
+  async function assinarComPix(){
+    if(!_meuNome){ mostrarErroLogin('Recarregue a página e entre novamente.'); return; }
+    const cfg = await carregarConfig();
+    const cod = document.getElementById('ass-cupom').value.trim().toUpperCase();
+    let parceiro = _assParceiro;
+    if(cod && !parceiro){
+      const { data } = await DWClient.from('parceiros').select('*').ilike('cupom', cod);
+      parceiro = (data||[]).find(p => (p.cupom||'').toUpperCase() === cod);
+      if(!parceiro){
+        const msg = document.getElementById('ass-cupom-msg');
+        msg.textContent = 'Código não encontrado. Confira no Instagram do parceiro.';
+        msg.style.color = 'var(--pink-vivid)';
+        msg.style.display = 'block';
+        return;
+      }
+    }
+    const preco = parceiro
+      ? (Number(cfg.preco_parceiro) || Number(cfg.preco_cheio) || 0)
+      : (Number(cfg.preco_cheio) || 0);
+    const venc = new Date();
+    venc.setDate(venc.getDate() + 30);
+    const { data: criado, error } = await DWClient.from('assinantes').insert({
+      nome: _meuNome,
+      email: _meuEmail || null,
+      tropa_id: parceiro ? parceiro.tropa_id : null,
+      status: 'pendente',
+      ativo: false,
+      valor: preco || null,
+      cupom: parceiro ? parceiro.cupom : null,
+      venc: venc.toISOString().slice(0,10),
+      historico: [{ status:'pendente', em: new Date().toLocaleString('pt-BR') }],
+    }).select().single();
+    if(error){
+      const msg = document.getElementById('ass-cupom-msg');
+      msg.textContent = 'Erro ao assinar: ' + error.message;
+      msg.style.color = 'var(--pink-vivid)';
+      msg.style.display = 'block';
+      return;
+    }
+    _regPagamento = criado;
+    _meuAssinante = criado;
+    await abrirTelaPagamento(false);
+  }
+
+  // ---------- aviso de renovação (1 dia antes do vencimento) ----------
+  function renderAvisoRenovacao(){
+    const el = document.getElementById('renovar-aviso');
+    if(!el){ return; }
+    if(!_meuAssinante || !_meuAssinante.venc){ el.style.display = 'none'; return; }
+    const venc = new Date(_meuAssinante.venc + 'T23:59:59');
+    const diff = Math.ceil((venc - new Date()) / 86400000);
+    if(diff <= 1){
+      el.style.display = 'block';
+      el.textContent = (diff <= 0 ? 'Sua assinatura venceu hoje. ' : 'Sua assinatura vence amanhã. ');
+      const b = document.createElement('b');
+      b.textContent = 'Renovar';
+      b.style.cursor = 'pointer';
+      b.style.textDecoration = 'underline';
+      b.onclick = () => { _regPagamento = _meuAssinante; abrirTelaPagamento(false); };
+      el.appendChild(b);
+    } else {
+      el.style.display = 'none';
+    }
+  }
+
   // sessão já aberta (recarregou a página) → tenta entrar direto
   DWClient.auth.getSession().then(async ({ data }) => {
     const session = data.session;
@@ -1331,8 +1510,10 @@
     const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', session.user.id).single();
     if(perfil && perfil.papel === 'motorista'){
       _meuNome = perfil.nome || '';
+      _meuEmail = (perfil.email || '').trim().toLowerCase();
       const { data: assinantes } = await DWClient.from('assinantes').select('*');
       const registro = (assinantes||[]).find(a => (a.nome||'').trim().toLowerCase() === _meuNome.trim().toLowerCase());
+      _meuAssinante = registro || null;
       if(registro && registro.ativo !== false){
         const tropaR = registro.tropa_id ? await DWClient.from('tropas').select('nome').eq('id', registro.tropa_id).maybeSingle() : null;
         _minhaTropa = (tropaR && tropaR.data) ? tropaR.data.nome : '';
@@ -1341,6 +1522,7 @@
         await carregarTickets();
         document.getElementById('login').classList.remove('active');
         showScreen('dashboard','nav-dash');
+        renderAvisoRenovacao();
       }
     }
   });

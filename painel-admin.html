@@ -535,18 +535,48 @@
       </div>
 
       <div class="section-card">
-        <div class="section-title">PIX E MENSALIDADE</div>
-        <div class="stat-note" style="margin-bottom:10px;">Essa chave aparece para os motoristas pendentes pagarem. A mensalidade é o valor cobrado por 30 dias de acesso.</div>
+        <div class="section-title">PIX, PREÇOS E COMISSÕES</div>
+        <div class="stat-note" style="margin-bottom:10px;">Essas informações aparecem para os motoristas. O preço cheio é cobrado sem código de parceiro; com código, entra na tropa e paga o preço com desconto.</div>
         <div class="form-group">
           <label class="form-label">Chave Pix</label>
           <input class="form-input" id="cfg-pix" type="text" placeholder="CPF / CNPJ / e-mail / telefone / chave aleatória">
         </div>
-        <div class="form-group">
-          <label class="form-label">Mensalidade (R$)</label>
-          <input class="form-input" id="cfg-mensalidade" type="number" step="0.01" min="0" placeholder="Ex: 99.90">
+        <div class="form-row" style="display:flex; gap:10px;">
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">Preço cheio (R$)</label>
+            <input class="form-input" id="cfg-preco-cheio" type="number" step="0.01" min="0" placeholder="Ex: 29.99">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">Preço com parceiro (R$)</label>
+            <input class="form-input" id="cfg-preco-parceiro" type="number" step="0.01" min="0" placeholder="Ex: 21.99">
+          </div>
+        </div>
+        <div class="form-row" style="display:flex; gap:10px;">
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">Comissão do parceiro (R$)</label>
+            <input class="form-input" id="cfg-comissao" type="number" step="0.01" min="0" placeholder="Ex: 1.49">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">WhatsApp do suporte</label>
+            <input class="form-input" id="cfg-whatsapp" type="text" placeholder="5511999999999">
+          </div>
+        </div>
+        <div class="form-row" style="display:flex; gap:10px;">
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">Prêmio campeonato diário (R$)</label>
+            <input class="form-input" id="cfg-premio-diario" type="number" step="0.01" min="0" placeholder="Ex: 100">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">Prêmio semanal (R$)</label>
+            <input class="form-input" id="cfg-premio-semanal" type="number" step="0.01" min="0" placeholder="Ex: 250">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">Prêmio mensal (R$)</label>
+            <input class="form-input" id="cfg-premio-mensal" type="number" step="0.01" min="0" placeholder="Ex: 800">
+          </div>
         </div>
         <div class="form-actions" style="margin-top:10px;">
-          <button class="btn-primary" style="background:linear-gradient(135deg, var(--green), var(--green-lucro)); color:#06210f;" onclick="salvarConfig()">Salvar Pix</button>
+          <button class="btn-primary" style="background:linear-gradient(135deg, var(--green), var(--green-lucro)); color:#06210f;" onclick="salvarConfig()">Salvar configurações</button>
         </div>
       </div>
 
@@ -558,7 +588,7 @@
           <button class="btn-add-inline" onclick="abrirNovoAssinante()">+ Vender acesso</button>
         </div>
         <table>
-          <thead><tr><th>Nome</th><th>Tropa</th><th>Status</th><th>Vencimento</th><th>Ação</th></tr></thead>
+          <thead><tr><th>Nome</th><th>Tropa</th><th>Valor</th><th>Status</th><th>Vencimento</th><th>Ação</th></tr></thead>
           <tbody id="assinantes-rows"></tbody>
         </table>
         <div class="empty-note" id="assinantes-vazio" style="display:none;">Nenhum assinante cadastrado ainda. Clique em "+ Vender acesso" para começar.</div>
@@ -616,6 +646,7 @@
           <div class="section-title" style="margin:0;">PARCEIROS E TROPAS</div>
           <span class="btn-add-inline" onclick="abrirNovoParceiro()">+ Novo parceiro</span>
         </div>
+        <div class="stat-note" style="margin-bottom:10px;">Cada tropa libera campeonatos conforme o nº de assinantes ativos: 60 = diário · 90 = semanal · 120 = mensal. O parceiro recebe comissão recorrente por cada assinante que renovar com o cupom dele.</div>
         <table>
           <thead><tr><th>Parceiro</th><th>Cupom</th><th>Assinantes</th><th>Progresso até 120</th><th>Comissão (mês)</th><th>Comissão total paga</th><th>Ação</th></tr></thead>
           <tbody id="parceiros-rows"></tbody>
@@ -779,9 +810,17 @@
     <div class="form-group">
       <label class="form-label">Status do pagamento</label>
       <select class="form-input" id="na-status" style="background:var(--card); color:var(--text);">
-        <option value="pago">Pago</option>
-        <option value="pendente">Pendente</option>
+        <option value="pendente">Pendente (aguardando Pix)</option>
+        <option value="pago">Já pago</option>
       </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Código do parceiro (opcional)</label>
+      <input class="form-input" id="na-cupom" type="text" placeholder="Ex: CARLOS10">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Valor mensal (R$) — vazio = conforme o config</label>
+      <input class="form-input" id="na-valor" type="number" step="0.01" min="0" placeholder="Deixe vazio para usar o preço padrão">
     </div>
     <div class="form-actions">
       <button class="btn-cancel" onclick="fecharNovoAssinante()">Cancelar</button>
@@ -959,12 +998,18 @@
     __db.parceiros = (parceiros.data||[]).map(p => ({ id:p.id, tropaId:p.tropa_id, nome:p.nome, cupom:p.cupom, comissaoMes:p.comissao_mes, comissaoTotal:p.comissao_total }));
     __db.candidatos = (candidatos.data||[]).map(c => ({ id:c.id, nome:c.nome, perfil:c.perfil }));
     __db.colaboradores = (colaboradores.data||[]).map(x => ({ id:x.id, nome:x.nome, email:x.email, todasTropas:x.todas_tropas, tropaIds:x.tropa_ids||[] }));
-    __db.assinantes = (assinantes.data||[]).map(a => ({ id:a.id, nome:a.nome, email:a.email||null, tropaId:a.tropa_id, status:a.status, ativo:a.ativo, venc:a.venc, historico:a.historico||[], criadoEm:a.criado_em }));
+    __db.assinantes = (assinantes.data||[]).map(a => ({ id:a.id, nome:a.nome, email:a.email||null, tropaId:a.tropa_id, status:a.status, ativo:a.ativo, valor:a.valor||null, cupom:a.cupom||null, venc:a.venc, historico:a.historico||[], criadoEm:a.criado_em }));
     __db.filaPagamento = (fila.data||[]).map(f => ({ id:f.id, assinante:f.assinante, valor:f.valor, motivo:f.motivo }));
     __db.config = {};
     (config.data||[]).forEach(c => { __db.config[c.chave] = c.valor; });
     document.getElementById('cfg-pix').value = __db.config.pix_chave || '';
-    document.getElementById('cfg-mensalidade').value = __db.config.mensalidade || '';
+    document.getElementById('cfg-preco-cheio').value = __db.config.preco_cheio || '';
+    document.getElementById('cfg-preco-parceiro').value = __db.config.preco_parceiro || '';
+    document.getElementById('cfg-comissao').value = __db.config.comissao_parceiro || '';
+    document.getElementById('cfg-whatsapp').value = __db.config.whatsapp_suporte || '';
+    document.getElementById('cfg-premio-diario').value = __db.config.premio_diario || '';
+    document.getElementById('cfg-premio-semanal').value = __db.config.premio_semanal || '';
+    document.getElementById('cfg-premio-mensal').value = __db.config.premio_mensal || '';
     __db.alertasFraude = (alertas.data||[]).map(x => ({ titulo:x.titulo, desc:x.descricao }));
     __db.rankingRegiao = (ranking.data||[]).map(r => ({ nome:r.nome, tropa:r.tropa, valor:r.valor }));
     __db.premios = (premios.data||[]).map(p => ({ id:p.id, tipo:p.tipo, escopo:p.escopo, ganhador:p.ganhador, valor:p.valor, antifraude:p.antifraude, status:p.status }));
@@ -1181,8 +1226,10 @@
           ${a.email
             ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${a.email}</div>`
             : `<div style="font-size:11px;margin-top:2px;"><span class="btn-sm" onclick="definirEmailAssinante('${a.id}')">+ e-mail</span></div>`}
+          ${a.cupom ? `<div style="font-size:11px;color:#c864af;margin-top:2px;">cupom ${a.cupom}</div>` : ''}
         </td>
         <td>${tropa ? tropa.nome : '—'}</td>
+        <td>${a.valor ? fmtMoney(a.valor) : '—'}</td>
         <td><span class="badge ${badge}">${label}</span></td>
         <td>${fmtDate(a.venc)}</td>
         <td>${bloqueado
@@ -1214,8 +1261,22 @@
       novoHistorico = a.historico;
     }
     await DWClient.from('fila_pagamento').delete().eq('id', f.id);
-    if(a) await DWClient.from('assinantes').update({ status:'pago', ativo:true, venc:novoVenc, historico:novoHistorico }).eq('id', a.id);
-    logAuditoria('Pagamento confirmado', `${f.assinante} — ${fmtMoney(f.valor)}`);
+    if(a){
+      await DWClient.from('assinantes').update({ status:'pago', ativo:true, venc:novoVenc, historico:novoHistorico }).eq('id', a.id);
+      // comissão recorrente do parceiro (todo mês que o assinante renovar com o mesmo código)
+      if(a.cupom){
+        const par = d.parceiros.find(p => (p.cupom||'').toUpperCase() === a.cupom);
+        const comissao = Number(d.config.comissao_parceiro) || 0;
+        if(par && comissao > 0){
+          const novaMes = Number(par.comissaoMes || 0) + comissao;
+          const novaTotal = Number(par.comissaoTotal || 0) + comissao;
+          await DWClient.from('parceiros').update({ comissao_mes:novaMes, comissao_total:novaTotal }).eq('id', par.id);
+          par.comissaoMes = novaMes;
+          par.comissaoTotal = novaTotal;
+        }
+      }
+    }
+    logAuditoria('Pagamento confirmado', `${f.assinante} — ${fmtMoney(f.valor)}${a && a.cupom ? ' — comissão parceiro' : ''}`);
     toast(`Pagamento de ${f.assinante} confirmado — acesso liberado`);
     renderAssinantes(); renderDashboard();
   }
@@ -1283,6 +1344,18 @@
       const t = d.tropas.find(x => x.id === p.tropaId);
       const n = t ? t.assinantes : 0;
       const pct = Math.min(100, Math.round(n/120*100));
+      const champs = [];
+      if(n >= 60) champs.push('Diário');
+      if(n >= 90) champs.push('Semanal');
+      if(n >= 120) champs.push('Mensal');
+      const champsLabel = champs.length ? champs.join(' · ') : `Faltam ${60-n} p/ diário`;
+      const premios = d.config;
+      const premioLabel = champs.length
+        ? champs.map(c => {
+            const pr = c === 'Diário' ? premios.premio_diario : c === 'Semanal' ? premios.premio_semanal : premios.premio_mensal;
+            return pr ? `${c} R$${pr}` : c;
+          }).join(' · ')
+        : '60 = diário · 90 = semanal · 120 = mensal';
       return `<tr>
         <td><b>${p.nome}</b></td>
         <td><span class="tag-cupom">${p.cupom}</span></td>
@@ -1290,6 +1363,7 @@
         <td style="width:200px;">
           <div class="bar-track"><div class="bar-fill" style="width:${pct}%;"></div></div>
           <div class="progress-line"><span>${n}/120</span><span>${pct}%</span></div>
+          <div class="progress-line" style="font-size:11px;color:${champs.length ? 'var(--green)' : 'var(--text-dim)'};">🏆 ${champsLabel}</div>
         </td>
         <td>${fmtMoney(p.comissaoMes)}</td>
         <td>${fmtMoney(p.comissaoTotal)}</td>
@@ -1372,23 +1446,38 @@
   });
   async function salvarConfig(){
     const d = getData();
-    const pix = document.getElementById('cfg-pix').value.trim();
-    const mensal = document.getElementById('cfg-mensalidade').value.trim();
+    const campos = {
+      pix_chave: 'cfg-pix',
+      preco_cheio: 'cfg-preco-cheio',
+      preco_parceiro: 'cfg-preco-parceiro',
+      comissao_parceiro: 'cfg-comissao',
+      whatsapp_suporte: 'cfg-whatsapp',
+      premio_diario: 'cfg-premio-diario',
+      premio_semanal: 'cfg-premio-semanal',
+      premio_mensal: 'cfg-premio-mensal',
+    };
     const config = {};
-    if(pix) config.pix_chave = pix;
-    if(mensal) config.mensalidade = String(Number(mensal));
-    const itens = Object.entries(config).map(([k,v]) => ({ chave:k, valor:v }));
-    for(const item of itens){
-      const existe = d.config[item.chave];
-      if(existe !== undefined){
-        await DWClient.from('config').update({ valor:item.valor }).eq('chave', item.chave);
-      } else {
-        await DWClient.from('config').insert(item);
-      }
-      d.config[item.chave] = item.valor;
+    for(const [k, id] of Object.entries(campos)){
+      const v = document.getElementById(id).value.trim();
+      if(v !== '') config[k] = v;
     }
-    logAuditoria('Configuração de Pix', `${pix ? 'chave atualizada' : 'chave removida'}${mensal ? ' — R$ ' + mensal : ''}`);
-    toast('Pix e mensalidade salvos');
+    for(const [k, v] of Object.entries(config)){
+      const existe = d.config[k];
+      if(existe !== undefined){
+        await DWClient.from('config').update({ valor:v }).eq('chave', k);
+      } else {
+        await DWClient.from('config').insert({ chave:k, valor:v });
+      }
+      d.config[k] = v;
+    }
+    for(const k of Object.keys(campos)){
+      if(config[k] === undefined && d.config[k] !== undefined){
+        await DWClient.from('config').delete().eq('chave', k);
+        delete d.config[k];
+      }
+    }
+    logAuditoria('Configurações atualizadas', `pix/preços/comissões/prêmios salvos`);
+    toast('Configurações salvas');
   }
   async function salvarNovoAssinante(){
     const nome = document.getElementById('na-nome').value.trim();
@@ -1414,12 +1503,27 @@
     }
     const venc = new Date();
     venc.setDate(venc.getDate() + 30);
+    const cupom = (document.getElementById('na-cupom').value || '').trim().toUpperCase();
+    const valorCampo = (document.getElementById('na-valor').value || '').trim();
+    const parceiro = cupom ? d.parceiros.find(p => (p.cupom||'').toUpperCase() === cupom) : null;
+    if(cupom && !parceiro){
+      toast('Código de parceiro não encontrado');
+      return;
+    }
+    const tropaFinal = parceiro ? parceiro.tropaId : (tropaId || null);
+    const valorFinal = valorCampo !== ''
+      ? Number(valorCampo)
+      : (parceiro
+          ? (Number(d.config.preco_parceiro) || 0)
+          : (Number(d.config.preco_cheio) || 0));
     const novo = {
       nome,
       email: email || null,
-      tropa_id: tropaId || null,
+      tropa_id: tropaFinal,
       status,
       ativo: status === 'pago',
+      valor: valorFinal || null,
+      cupom: cupom || null,
       venc: venc.toISOString().slice(0,10),
       historico: [{ status, em: agora() }],
     };
@@ -1428,13 +1532,15 @@
       id: inserido.id,
       nome,
       email: email || null,
-      tropaId: tropaId || null,
+      tropaId: tropaFinal,
       status,
       ativo: status === 'pago',
+      valor: valorFinal || null,
+      cupom: cupom || null,
       venc: novo.venc,
       historico: novo.historico,
     });
-    logAuditoria('Acesso vendido', `${nome}${email ? ' — ' + email : ''} — ${status}`);
+    logAuditoria('Acesso vendido', `${nome}${email ? ' — ' + email : ''}${cupom ? ' — cupom ' + cupom : ''} — ${status}`);
     toast(`Acesso de ${nome} cadastrado`);
     fecharNovoAssinante();
     renderAssinantes();
