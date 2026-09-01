@@ -449,8 +449,8 @@
   }
 
   async function entrar(){
-    const email = document.getElementById('login-email').value.trim();
-    const senha = document.getElementById('login-senha').value;
+    const email = document.getElementById('login-email').value.trim().toLowerCase();
+    const senha = document.getElementById('login-senha').value.trim();
     const erroEl = document.getElementById('login-erro');
     if(erroEl) erroEl.style.display = 'none';
     if(!email || !senha){ mostrarErroLogin('Informe e-mail e senha.'); return; }

@@ -1236,7 +1236,7 @@
     const erroEl = document.getElementById('login-erro');
     erroEl.style.display = 'none';
     const email = document.getElementById('login-email').value.trim().toLowerCase();
-    const senha = document.getElementById('login-senha').value;
+    const senha = document.getElementById('login-senha').value.trim();
     if(!email || !senha){
       mostrarErroLogin('Informe e-mail e senha.');
       return;
