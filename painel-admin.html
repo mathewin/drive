@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DriveWin Admin — Prévia</title>
+<title>DriveWin Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase/config.js"></script>
 <style>
@@ -359,7 +359,7 @@
         <div class="panel-switch-title">Trocar painel</div>
         <a href="index.html">🏠 Central</a>
         <a href="painel-colaborador.html">🎧 Colaborador</a>
-        <a href="painel-motorista-preview_mais_novo.html">🏁 Motorista</a>
+        <a href="painel-motorista.html">🏁 Motorista</a>
       </div>
       <div class="logout" onclick="sair()">← Sair</div>
     </div>
@@ -823,9 +823,7 @@
     }
   });
 
-  // ---------------- dados mock (simulação da base compartilhada com o painel principal) ----------------
-  const STORAGE_KEY = 'drivewin_admin_mock_v1';
-
+  // ---------------- cache em memória (estado atual do painel) ----------------
   function seed(){
     return {
       tropas: [],
@@ -852,7 +850,7 @@
     };
   }
 
-  // ---------------- geradores de série histórica (mock) ----------------
+  // ---------------- geradores de série histórica (gráficos do painel) ----------------
   function gerarSerieDiaria(n, mediaDia, variacao){
     const arr = []; const hoje = new Date();
     for(let i=n-1;i>=0;i--){
@@ -912,7 +910,6 @@
   const __db = seed();
 
   function getData(){ return __db; }
-  function saveData(d){ Object.assign(__db, d); }
 
   function formatAuditTime(iso){
     const d = new Date(iso);

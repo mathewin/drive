@@ -30,7 +30,7 @@ async function main(){
   // login do Joao
   auth.signInWithPassword = async ({email,password}) => ({ data:{ user:{ id:'u-moto', email } }, error:null });
 
-  loadPanelScript('painel-motorista-preview_mais_novo.html');
+  loadPanelScript('painel-motorista.html');
 
   // --- login (sem cadastro) ---
   document.getElementById('login-email').value = 'joao@x.com';

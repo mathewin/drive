@@ -19,7 +19,7 @@ async function main(){
   const { document, db, auth } = setup(seedDb);
   auth.signInWithPassword = async ({email,password}) => ({ data:{ user:{ id:'u-default', email } }, error:null });
 
-  loadPanelScript('painel-admin (5).html');
+  loadPanelScript('painel-admin.html');
 
   // --- login ---
   document.getElementById('login-email').value = 'admin@drivewin.com';
