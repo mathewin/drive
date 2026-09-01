@@ -11,6 +11,18 @@ Sistema de gestão para negócios de corridas com três painéis integrados e ba
 | Colaborador | `painel-colaborador.html` | Suporte aos motoristas e acompanhamento de tropas |
 | Motorista | `painel-motorista.html` | Controle de ganhos por corrida, metas, XP e suporte |
 
+## Subdomínios (produção)
+
+Cada painel vive em um repositório próprio, servido em um subdomínio do `drivewin.shop` via GitHub Pages:
+
+| Painel | Subdomínio | Repositório |
+|--------|-----------|-------------|
+| Motorista | `motorista.drivewin.shop` | `mathewin/drive-motorista` |
+| Admin | `admin.drivewin.shop` | `mathewin/drive-admin` |
+| Colaborador | `colaborador.drivewin.shop` | `mathewin/drive-colaborador` |
+
+Os repositórios de painel são **cópias geradas** a partir deste repo canônico (cada uma com seu `index.html`, `supabase/config.js` e `CNAME`). Qualquer mudança aqui precisa ser re-sincronizada para os subdomínios.
+
 ## Fluxo de uso
 
 1. **Admin** — cadastre parceiros/tropas, venda acessos (cadastre assinantes) e adicione colaboradores da equipe. Todos entram por **e-mail + senha**.
