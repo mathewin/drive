@@ -516,7 +516,6 @@
       <div class="field"><span class="field-icon">🔒</span><input type="password" placeholder="Senha" autocomplete="current-password"></div>
       <div class="login-erro" id="login-erro"></div>
       <button class="btn-primary" onclick="entrarMotorista()">Entrar</button>
-      <div class="link-pink">Criar conta</div>
       <div class="login-road"></div>
       <div class="privacy-note">🔒 Seus dados são visíveis só para você</div>
       <div class="privacy-note panel-switch-links">
@@ -981,7 +980,7 @@
 
   </div>
 
-  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">PRÉVIA — DADOS FICTÍCIOS</p>
+  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida</p>
 
 <script>
   const STORAGE_KEY = 'painelMotorista_lancamentos';
@@ -1016,21 +1015,21 @@
   }
   function getMeta(){
     const v = localStorage.getItem(META_KEY);
-    return v ? parseFloat(v) : 250;
+    return v ? parseFloat(v) : 0;
   }
   function setMeta(v){
     localStorage.setItem(META_KEY, String(v));
   }
   function getMetaSemana(){
     const v = localStorage.getItem(META_SEMANA_KEY);
-    return v ? parseFloat(v) : 1750;
+    return v ? parseFloat(v) : 0;
   }
   function setMetaSemana(v){
     localStorage.setItem(META_SEMANA_KEY, String(v));
   }
   function getMetaMes(){
     const v = localStorage.getItem(META_MES_KEY);
-    return v ? parseFloat(v) : 7000;
+    return v ? parseFloat(v) : 0;
   }
   function setMetaMes(v){
     localStorage.setItem(META_MES_KEY, String(v));
@@ -1139,13 +1138,22 @@
       return;
     }
     const dataAdmin = getSharedAdminData();
+    let acessoOk = false;
     if(dataAdmin && Array.isArray(dataAdmin.assinantes)){
       const registro = dataAdmin.assinantes.find(a => (a.nome||'').trim().toLowerCase() === nome.toLowerCase());
-      if(registro && registro.ativo === false){
-        erroEl.textContent = '🚫 Seu acesso foi suspenso. Abra um chamado no Suporte ou fale com sua tropa pra regularizar.';
-        erroEl.style.display = 'block';
-        return;
+      if(registro){
+        if(registro.ativo === false){
+          erroEl.textContent = '🚫 Seu acesso foi suspenso. Abra um chamado no Suporte ou fale com sua tropa pra regularizar.';
+          erroEl.style.display = 'block';
+          return;
+        }
+        acessoOk = true;
       }
+    }
+    if(!acessoOk){
+      erroEl.textContent = '🚫 Acesso não encontrado. Fale com um parceiro para assinar o DriveWin.';
+      erroEl.style.display = 'block';
+      return;
     }
     localStorage.setItem(MEU_NOME_KEY, nome);
     showScreen('dashboard','nav-dash');

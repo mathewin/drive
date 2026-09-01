@@ -363,23 +363,9 @@
 
   function seed(){
     return {
-      tropas: [
-        { id:'t1', nome:'Tropa do Marcos' },
-        { id:'t2', nome:'Tropa da Renata' },
-        { id:'t3', nome:'Tropa do Éder' },
-        { id:'t4', nome:'Tropa do Wagner' },
-      ],
-      assinantes: [
-        { id:'a1', nome:'Pedro Lima',     tropaId:'t1', status:'pago',     ativo:true },
-        { id:'a2', nome:'Ana Beatriz',    tropaId:'t1', status:'pendente', ativo:true },
-        { id:'a3', nome:'Rafael Souza',   tropaId:'t2', status:'atrasado', ativo:true },
-        { id:'a4', nome:'Mariana Duarte', tropaId:null, status:'pago',     ativo:true },
-        { id:'a5', nome:'Bruno Teixeira', tropaId:'t3', status:'pendente', ativo:true },
-      ],
-      colaboradores: [
-        { id:'cl1', nome:'Ana Souza', email:'ana@drivewin.com', todasTropas:true, tropaIds:[] },
-        { id:'cl2', nome:'Bruno Reis', email:'bruno@drivewin.com', todasTropas:false, tropaIds:['t1','t2'] },
-      ],
+      tropas: [],
+      assinantes: [],
+      colaboradores: [],
     };
   }
   function getData(){

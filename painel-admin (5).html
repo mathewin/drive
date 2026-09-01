@@ -342,6 +342,7 @@
     <div class="side-item" data-s="central" onclick="showSection('central', this)"><span class="side-icon">📡</span>Central</div>
     <div class="side-item active" data-s="dashboard" onclick="showSection('dashboard', this)"><span class="side-icon">📊</span>Dashboard</div>
     <div class="side-item" data-s="assinantes" onclick="showSection('assinantes', this)"><span class="side-icon">👥</span>Assinantes</div>
+    <div class="side-item" data-s="colaboradores" onclick="showSection('colaboradores', this)"><span class="side-icon">🎧</span>Colaboradores</div>
     <div class="side-item" data-s="tropas" onclick="showSection('tropas', this)"><span class="side-icon">🏁</span>Tropas &amp; Parceiros</div>
     <div class="side-item" data-s="premiacao" onclick="showSection('premiacao', this)"><span class="side-icon">🏆</span>Ranking &amp; Premiação</div>
     <div class="side-item" data-s="financeiro" onclick="showSection('financeiro', this)"><span class="side-icon">💰</span>Financeiro</div>
@@ -532,10 +533,34 @@
       <div class="section-card">
         <div class="section-title">TODOS OS ASSINANTES</div>
         <div class="stat-note" style="margin-bottom:10px;">Clique no nome pra ver o histórico de status do assinante.</div>
+        <div class="section-title-row" style="margin-bottom:10px;">
+          <span class="stat-note">Cadastre um novo assinante para vender um acesso.</span>
+          <button class="btn-add-inline" onclick="abrirNovoAssinante()">+ Vender acesso</button>
+        </div>
         <table>
           <thead><tr><th>Nome</th><th>Tropa</th><th>Status</th><th>Vencimento</th><th>Ação</th></tr></thead>
           <tbody id="assinantes-rows"></tbody>
         </table>
+        <div class="empty-note" id="assinantes-vazio" style="display:none;">Nenhum assinante cadastrado ainda. Clique em "+ Vender acesso" para começar.</div>
+      </div>
+    </div>
+
+    <!-- COLABORADORES -->
+    <div class="section" id="sec-colaboradores">
+      <div class="page-title">Colaboradores</div>
+      <div class="page-sub">Equipe que acessa o painel do colaborador para dar suporte</div>
+
+      <div class="section-card">
+        <div class="section-title">EQUIPE DE COLABORADORES</div>
+        <div class="section-title-row" style="margin-bottom:10px;">
+          <span class="stat-note">Colaboradores entram no painel do colaborador com o nome escolhido aqui.</span>
+          <button class="btn-add-inline" onclick="abrirNovoColaborador()">+ Adicionar colaborador</button>
+        </div>
+        <table>
+          <thead><tr><th>Nome</th><th>E-mail</th><th>Acesso</th><th>Tropas</th><th>Ação</th></tr></thead>
+          <tbody id="colaboradores-rows"></tbody>
+        </table>
+        <div class="empty-note" id="colaboradores-vazio" style="display:none;">Nenhum colaborador cadastrado. Adicione sua equipe de suporte.</div>
       </div>
     </div>
 
@@ -712,6 +737,68 @@
   </div>
 </div>
 
+<!-- MODAL NOVO ASSINANTE -->
+<div class="modal-overlay" id="assinante-overlay">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <div class="modal-title">Vender acesso</div>
+      <div class="modal-close" onclick="fecharNovoAssinante()">✕</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome do assinante</label>
+      <input class="form-input" id="na-nome" type="text" placeholder="Nome completo do motorista">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tropa</label>
+      <select class="form-input" id="na-tropa" style="background:var(--card); color:var(--text);"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status do pagamento</label>
+      <select class="form-input" id="na-status" style="background:var(--card); color:var(--text);">
+        <option value="pago">Pago</option>
+        <option value="pendente">Pendente</option>
+      </select>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="fecharNovoAssinante()">Cancelar</button>
+      <button class="btn-primary" style="background:linear-gradient(135deg, var(--green), var(--green-lucro)); color:#06210f;" onclick="salvarNovoAssinante()">Cadastrar acesso</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO COLABORADOR -->
+<div class="modal-overlay" id="colaborador-overlay">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <div class="modal-title">Novo colaborador</div>
+      <div class="modal-close" onclick="fecharNovoColaborador()">✕</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome</label>
+      <input class="form-input" id="nc-nome" type="text" placeholder="Nome que ele usa pra entrar no painel">
+    </div>
+    <div class="form-group">
+      <label class="form-label">E-mail</label>
+      <input class="form-input" id="nc-email" type="email" placeholder="email@drivewin.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Acesso às tropas</label>
+      <select class="form-input" id="nc-acesso" style="background:var(--card); color:var(--text);" onchange="toggleNcTropas()">
+        <option value="todas">Todas as tropas</option>
+        <option value="selecionadas">Apenas tropas selecionadas</option>
+      </select>
+    </div>
+    <div class="form-group" id="nc-tropas-wrap" style="display:none;">
+      <label class="form-label">Selecionar tropas</label>
+      <div id="nc-tropas"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="fecharNovoColaborador()">Cancelar</button>
+      <button class="btn-primary" style="background:linear-gradient(135deg, var(--green), var(--green-lucro)); color:#06210f;" onclick="salvarNovoColaborador()">Adicionar colaborador</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // ---------------- tema claro/escuro ----------------
   (function initTheme(){
@@ -738,71 +825,27 @@
 
   function seed(){
     return {
-      tropas: [
-        { id:'t1', nome:'Tropa do Marcos',  assinantes:132, ativa:true },
-        { id:'t2', nome:'Tropa da Renata',  assinantes:97,  ativa:true },
-        { id:'t3', nome:'Tropa do Éder',    assinantes:64,  ativa:true },
-        { id:'t4', nome:'Tropa do Wagner',  assinantes:38,  ativa:true },
-      ],
-      parceiros: [
-        { id:'p1', tropaId:'t1', nome:'Marcos Silva',  cupom:'MARCOS10', comissaoMes:132*1.49, comissaoTotal:2840.60 },
-        { id:'p2', tropaId:'t2', nome:'Renata Alves',  cupom:'RENATA99', comissaoMes:97*1.49,  comissaoTotal:1560.30 },
-        { id:'p3', tropaId:'t3', nome:'Éder Batista',  cupom:'EDERGO',   comissaoMes:64*1.49,  comissaoTotal:640.10 },
-        { id:'p4', tropaId:'t4', nome:'Wagner Costa',  cupom:'WAGNER7',  comissaoMes:38*1.49,  comissaoTotal:210.50 },
-      ],
-      candidatos: [
-        { id:'c1', nome:'Juliana Prado', perfil:'Grupo de WhatsApp com 340 motoristas de Aparecida de Goiânia' },
-        { id:'c2', nome:'Carlos Nunes',  perfil:'Instagram com 6.200 seguidores no nicho de app de corrida' },
-      ],
-      assinantes: [
-        { id:'a1', nome:'Pedro Lima',      tropaId:'t1', status:'pago',      venc:'2026-09-05',
-          historico:[ {status:'pendente', em:'2026-07-05 09:12'}, {status:'pago', em:'2026-07-05 14:40'} ] },
-        { id:'a2', nome:'Ana Beatriz',     tropaId:'t1', status:'pendente',  venc:'2026-08-31',
-          historico:[ {status:'pago', em:'2026-07-05 10:02'}, {status:'pendente', em:'2026-08-30 08:15'} ] },
-        { id:'a3', nome:'Rafael Souza',    tropaId:'t2', status:'atrasado',  venc:'2026-08-27',
-          historico:[ {status:'pago', em:'2026-07-05 11:20'}, {status:'atrasado', em:'2026-08-28 09:00'} ] },
-        { id:'a4', nome:'Mariana Duarte',  tropaId:null, status:'pago',      venc:'2026-09-12',
-          historico:[ {status:'pago', em:'2026-08-12 09:40'} ] },
-        { id:'a5', nome:'Bruno Teixeira',  tropaId:'t3', status:'pendente',  venc:'2026-09-01',
-          historico:[ {status:'pago', em:'2026-07-01 10:00'}, {status:'pendente', em:'2026-08-31 07:50'} ] },
-      ],
-      auditLog: [
-        { em:'30/08 09:14', acao:'Login no painel', detalhe:'Admin acessou o painel' },
-      ],
-      alertasFraude: [
-        { titulo:'Tropa do Wagner — 9 assinantes cadastrados no mesmo dia', desc:'Crescimento fora do padrão comparado às outras tropas. Vale conferir se são contas reais antes de contar pro marco de 60.' },
-      ],
-      filaPagamento: [
-        { id:'f1', assinante:'Ana Beatriz', valor:21.99, motivo:'Clicou em "já paguei" — aguardando conferência' },
-        { id:'f2', assinante:'Bruno Teixeira', valor:29.99, motivo:'Chamou suporte via WhatsApp' },
-      ],
-      rankingRegiao: [
-        { nome:'Éder Batista', tropa:'Tropa do Éder', valor:2340.50 },
-        { nome:'Pedro Lima', tropa:'Tropa do Marcos', valor:2110.00 },
-        { nome:'Rafael Souza', tropa:'Tropa da Renata', valor:1980.75 },
-      ],
-      rankingTropa: {
-        t1: { diario:[['Pedro Lima',210],['Ana Beatriz',180]], semanal:[['Pedro Lima',1340],['Ana Beatriz',1120]], mensal:[['Pedro Lima',4980],['Ana Beatriz',4310]] },
-        t2: { diario:[['Rafael Souza',195]], semanal:[['Rafael Souza',1290]], mensal:[['Rafael Souza',4790]] },
-        t3: { diario:[['Bruno Teixeira',170]], semanal:[['Bruno Teixeira',1080]], mensal:[['Bruno Teixeira',3920]] },
-        t4: { diario:[], semanal:[], mensal:[] },
-      },
-      premios: [
-        { id:'pr1', tipo:'Diário', escopo:'Tropa do Marcos', ganhador:'Pedro Lima', valor:50, antifraude:'ok', status:'entregue' },
-        { id:'pr2', tipo:'Semanal', escopo:'Tropa do Marcos', ganhador:'Ana Beatriz', valor:120, antifraude:'pendente', status:'liberado' },
-        { id:'pr3', tipo:'Semanal', escopo:'Tropa da Renata', ganhador:'Rafael Souza', valor:120, antifraude:'ok', status:'entregue' },
-        { id:'pr4', tipo:'Maior faturante (região)', escopo:'Região Goiânia', ganhador:'Éder Batista', valor:175, antifraude:'pendente', status:'liberado' },
-      ],
+      tropas: [],
+      parceiros: [],
+      candidatos: [],
+      colaboradores: [],
+      assinantes: [],
+      auditLog: [],
+      alertasFraude: [],
+      filaPagamento: [],
+      rankingRegiao: [],
+      rankingTropa: {},
+      premios: [],
       financeiro: {
-        receitaBruta: 8940.00,
-        comissoesPagas: 493.15,
-        premiacaoPaga: 465.00,
+        receitaBruta: 0,
+        comissoesPagas: 0,
+        premiacaoPaga: 0,
       },
-      dataLancamento: '2026-03-01',
-      historicoDiario: gerarSerieDiaria(30, 8940/30, 0.35),
-      historicoSemanal: gerarSerieSemanal(12, 8940/4.3, 0.22),
-      historicoMensal: gerarSerieMensal('2026-03-01', 8940, 0.18),
-      historicoAssinantesMensal: gerarSerieAssinantes('2026-03-01', 336, 0.15),
+      dataLancamento: new Date().toISOString().slice(0,10),
+      historicoDiario: [],
+      historicoSemanal: [],
+      historicoMensal: [],
+      historicoAssinantesMensal: [],
     };
   }
 
@@ -976,8 +1019,8 @@
     document.getElementById('dsh-receita-bruta').textContent = fmtMoney(receitaBruta);
     document.getElementById('dsh-assinantes-count').textContent = `${d.assinantes.length} assinantes cadastrados`;
     document.getElementById('dsh-receita-liquida').textContent = fmtMoney(receitaLiquida);
-    document.getElementById('dsh-novos').textContent = '18';
-    document.getElementById('dsh-cancelamentos').textContent = '3';
+    document.getElementById('dsh-novos').textContent = '0';
+    document.getElementById('dsh-cancelamentos').textContent = '0';
     document.getElementById('dsh-tropas-count').textContent = `${d.tropas.length} tropas`;
 
     document.getElementById('dsh-tropas-rows').innerHTML = d.tropas.map(t => {
@@ -1022,6 +1065,7 @@
         </td>
       </tr>`;
     }).join('');
+    document.getElementById('assinantes-vazio').style.display = d.assinantes.length ? 'none' : 'block';
   }
 
   function confirmarPagamento(id){
@@ -1151,6 +1195,134 @@
     }
   }
 
+  // ---------------- ASSINANTES: vender acesso ----------------
+  function abrirNovoAssinante(){
+    const d = getData();
+    const sel = document.getElementById('na-tropa');
+    const hadOptions = sel.options.length > 0;
+    sel.innerHTML = d.tropas.map(t => `<option value="${t.id}">${t.nome}</option>`).join('') ||
+      '<option value="">Sem tropas — crie um parceiro primeiro</option>';
+    document.getElementById('assinante-overlay').classList.add('open');
+    if(!hadOptions) sel.value = '';
+    setTimeout(() => document.getElementById('na-nome').focus(), 50);
+  }
+  function fecharNovoAssinante(){
+    document.getElementById('assinante-overlay').classList.remove('open');
+  }
+  document.getElementById('assinante-overlay').addEventListener('click', e => {
+    if(e.target.id === 'assinante-overlay') fecharNovoAssinante();
+  });
+  function salvarNovoAssinante(){
+    const nome = document.getElementById('na-nome').value.trim();
+    const tropaId = document.getElementById('na-tropa').value;
+    const status = document.getElementById('na-status').value;
+    if(!nome){
+      toast('Informe o nome do assinante');
+      return;
+    }
+    const d = getData();
+    if(d.assinantes.some(a => (a.nome||'').trim().toLowerCase() === nome.toLowerCase())){
+      toast('Já existe um assinante com esse nome');
+      return;
+    }
+    const venc = new Date();
+    venc.setDate(venc.getDate() + 30);
+    d.assinantes.push({
+      id: 'a_' + Date.now(),
+      nome,
+      tropaId: tropaId || null,
+      status,
+      ativo: true,
+      venc: venc.toISOString().slice(0,10),
+      historico: [{ status, em: agora() }],
+    });
+    saveData(d);
+    logAuditoria('Acesso vendido', `${nome} — ${status}`);
+    toast(`Acesso de ${nome} cadastrado`);
+    fecharNovoAssinante();
+    renderAssinantes();
+    renderDashboard();
+  }
+
+  // ---------------- COLABORADORES ----------------
+  function renderColaboradores(){
+    const d = getData();
+    document.getElementById('colaboradores-vazio').style.display = d.colaboradores.length ? 'none' : 'block';
+    document.getElementById('colaboradores-rows').innerHTML = d.colaboradores.map(c => {
+      const todas = c.todasTropas;
+      const tropas = todas ? 'Todas' : (c.tropaIds || []).map(id => {
+        const t = d.tropas.find(x => x.id === id);
+        return t ? t.nome : id;
+      }).join(', ') || 'Nenhuma';
+      return `<tr>
+        <td><b>${c.nome}</b></td>
+        <td style="color:var(--text-dim);">${c.email || '—'}</td>
+        <td>${todas ? '<span class="badge green">Todas as tropas</span>' : '<span class="badge amber">Tropas selecionadas</span>'}</td>
+        <td style="color:var(--text-dim);">${tropas}</td>
+        <td><span class="btn-sm danger" onclick="excluirColaborador('${c.id}')">Remover</span></td>
+      </tr>`;
+    }).join('');
+  }
+  function abrirNovoColaborador(){
+    const d = getData();
+    document.getElementById('nc-nome').value = '';
+    document.getElementById('nc-email').value = '';
+    document.getElementById('nc-acesso').value = 'todas';
+    toggleNcTropas();
+    const wrap = document.getElementById('nc-tropas');
+    wrap.innerHTML = d.tropas.map(t => `
+      <label style="display:flex; align-items:center; gap:8px; padding:4px 0; font-size:13px; cursor:pointer;">
+        <input type="checkbox" value="${t.id}" style="accent-color:var(--green);"> ${t.nome}
+      </label>`).join('') || '<div class="form-hint">Sem tropas cadastradas ainda.</div>';
+    document.getElementById('colaborador-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('nc-nome').focus(), 50);
+  }
+  function fecharNovoColaborador(){
+    document.getElementById('colaborador-overlay').classList.remove('open');
+  }
+  document.getElementById('colaborador-overlay').addEventListener('click', e => {
+    if(e.target.id === 'colaborador-overlay') fecharNovoColaborador();
+  });
+  function toggleNcTropas(){
+    const acesso = document.getElementById('nc-acesso').value;
+    document.getElementById('nc-tropas-wrap').style.display = acesso === 'selecionadas' ? 'block' : 'none';
+  }
+  function salvarNovoColaborador(){
+    const nome = document.getElementById('nc-nome').value.trim();
+    const email = document.getElementById('nc-email').value.trim();
+    if(!nome){
+      toast('Informe o nome do colaborador');
+      return;
+    }
+    const d = getData();
+    if(d.colaboradores.some(c => (c.nome||'').trim().toLowerCase() === nome.toLowerCase())){
+      toast('Já existe um colaborador com esse nome');
+      return;
+    }
+    const todas = document.getElementById('nc-acesso').value === 'todas';
+    const tropaIds = [];
+    if(!todas){
+      document.querySelectorAll('#nc-tropas input:checked').forEach(cb => tropaIds.push(cb.value));
+    }
+    d.colaboradores.push({ id:'cl_' + Date.now(), nome, email, todasTropas: todas, tropaIds });
+    saveData(d);
+    logAuditoria('Colaborador cadastrado', `${nome} — ${todas ? 'todas as tropas' : tropaIds.length + ' tropas'}`);
+    toast(`${nome} adicionado à equipe`);
+    fecharNovoColaborador();
+    renderColaboradores();
+  }
+  function excluirColaborador(id){
+    const d = getData();
+    const c = d.colaboradores.find(x => x.id === id);
+    if(!c) return;
+    if(!confirm(`Remover ${c.nome} da equipe? Ele não vai mais conseguir entrar no painel do colaborador.`)) return;
+    d.colaboradores = d.colaboradores.filter(x => x.id !== id);
+    saveData(d);
+    logAuditoria('Colaborador removido', c.nome);
+    toast(`${c.nome} removido da equipe`);
+    renderColaboradores();
+  }
+
   function salvarNovoParceiro(){
     const nome = document.getElementById('np-nome').value.trim();
     const cupom = document.getElementById('np-cupom').value.trim().toUpperCase();
@@ -1216,10 +1388,14 @@
   function renderRankingTropa(){
     const d = getData();
     renderRankingSelects();
-    const tropaId = document.getElementById('ranking-tropa-sel').value || d.tropas[0].id;
+    const tropaId = document.getElementById('ranking-tropa-sel').value || (d.tropas[0] && d.tropas[0].id) || '';
     const periodo = document.getElementById('ranking-periodo').value;
-    const lista = (d.rankingTropa[tropaId] && d.rankingTropa[tropaId][periodo]) || [];
+    const lista = (tropaId && d.rankingTropa[tropaId] && d.rankingTropa[tropaId][periodo]) || [];
     const rows = document.getElementById('ranking-tropa-rows');
+    if(!tropaId){
+      rows.innerHTML = `<tr><td colspan="3" class="empty-note">Cadastre um parceiro/tropa para ver o ranking.</td></tr>`;
+      return;
+    }
     if(lista.length === 0){
       rows.innerHTML = `<tr><td colspan="3" class="empty-note">Sem lançamentos nesse período ainda.</td></tr>`;
       return;
@@ -1284,6 +1460,7 @@
   function renderAll(){
     renderDashboard();
     renderAssinantes();
+    renderColaboradores();
     renderTropas();
     renderPremiacao();
     renderFinanceiro();
@@ -1443,7 +1620,7 @@
       [ { data: am.map(p=>p.novos), color: getCss('--green') },
         { data: am.map(p=>p.cancelados), color: getCss('--red') } ]);
     drawLineCanvas(document.getElementById('chart-assinantes-total'), am.map(p=>p.total), { area:true, lineWidth:2 });
-    document.getElementById('chart-assinantes-total-valor').textContent = am.at(-1)?.total + ' assinantes ativos';
+    document.getElementById('chart-assinantes-total-valor').textContent = (am.at(-1)?.total || 0) + ' assinantes ativos';
 
     // indicadores
     const totalAtivos = am.at(-1)?.total || 1;
