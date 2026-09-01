@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DriveWin Admin — Prévia</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase/config.js"></script>
 <style>
   :root{
     --bg: #0a0a0a;
@@ -325,8 +327,9 @@
   <div class="login-badge">🔒 ACESSO RESTRITO</div>
   <div class="login-title">Drive<span>Win</span> Admin</div>
   <div class="login-sub">Painel de gestão do negócio</div>
-  <div class="field"><span>📧</span>admin@drivewin.com</div>
-  <div class="field"><span>🔒</span>••••••••</div>
+  <div class="field"><span>📧</span><input id="login-email" type="email" placeholder="Seu e-mail" autocomplete="email" style="background:transparent; border:none; outline:none; color:var(--text); font-size:14px; width:100%;"></div>
+  <div class="field"><span>🔒</span><input id="login-senha" type="password" placeholder="Sua senha" autocomplete="current-password" style="background:transparent; border:none; outline:none; color:var(--text); font-size:14px; width:100%;"></div>
+  <div class="login-erro" id="login-erro" style="display:none; color:var(--red); font-size:12px; margin:-4px 0 12px; text-align:left; width:100%; max-width:300px;"></div>
   <button class="btn-primary" onclick="entrar()">Entrar</button>
   <div class="privacy-note">Acesso exclusivo do administrador do DriveWin</div>
 </div>
@@ -905,16 +908,70 @@
     return arr;
   }
 
-  function getData(){
-    let raw = localStorage.getItem(STORAGE_KEY);
-    const base = seed();
-    if(!raw){ localStorage.setItem(STORAGE_KEY, JSON.stringify(base)); return base; }
-    const saved = JSON.parse(raw);
-    const merged = Object.assign({}, base, saved);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-    return merged;
+  // cache em memória (mesma forma do objeto antigo — usado pelos render)
+  const __db = seed();
+
+  function getData(){ return __db; }
+  function saveData(d){ Object.assign(__db, d); }
+
+  function formatAuditTime(iso){
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}) + ' ' +
+           d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
   }
-  function saveData(d){ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+
+  async function loadAll(){
+    const sb = DWClient;
+    const [tropas, parceiros, candidatos, assinantes, fila, alertas, ranking, premios, financeiro, auditoria, colaboradores] = await Promise.all([
+      sb.from('tropas').select('*'),
+      sb.from('parceiros').select('*'),
+      sb.from('candidatos').select('*'),
+      sb.from('assinantes').select('*'),
+      sb.from('fila_pagamento').select('*'),
+      sb.from('alertas_fraude').select('*'),
+      sb.from('ranking_regiao').select('*'),
+      sb.from('premios').select('*'),
+      sb.from('financeiro').select('*'),
+      sb.from('auditoria').select('*').order('id', {ascending:false}).limit(200),
+      sb.from('perfis').select('*').eq('papel','colaborador'),
+    ]);
+    __db.tropas = (tropas.data||[]).map(t => ({ id:t.id, nome:t.nome, ativa:t.ativa, assinantes:0 }));
+    __db.parceiros = (parceiros.data||[]).map(p => ({ id:p.id, tropaId:p.tropa_id, nome:p.nome, cupom:p.cupom, comissaoMes:p.comissao_mes, comissaoTotal:p.comissao_total }));
+    __db.candidatos = (candidatos.data||[]).map(c => ({ id:c.id, nome:c.nome, perfil:c.perfil }));
+    __db.colaboradores = (colaboradores.data||[]).map(x => ({ id:x.id, nome:x.nome, email:x.email, todasTropas:x.todas_tropas, tropaIds:x.tropa_ids||[] }));
+    __db.assinantes = (assinantes.data||[]).map(a => ({ id:a.id, nome:a.nome, tropaId:a.tropa_id, status:a.status, ativo:a.ativo, venc:a.venc, historico:a.historico||[], criadoEm:a.criado_em }));
+    __db.filaPagamento = (fila.data||[]).map(f => ({ id:f.id, assinante:f.assinante, valor:f.valor, motivo:f.motivo }));
+    __db.alertasFraude = (alertas.data||[]).map(x => ({ titulo:x.titulo, desc:x.descricao }));
+    __db.rankingRegiao = (ranking.data||[]).map(r => ({ nome:r.nome, tropa:r.tropa, valor:r.valor }));
+    __db.premios = (premios.data||[]).map(p => ({ id:p.id, tipo:p.tipo, escopo:p.escopo, ganhador:p.ganhador, valor:p.valor, antifraude:p.antifraude, status:p.status }));
+    if(financeiro.data && financeiro.data.length){
+      const f = financeiro.data[0];
+      __db.financeiro = { receitaBruta:f.receita_bruta, comissoesPagas:f.comissoes_pagas, premiacaoPaga:f.premiacao_paga };
+      __db.dataLancamento = f.data_lancamento;
+    }
+    __db.auditLog = (auditoria.data||[]).map(l => ({ em: formatAuditTime(l.em), acao:l.acao, detalhe:l.detalhe }));
+    // contar assinantes reais por tropa
+    __db.tropas.forEach(t => { t.assinantes = __db.assinantes.filter(a => a.tropaId === t.id).length; });
+    // série mensal de assinantes (novos x cancelados x total) a partir de dados reais
+    __db.historicoAssinantesMensal = [];
+    const mesesMap = {};
+    __db.assinantes.forEach(a => {
+      const d = new Date(a.criadoEm || Date.now());
+      const chave = d.getFullYear() + '-' + (d.getMonth()+1);
+      if(!mesesMap[chave]){
+        mesesMap[chave] = { label: d.toLocaleDateString('pt-BR',{month:'short'}).replace('.','').replace(/^./,c=>c.toUpperCase()), novos:0, cancelados:0, total:0 };
+      }
+      mesesMap[chave].novos++;
+      if(a.ativo === false) mesesMap[chave].cancelados++;
+    });
+    let acumulado = 0;
+    Object.keys(mesesMap).sort().forEach(k => {
+      const m = mesesMap[k];
+      acumulado += m.novos - m.cancelados;
+      m.total = Math.max(0, acumulado);
+      __db.historicoAssinantesMensal.push(m);
+    });
+  }
 
   function fmtMoney(v){ return 'R$ ' + (v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
   function fmtDate(iso){ const [y,m,d] = iso.split('-'); return `${d}/${m}`; }
@@ -930,22 +987,63 @@
     return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
   }
   function logAuditoria(acao, detalhe){
-    const d = getData();
-    d.auditLog.unshift({ em: agora(), acao, detalhe });
-    saveData(d);
+    const usuario = (DWClient.auth.getUser && window._adminEmail) ? window._adminEmail : 'admin';
+    __db.auditLog.unshift({ em: agora(), acao, detalhe });
+    DWClient.from('auditoria').insert({ usuario, acao, detalhe }).then(()=>{}).catch(()=>{});
   }
 
-  function entrar(){
+  function mostrarErroLogin(msg){
+    const erroEl = document.getElementById('login-erro');
+    if(erroEl){ erroEl.textContent = msg; erroEl.style.display = 'block'; }
+  }
+
+  async function entrar(){
+    const email = document.getElementById('login-email').value.trim();
+    const senha = document.getElementById('login-senha').value;
+    const erroEl = document.getElementById('login-erro');
+    if(erroEl) erroEl.style.display = 'none';
+    if(!email || !senha){ mostrarErroLogin('Informe e-mail e senha.'); return; }
+    const { data, error } = await DWClient.auth.signInWithPassword({ email, password: senha });
+    if(error || !data.user){ mostrarErroLogin('E-mail ou senha incorretos.'); return; }
+    const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', data.user.id).single();
+    if(!perfil || perfil.papel !== 'admin'){
+      await DWClient.auth.signOut();
+      mostrarErroLogin('Esta conta não tem acesso de administrador.');
+      return;
+    }
+    window._adminEmail = perfil.email || data.user.email;
+    await loadAll();
     document.getElementById('login').style.display = 'none';
     document.getElementById('app').classList.add('active');
     logAuditoria('Login no painel', 'Admin acessou o painel');
     renderAll();
     renderCentral();
   }
-  function sair(){
+
+  async function sair(){
+    await DWClient.auth.signOut();
     document.getElementById('app').classList.remove('active');
     document.getElementById('login').style.display = 'flex';
+    const email = document.getElementById('login-email');
+    const senha = document.getElementById('login-senha');
+    if(email) email.value = '';
+    if(senha) senha.value = '';
   }
+
+  // sessão já aberta (recarregou a página) → entra direto
+  DWClient.auth.getSession().then(async ({ data }) => {
+    const session = data.session;
+    if(!session) return;
+    const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', session.user.id).single();
+    if(perfil && perfil.papel === 'admin'){
+      window._adminEmail = perfil.email || session.user.email;
+      await loadAll();
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('app').classList.add('active');
+      renderAll();
+      renderCentral();
+    }
+  });
 
   function showSection(id, el){
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -1068,24 +1166,33 @@
     document.getElementById('assinantes-vazio').style.display = d.assinantes.length ? 'none' : 'block';
   }
 
-  function confirmarPagamento(id){
+  async function confirmarPagamento(id){
     const d = getData();
     const f = d.filaPagamento.find(x => x.id === id);
+    if(!f) return;
     d.filaPagamento = d.filaPagamento.filter(x => x.id !== id);
     const a = d.assinantes.find(x => x.nome === f.assinante);
-    if(a){ a.status = 'pago'; a.historico = a.historico || []; a.historico.push({status:'pago', em: agora()}); }
-    saveData(d);
+    let novoHistorico = null;
+    if(a){
+      a.status = 'pago';
+      a.historico = a.historico || [];
+      a.historico.push({status:'pago', em: agora()});
+      novoHistorico = a.historico;
+    }
+    await DWClient.from('fila_pagamento').delete().eq('id', f.id);
+    if(a) await DWClient.from('assinantes').update({ status:'pago', historico:novoHistorico }).eq('id', a.id);
     logAuditoria('Pagamento confirmado', `${f.assinante} — ${fmtMoney(f.valor)}`);
     toast(`Pagamento de ${f.assinante} confirmado`);
     renderAssinantes(); renderDashboard();
   }
-  function toggleAcesso(id){
+  async function toggleAcesso(id){
     const d = getData();
     const a = d.assinantes.find(x => x.id === id);
+    if(!a) return;
     a.status = a.status === 'atrasado' ? 'pago' : 'atrasado';
     a.historico = a.historico || [];
     a.historico.push({status:a.status, em: agora()});
-    saveData(d);
+    await DWClient.from('assinantes').update({ status:a.status, historico:a.historico }).eq('id', a.id);
     logAuditoria(a.status === 'atrasado' ? 'Acesso bloqueado' : 'Acesso liberado', a.nome);
     toast(a.status === 'atrasado' ? `Acesso de ${a.nome} bloqueado` : `Acesso de ${a.nome} liberado`);
     renderAssinantes(); renderDashboard();
@@ -1140,18 +1247,18 @@
     }).join('');
   }
 
-  function avaliarCandidato(id, aprovado){
+  async function avaliarCandidato(id, aprovado){
     const d = getData();
     const c = d.candidatos.find(x => x.id === id);
     if(aprovado){
       d.candidatos = d.candidatos.filter(x => x.id !== id);
-      logAuditoria('Candidato aprovado', `${c.nome} virou parceiro`);
-      toast(`${c.nome} aprovado como parceiro`);
+      await DWClient.from('candidatos').delete().eq('id', id);
+      logAuditoria('Candidato aprovado', `${c ? c.nome : id} virou parceiro`);
+      toast(`${c ? c.nome : 'Candidato'} aprovado como parceiro`);
     } else {
-      logAuditoria('Candidato mantido em espera', c.nome);
-      toast(`${c.nome} mantido em espera`);
+      logAuditoria('Candidato mantido em espera', c ? c.nome : id);
+      toast(`${c ? c.nome : 'Candidato'} mantido em espera`);
     }
-    saveData(d);
     renderTropas();
   }
 
@@ -1212,7 +1319,7 @@
   document.getElementById('assinante-overlay').addEventListener('click', e => {
     if(e.target.id === 'assinante-overlay') fecharNovoAssinante();
   });
-  function salvarNovoAssinante(){
+  async function salvarNovoAssinante(){
     const nome = document.getElementById('na-nome').value.trim();
     const tropaId = document.getElementById('na-tropa').value;
     const status = document.getElementById('na-status').value;
@@ -1227,16 +1334,24 @@
     }
     const venc = new Date();
     venc.setDate(venc.getDate() + 30);
-    d.assinantes.push({
-      id: 'a_' + Date.now(),
+    const novo = {
       nome,
-      tropaId: tropaId || null,
+      tropa_id: tropaId || null,
       status,
       ativo: true,
       venc: venc.toISOString().slice(0,10),
       historico: [{ status, em: agora() }],
+    };
+    const { data: inserido } = await DWClient.from('assinantes').insert(novo).select().single();
+    d.assinantes.push({
+      id: inserido.id,
+      nome,
+      tropaId: tropaId || null,
+      status,
+      ativo: true,
+      venc: novo.venc,
+      historico: novo.historico,
     });
-    saveData(d);
     logAuditoria('Acesso vendido', `${nome} — ${status}`);
     toast(`Acesso de ${nome} cadastrado`);
     fecharNovoAssinante();
@@ -1287,11 +1402,15 @@
     const acesso = document.getElementById('nc-acesso').value;
     document.getElementById('nc-tropas-wrap').style.display = acesso === 'selecionadas' ? 'block' : 'none';
   }
-  function salvarNovoColaborador(){
+  async function salvarNovoColaborador(){
     const nome = document.getElementById('nc-nome').value.trim();
-    const email = document.getElementById('nc-email').value.trim();
+    const email = document.getElementById('nc-email').value.trim().toLowerCase();
     if(!nome){
       toast('Informe o nome do colaborador');
+      return;
+    }
+    if(!email){
+      toast('Informe o e-mail do colaborador (o mesmo usado no cadastro dele)');
       return;
     }
     const d = getData();
@@ -1299,31 +1418,37 @@
       toast('Já existe um colaborador com esse nome');
       return;
     }
+    const { data: perfis } = await DWClient.from('perfis').select('*').eq('email', email);
+    const alvo = (perfis||[])[0];
+    if(!alvo){
+      toast('Nenhuma conta com esse e-mail. O colaborador precisa se cadastrar primeiro (painel do colaborador).');
+      return;
+    }
     const todas = document.getElementById('nc-acesso').value === 'todas';
     const tropaIds = [];
     if(!todas){
       document.querySelectorAll('#nc-tropas input:checked').forEach(cb => tropaIds.push(cb.value));
     }
-    d.colaboradores.push({ id:'cl_' + Date.now(), nome, email, todasTropas: todas, tropaIds });
-    saveData(d);
+    await DWClient.from('perfis').update({ nome, papel:'colaborador', todas_tropas: todas, tropa_ids: tropaIds }).eq('id', alvo.id);
     logAuditoria('Colaborador cadastrado', `${nome} — ${todas ? 'todas as tropas' : tropaIds.length + ' tropas'}`);
     toast(`${nome} adicionado à equipe`);
     fecharNovoColaborador();
+    __db.colaboradores.push({ id:alvo.id, nome, email, todasTropas: todas, tropaIds });
     renderColaboradores();
   }
-  function excluirColaborador(id){
+  async function excluirColaborador(id){
     const d = getData();
     const c = d.colaboradores.find(x => x.id === id);
     if(!c) return;
     if(!confirm(`Remover ${c.nome} da equipe? Ele não vai mais conseguir entrar no painel do colaborador.`)) return;
+    await DWClient.from('perfis').update({ papel:'motorista' }).eq('id', c.id);
     d.colaboradores = d.colaboradores.filter(x => x.id !== id);
-    saveData(d);
     logAuditoria('Colaborador removido', c.nome);
     toast(`${c.nome} removido da equipe`);
     renderColaboradores();
   }
 
-  function salvarNovoParceiro(){
+  async function salvarNovoParceiro(){
     const nome = document.getElementById('np-nome').value.trim();
     const cupom = document.getElementById('np-cupom').value.trim().toUpperCase();
     const tropaNome = document.getElementById('np-tropa').value.trim();
@@ -1339,15 +1464,22 @@
       return;
     }
 
-    const sufixo = Date.now();
-    const novaTropaId = 't_' + sufixo;
-    const novoParceiroId = 'p_' + sufixo;
-    d.tropas.push({ id: novaTropaId, nome: tropaNome, assinantes: assinantesIniciais, ativa: true });
-    d.parceiros.push({ id: novoParceiroId, tropaId: novaTropaId, nome, cupom, comissaoMes: assinantesIniciais*1.49, comissaoTotal: 0 });
+    const { data: novaTropa } = await DWClient.from('tropas').insert({ nome: tropaNome, ativa: true }).select().single();
+    if(!novaTropa) return;
+    const { data: novoParceiro } = await DWClient.from('parceiros').insert({
+      tropa_id: novaTropa.id,
+      nome,
+      cupom,
+      comissao_mes: assinantesIniciais*1.49,
+      comissao_total: 0,
+    }).select().single();
+    if(!novoParceiro) return;
+    d.tropas.push({ id: novaTropa.id, nome: tropaNome, assinantes: assinantesIniciais, ativa: true });
+    d.parceiros.push({ id: novoParceiro.id, tropaId: novaTropa.id, nome, cupom, comissaoMes: assinantesIniciais*1.49, comissaoTotal: 0 });
     if(npCandidatoId){
       d.candidatos = d.candidatos.filter(x => x.id !== npCandidatoId);
+      await DWClient.from('candidatos').delete().eq('id', npCandidatoId);
     }
-    saveData(d);
     logAuditoria('Parceiro cadastrado', `${nome} (${cupom}) — ${tropaNome}`);
     toast(`${nome} adicionado como parceiro`);
     fecharNovoParceiro();
@@ -1356,7 +1488,7 @@
     if(document.getElementById('sec-central').classList.contains('active')) renderCentral();
   }
 
-  function excluirParceiro(id){
+  async function excluirParceiro(id){
     const d = getData();
     const p = d.parceiros.find(x => x.id === id);
     if(!p) return;
@@ -1365,11 +1497,13 @@
     const confirmado = confirm(`Remover ${p.nome} (${p.cupom})${nomeTropa ? ` e a ${nomeTropa}` : ''}? Essa ação não pode ser desfeita.`);
     if(!confirmado) return;
 
+    await DWClient.from('assinantes').update({ tropa_id: null }).eq('tropa_id', p.tropaId);
+    await DWClient.from('parceiros').delete().eq('id', id);
+
     d.parceiros = d.parceiros.filter(x => x.id !== id);
     d.tropas = d.tropas.filter(x => x.id !== p.tropaId);
     d.assinantes.forEach(a => { if(a.tropaId === p.tropaId) a.tropaId = null; });
 
-    saveData(d);
     logAuditoria('Parceiro removido', `${p.nome} (${p.cupom})`);
     toast(`${p.nome} removido`);
     renderTropas();
@@ -1424,11 +1558,12 @@
       </tr>`;
     }).join('');
   }
-  function marcarEntregue(id){
+  async function marcarEntregue(id){
     const d = getData();
     const p = d.premios.find(x => x.id === id);
+    if(!p) return;
     p.status = 'entregue';
-    saveData(d);
+    await DWClient.from('premios').update({ status:'entregue' }).eq('id', id);
     logAuditoria('Prêmio entregue', `${p.tipo} — ${p.ganhador} (${fmtMoney(p.valor)})`);
     toast(`Prêmio de ${p.ganhador} marcado como entregue`);
     renderPremiacao();

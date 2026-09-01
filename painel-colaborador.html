@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DriveWin Colaborador — Prévia</title>
+<title>DriveWin Colaborador</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase/config.js"></script>
 <style>
   :root{
     --bg: #0a0a0a;
@@ -248,11 +250,9 @@
   <div class="login-badge">🎧 ACESSO DA EQUIPE</div>
   <div class="login-title">Drive<span>Win</span> Colaborador</div>
   <div class="login-sub">Suporte e acompanhamento de tropas</div>
-  <div class="field" style="align-items:flex-start; flex-direction:column; gap:6px;">
-    <span style="font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.03em;">Quem é você?</span>
-    <select id="colab-login-select" style="width:100%; background:transparent; border:none; color:var(--text); font-size:14px; outline:none;"></select>
-  </div>
-  <div class="field"><span>🔒</span>••••••••</div>
+  <div class="field"><span>📧</span><input id="login-email" type="email" placeholder="Seu e-mail" autocomplete="email" style="background:transparent; border:none; outline:none; color:var(--text); font-size:14px; width:100%;"></div>
+  <div class="field"><span>🔒</span><input id="login-senha" type="password" placeholder="Sua senha" autocomplete="current-password" style="background:transparent; border:none; outline:none; color:var(--text); font-size:14px; width:100%;"></div>
+  <div class="login-erro" id="login-erro" style="display:none; color:var(--red); font-size:12px; margin:-4px 0 12px; text-align:left; width:100%; max-width:300px;"></div>
   <button class="btn-primary" onclick="entrar()">Entrar</button>
   <div class="privacy-note">Acesso restrito à equipe do DriveWin</div>
 </div>
@@ -357,40 +357,19 @@
     }
   });
 
-  // ---------------- dados compartilhados (mesma origem do painel admin e do app do motorista) ----------------
-  const STORAGE_KEY = 'drivewin_admin_mock_v1'; // tropas / motoristas — igual ao painel admin
-  const SUPORTE_KEY = 'drivewin_suporte_v1';    // chamados — igual ao app do motorista
+  // ---------------- dados compartilhados (Supabase) ----------------
+  const __db = { tropas: [], assinantes: [], chamados: [], colaborador: null };
+  let _dwUid = null;
 
-  function seed(){
-    return {
-      tropas: [],
-      assinantes: [],
-      colaboradores: [],
-    };
-  }
-  function getData(){
-    let d;
-    try{
-      const raw = localStorage.getItem(STORAGE_KEY);
-      d = raw ? JSON.parse(raw) : null;
-    }catch(e){ d = null; }
-    if(!d) d = seed();
-    if(!Array.isArray(d.tropas)) d.tropas = seed().tropas;
-    if(!Array.isArray(d.assinantes)) d.assinantes = seed().assinantes;
-    if(!Array.isArray(d.colaboradores)) d.colaboradores = seed().colaboradores;
-    // migração: garante que todo motorista tenha o campo "ativo" (acesso liberado/cancelado)
-    d.assinantes.forEach(a => { if(a.ativo === undefined) a.ativo = true; });
-    saveData(d);
-    return d;
-  }
-  function saveData(d){ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+  function getData(){ return __db; }
 
-  function getTickets(){
-    try{ const raw = localStorage.getItem(SUPORTE_KEY); return raw ? JSON.parse(raw) : []; }catch(e){ return []; }
-  }
-  function saveTickets(list){ localStorage.setItem(SUPORTE_KEY, JSON.stringify(list)); }
   function agoraFmt(){
     const d = new Date();
+    return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+  function fmtEm(iso){
+    if(!iso) return '';
+    const d = new Date(iso);
     return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   }
 
@@ -401,50 +380,91 @@
     window._toastTimer = setTimeout(()=> t.style.display='none', 2200);
   }
 
-  const COLAB_ATIVO_KEY = 'drivewin_colaborador_ativo';
-
-  function popularSelectColaboradores(){
-    const d = getData();
-    const sel = document.getElementById('colab-login-select');
-    if(!sel) return;
-    const lista = d.colaboradores || [];
-    sel.innerHTML = lista.length
-      ? lista.map(c => `<option value="${c.id}">${c.nome}</option>`).join('')
-      : '<option value="">Nenhum colaborador cadastrado — peça ao admin</option>';
+  function mostrarErroLogin(msg){
+    const erroEl = document.getElementById('login-erro');
+    if(erroEl){ erroEl.textContent = msg; erroEl.style.display = 'block'; }
   }
+
+  async function loadAll(){
+    const sb = DWClient;
+    const [tropasR, assinantesR, chamadosR, perfilR] = await Promise.all([
+      sb.from('tropas').select('*').order('criado_em', {ascending:true}),
+      sb.from('assinantes').select('*'),
+      sb.from('chamados').select('*').order('criado_em', {ascending:false}),
+      sb.from('perfis').select('*').eq('id', _dwUid).single(),
+    ]);
+    __db.tropas = (tropasR.data||[]).map(t => ({ id:t.id, nome:t.nome, ativa:t.ativa }));
+    __db.assinantes = (assinantesR.data||[]).map(a => ({ id:a.id, nome:a.nome, tropaId:a.tropa_id, status:a.status, ativo:a.ativo }));
+    __db.chamados = (chamadosR.data||[]).map(c => ({
+      id:c.id, nome:c.nome, tropa:c.tropa, assunto:c.assunto||'', status:c.status,
+      mensagens: (c.thread && c.thread.length) ? c.thread : (c.mensagem ? [{ de:'motorista', texto:c.mensagem, em: fmtEm(c.criado_em) }] : []),
+      criadoEm: c.criado_em, atualizadoEm: c.atualizado_em,
+    }));
+    if(perfilR.data) __db.colaborador = {
+      id: perfilR.data.id, nome: perfilR.data.nome, email: perfilR.data.email,
+      todasTropas: perfilR.data.todas_tropas, tropaIds: perfilR.data.tropa_ids||[],
+    };
+  }
+
   function getColaboradorAtivo(){
-    const d = getData();
-    const id = localStorage.getItem(COLAB_ATIVO_KEY);
-    return (d.colaboradores || []).find(c => c.id === id) || null;
+    return __db.colaborador;
   }
   function tropasPermitidas(){
-    const d = getData();
     const col = getColaboradorAtivo();
-    if(!col || col.todasTropas) return d.tropas;
+    if(!col || col.todasTropas) return __db.tropas;
     const ids = new Set(col.tropaIds || []);
-    return d.tropas.filter(t => ids.has(t.id));
+    return __db.tropas.filter(t => ids.has(t.id));
   }
 
-  function entrar(){
-    const sel = document.getElementById('colab-login-select');
-    const id = sel ? sel.value : '';
-    if(!id){ alert('Selecione seu usuário para entrar.'); return; }
-    localStorage.setItem(COLAB_ATIVO_KEY, id);
-    const col = getColaboradorAtivo();
+  async function entrar(){
+    const email = document.getElementById('login-email').value.trim();
+    const senha = document.getElementById('login-senha').value;
+    const erroEl = document.getElementById('login-erro');
+    if(erroEl) erroEl.style.display = 'none';
+    if(!email || !senha){ mostrarErroLogin('Informe e-mail e senha.'); return; }
+    const { data, error } = await DWClient.auth.signInWithPassword({ email, password: senha });
+    if(error || !data.user){ mostrarErroLogin('E-mail ou senha incorretos.'); return; }
+    _dwUid = data.user.id;
+    const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', data.user.id).single();
+    if(!perfil || perfil.papel !== 'colaborador'){
+      await DWClient.auth.signOut();
+      mostrarErroLogin('Esta conta não tem acesso de colaborador.');
+      return;
+    }
+    await loadAll();
     document.getElementById('login').style.display = 'none';
     document.getElementById('app').classList.add('active');
     const nomeEl = document.getElementById('colab-ativo-nome');
-    if(nomeEl) nomeEl.textContent = col ? `Logado como ${col.nome}` : '';
+    if(nomeEl) nomeEl.textContent = perfil.nome ? `Logado como ${perfil.nome}` : '';
     renderSuporte();
     renderTropas();
   }
-  function sair(){
+  async function sair(){
+    await DWClient.auth.signOut();
     document.getElementById('app').classList.remove('active');
     document.getElementById('login').style.display = 'flex';
-    localStorage.removeItem(COLAB_ATIVO_KEY);
-    popularSelectColaboradores();
+    const email = document.getElementById('login-email');
+    const senha = document.getElementById('login-senha');
+    if(email) email.value = '';
+    if(senha) senha.value = '';
   }
-  document.addEventListener('DOMContentLoaded', popularSelectColaboradores);
+
+  // sessão já aberta (recarregou a página) → entra direto
+  DWClient.auth.getSession().then(async ({ data }) => {
+    const session = data.session;
+    if(!session) return;
+    _dwUid = session.user.id;
+    const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', session.user.id).single();
+    if(perfil && perfil.papel === 'colaborador'){
+      await loadAll();
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('app').classList.add('active');
+      const nomeEl = document.getElementById('colab-ativo-nome');
+      if(nomeEl) nomeEl.textContent = perfil.nome ? `Logado como ${perfil.nome}` : '';
+      renderSuporte();
+      renderTropas();
+    }
+  });
 
   function showSection(id, el){
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -475,7 +495,7 @@
     const col = getColaboradorAtivo();
     const semRestricao = !col || col.todasTropas;
     const nomesPermitidos = new Set(tropasPermitidas().map(t => t.nome));
-    let todos = getTickets().slice().sort((a,b) => b.criadoEm.localeCompare(a.criadoEm));
+    let todos = __db.chamados.slice().sort((a,b) => String(b.criadoEm).localeCompare(String(a.criadoEm)));
     if(!semRestricao){
       // chamados de motoristas sem tropa continuam visíveis a todo mundo, pois ninguém é "dono" deles
       todos = todos.filter(t => !t.tropa || nomesPermitidos.has(t.tropa));
@@ -516,7 +536,7 @@
     if(e.target.id === 'ticket-overlay') fecharTicket();
   });
   function renderThread(){
-    const t = getTickets().find(x => x.id === ticketAtualId);
+    const t = __db.chamados.find(x => x.id === ticketAtualId);
     if(!t){ fecharTicket(); return; }
     document.getElementById('ticket-titulo').textContent = `${t.nome}${t.tropa ? ' · ' + t.tropa : ''} — ${t.assunto}`;
     document.getElementById('ticket-mensagens').innerHTML = t.mensagens.map(m => {
@@ -531,35 +551,33 @@
     document.getElementById('btn-encerrar').style.display = encerrado ? 'none' : 'inline-block';
     document.getElementById('btn-reabrir').style.display = encerrado ? 'inline-block' : 'none';
   }
-  function enviarResposta(){
+  async function enviarResposta(){
     const texto = document.getElementById('ticket-reply').value.trim();
     if(!texto) return;
-    const todos = getTickets();
-    const t = todos.find(x => x.id === ticketAtualId);
+    const t = __db.chamados.find(x => x.id === ticketAtualId);
     if(!t) return;
-    t.mensagens.push({ de:'suporte', texto, em: agoraFmt() });
+    const novoThread = (t.mensagens||[]).concat([{ de:'suporte', texto, em: agoraFmt() }]);
+    await DWClient.from('chamados').update({ thread: novoThread, resposta: texto, status:'respondido' }).eq('id', t.id);
+    t.mensagens = novoThread;
     t.status = 'respondido';
-    saveTickets(todos);
     document.getElementById('ticket-reply').value = '';
     renderThread();
     renderSuporte();
   }
-  function encerrarChamado(){
-    const todos = getTickets();
-    const t = todos.find(x => x.id === ticketAtualId);
+  async function encerrarChamado(){
+    const t = __db.chamados.find(x => x.id === ticketAtualId);
     if(!t) return;
+    await DWClient.from('chamados').update({ status:'fechado' }).eq('id', t.id);
     t.status = 'fechado';
-    saveTickets(todos);
     renderThread();
     renderSuporte();
     toast('Chamado marcado como resolvido');
   }
-  function reabrirChamado(){
-    const todos = getTickets();
-    const t = todos.find(x => x.id === ticketAtualId);
+  async function reabrirChamado(){
+    const t = __db.chamados.find(x => x.id === ticketAtualId);
     if(!t) return;
+    await DWClient.from('chamados').update({ status:'aberto' }).eq('id', t.id);
     t.status = 'aberto';
-    saveTickets(todos);
     renderThread();
     renderSuporte();
   }
@@ -608,19 +626,18 @@
       </table>
     </div>`;
   }
-  function alternarAcesso(id){
+  async function alternarAcesso(id){
     const d = getData();
     const a = d.assinantes.find(x => x.id === id);
     if(!a) return;
     const estaAtivo = a.ativo !== false;
+    const novo = !estaAtivo;
     if(estaAtivo){
       if(!confirm(`Cancelar o acesso de ${a.nome}? Ele não vai conseguir mais entrar no app dele até ser reativado.`)) return;
-      a.ativo = false;
-    } else {
-      a.ativo = true;
     }
-    saveData(d);
-    toast(estaAtivo ? `Acesso de ${a.nome} cancelado` : `Acesso de ${a.nome} reativado`);
+    await DWClient.from('assinantes').update({ ativo: novo }).eq('id', id);
+    a.ativo = novo;
+    toast(novo ? `Acesso de ${a.nome} reativado` : `Acesso de ${a.nome} cancelado`);
     renderTropas();
   }
 </script>

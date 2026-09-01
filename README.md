@@ -1,6 +1,6 @@
 # DriveWin
 
-Sistema de gestão para negócios de corridas com três painéis integrados e dados zerados, pronto para começar a operar de verdade.
+Sistema de gestão para negócios de corridas com três painéis integrados e banco na nuvem (Supabase), pronto para operar de verdade.
 
 ## Painéis
 
@@ -13,18 +13,19 @@ Sistema de gestão para negócios de corridas com três painéis integrados e da
 
 ## Fluxo de uso
 
-1. **Admin** — cadastre parceiros/tropas, venda acessos (cadastre assinantes) e adicione colaboradores da equipe.
-2. **Motorista** — o motorista só entra se tiver um acesso ativo cadastrado pelo admin. Se o acesso for suspenso, é bloqueado.
-3. **Colaborador** — a equipe entra pelo nome cadastrado no admin e acompanha chamados de suporte e tropas.
+1. **Admin** — cadastre parceiros/tropas, venda acessos (cadastre assinantes) e adicione colaboradores da equipe. Todos entram por **e-mail + senha**.
+2. **Motorista** — só entra com um acesso ativo cadastrado pelo admin (o nome dele precisa bater com o assinante). Se o acesso for suspenso, é bloqueado.
+3. **Colaborador** — a equipe entra por e-mail/senha e acompanha chamados de suporte e tropas. O admin promove a conta (que já deve estar cadastrada) na seção Colaboradores.
 
 Para trocar de painel, use o link "Trocar painel" / "Central" disponível em cada um.
 
-## Dados
+## Banco de dados
 
-Os painéis compartilham dados automaticamente via `localStorage`:
+Os dados ficam no Supabase (PostgreSQL). A configuração de acesso está em `supabase/config.js` (URL pública + chave publishable do frontend).
 
-- `drivewin_admin_mock_v1` — tropas, parceiros, assinantes e colaboradores (Admin + Colaborador + Motorista)
-- `drivewin_suporte_v1` — chamados de suporte (Motorista + Colaborador)
-- `painelMotorista_*` — lançamentos, metas e configurações do motorista
+- `supabase/schema.sql` — schema completo (tabelas, RLS, triggers) — já aplicado.
+- `supabase/addon_migracao.sql` — coluna `dados` em lançamentos, RPC `minha_tropa()`, trigger atualizado — já aplicado.
+- `supabase/fix_trigger.sql` — correção do trigger `criar_perfil` (security definer) — já aplicado.
+- `supabase/addon_operacional.sql` — **aplicar uma vez no SQL Editor**: políticas de colaboradores e colunas de chamados.
 
-Nenhum servidor é necessário: tudo funciona direto no navegador. Para limpar e recomeçar, basta limpar os dados do site no navegador.
+Segurança por RLS (Row Level Security): cada motorista só vê os próprios lançamentos/metas/chamados; a equipe (admin/colaborador) vê tudo.

@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DriveWin — Prévia</title>
+<title>DriveWin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase/config.js"></script>
 <style>
   :root{
     --bg: #0a0a0a;
@@ -512,10 +514,12 @@
       <div class="login-title">Drive<span>Win</span></div>
       <div class="login-sub">Seu controle de ganhos por corrida</div>
       <div class="login-tagline">🏆 Ganhe XP a cada corrida e vire Expert</div>
-      <div class="field"><span class="field-icon">👤</span><input id="login-nome" type="text" placeholder="Seu nome completo" autocomplete="name"></div>
-      <div class="field"><span class="field-icon">🔒</span><input type="password" placeholder="Senha" autocomplete="current-password"></div>
+      <div class="field" id="login-nome-wrap" style="display:none;"><span class="field-icon">👤</span><input id="login-nome" type="text" placeholder="Seu nome completo" autocomplete="name"></div>
+      <div class="field"><span class="field-icon">📧</span><input id="login-email" type="email" placeholder="Seu e-mail" autocomplete="email"></div>
+      <div class="field"><span class="field-icon">🔒</span><input id="login-senha" type="password" placeholder="Sua senha" autocomplete="current-password"></div>
       <div class="login-erro" id="login-erro"></div>
-      <button class="btn-primary" onclick="entrarMotorista()">Entrar</button>
+      <button class="btn-primary" onclick="entrarMotorista()" id="btn-login">Entrar</button>
+      <div class="link-pink" style="margin-top:10px; font-size:12px; cursor:pointer;" onclick="alternarCadastro()" id="toggle-cadastro">Não tem conta? Cadastre-se</div>
       <div class="login-road"></div>
       <div class="privacy-note">🔒 Seus dados são visíveis só para você</div>
       <div class="privacy-note panel-switch-links">
@@ -983,78 +987,100 @@
   <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida</p>
 
 <script>
-  const STORAGE_KEY = 'painelMotorista_lancamentos';
-  const META_KEY = 'painelMotorista_meta';
-  const META_SEMANA_KEY = 'painelMotorista_metaSemana';
-  const META_MES_KEY = 'painelMotorista_metaMes';
-  const META_HORAS_KEY = 'painelMotorista_metaHoras';
-  const META_KM_KEY = 'painelMotorista_metaKm';
-  const META_DIAS_KEY = 'painelMotorista_metaDias';
   const TEMA_KEY = 'painelMotorista_tema';
   const LEMBRETE_ON_KEY = 'painelMotorista_lembreteOn';
   const LEMBRETE_HORA_KEY = 'painelMotorista_lembreteHora';
   const LEMBRETE_ULTIMO_KEY = 'painelMotorista_lembreteUltimoDisparo';
-  const MEU_NOME_KEY = 'painelMotorista_meuNome';
-  const SUPORTE_KEY = 'drivewin_suporte_v1';       // compartilhada com o painel do colaborador (mesmo domínio)
-  const ADMIN_DATA_KEY = 'drivewin_admin_mock_v1'; // compartilhada com o painel admin/colaborador (tropas e status de acesso)
-  const ALL_KEYS = [STORAGE_KEY, META_KEY, META_SEMANA_KEY, META_MES_KEY, META_HORAS_KEY, META_KM_KEY, META_DIAS_KEY];
   let currentRange = 'mes';
   let currentRangeAnalise = 'dia';
   let fuelSelecionado = null;
   let formSnapshot = null; // usado pra detectar alterações não salvas em "Novo lançamento"
 
-  // ---------- persistencia (localStorage) ----------
+  // ---------- estado do motorista (Supabase) ----------
+  let _dwUid = null;
+  let _meuNome = '';
+  let _minhaTropa = '';
+  let _cadastroModo = false;
+  let _lancamentosCache = [];   // lista de registros { data, uber, n99, ... }
+  let _metaCache = { diaria:0, semanal:0, mensal:0, horas:0, km:0, dias:0 };
+  let _ticketsCache = [];       // chamados do motorista
+
+  // ---------- persistencia (Supabase) ----------
+  function _registroParaDB(data, r){
+    const m = calcularMetricas(r);
+    return {
+      usuario_id: _dwUid,
+      data,
+      corridas: 0,
+      km: r.km||0,
+      horas: r.horas||0,
+      bruto: m.faturamento,
+      gasolina: r.combustivel||0,
+      apps: 0,
+      rede: 0,
+      alimentacao: r.alimentacao||0,
+      total: m.lucro,
+      nota: null,
+      dados: {
+        uber: r.uber||0, n99: r.n99||0, promo: r.promo||0, outroApp: r.outroApp||0,
+        combustivelTipo: r.combustivelTipo||'', precoLitro: r.precoLitro||0,
+        carro: r.carro||0, lavagem: r.lavagem||0, outros: r.outros||0,
+      },
+    };
+  }
+  function _dbParaRegistro(row){
+    const d = row.dados || {};
+    return {
+      uber: d.uber||0, n99: d.n99||0, promo: d.promo||0, outroApp: d.outroApp||0,
+      km: row.km||0, horas: row.horas||0,
+      combustivel: row.gasolina||0, combustivelTipo: d.combustivelTipo||'',
+      precoLitro: d.precoLitro||0, alimentacao: row.alimentacao||0,
+      carro: d.carro||0, lavagem: d.lavagem||0, outros: d.outros||0,
+      data: row.data,
+    };
+  }
+  async function carregarDadosMotorista(){
+    const [lancR, metaR] = await Promise.all([
+      DWClient.from('lancamentos').select('*').eq('usuario_id', _dwUid),
+      DWClient.from('metas').select('*').eq('usuario_id', _dwUid).maybeSingle(),
+    ]);
+    _lancamentosCache = (lancR.data||[]).map(_dbParaRegistro);
+    const m = metaR.data || {};
+    _metaCache = { diaria: m.diaria||0, semanal: m.semanal||0, mensal: m.mensal||0, horas: m.horas||0, km: m.km||0, dias: m.dias||0 };
+  }
   function getLancamentos(){
-    try{
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : {};
-    }catch(e){ return {}; }
+    const obj = {};
+    _lancamentosCache.forEach(r => { obj[r.data] = r; });
+    return obj;
   }
-  function saveLancamentos(obj){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+  async function saveLancamentos(obj){
+    _lancamentosCache = Object.values(obj);
+    const rows = Object.values(obj).map(r => _registroParaDB(r.data, r));
+    for(const row of rows){
+      try{ await DWClient.from('lancamentos').upsert(row, { onConflict:'usuario_id,data' }); }
+      catch(e){ console.error('erro ao salvar lançamento', e); }
+    }
   }
-  function getMeta(){
-    const v = localStorage.getItem(META_KEY);
-    return v ? parseFloat(v) : 0;
+  async function excluirLancamentoDB(dataISO){
+    _lancamentosCache = _lancamentosCache.filter(r => r.data !== dataISO);
+    await DWClient.from('lancamentos').delete().eq('usuario_id', _dwUid).eq('data', dataISO);
   }
-  function setMeta(v){
-    localStorage.setItem(META_KEY, String(v));
+  async function persistirMetas(){
+    const payload = { usuario_id: _dwUid, diaria:_metaCache.diaria, semanal:_metaCache.semanal, mensal:_metaCache.mensal, horas:_metaCache.horas, km:_metaCache.km, dias:_metaCache.dias };
+    try{ await DWClient.from('metas').upsert(payload, { onConflict:'usuario_id' }); }catch(e){ console.error('erro ao salvar metas', e); }
   }
-  function getMetaSemana(){
-    const v = localStorage.getItem(META_SEMANA_KEY);
-    return v ? parseFloat(v) : 0;
-  }
-  function setMetaSemana(v){
-    localStorage.setItem(META_SEMANA_KEY, String(v));
-  }
-  function getMetaMes(){
-    const v = localStorage.getItem(META_MES_KEY);
-    return v ? parseFloat(v) : 0;
-  }
-  function setMetaMes(v){
-    localStorage.setItem(META_MES_KEY, String(v));
-  }
-  function getMetaHoras(){
-    const v = localStorage.getItem(META_HORAS_KEY);
-    return v ? parseFloat(v) : 0;
-  }
-  function setMetaHoras(v){
-    localStorage.setItem(META_HORAS_KEY, String(v));
-  }
-  function getMetaKm(){
-    const v = localStorage.getItem(META_KM_KEY);
-    return v ? parseFloat(v) : 0;
-  }
-  function setMetaKm(v){
-    localStorage.setItem(META_KM_KEY, String(v));
-  }
-  function getMetaDias(){
-    const v = localStorage.getItem(META_DIAS_KEY);
-    return v ? parseFloat(v) : 0;
-  }
-  function setMetaDias(v){
-    localStorage.setItem(META_DIAS_KEY, String(v));
-  }
+  function getMeta(){ return _metaCache.diaria || 0; }
+  function setMeta(v){ _metaCache.diaria = v; persistirMetas(); }
+  function getMetaSemana(){ return _metaCache.semanal || 0; }
+  function setMetaSemana(v){ _metaCache.semanal = v; persistirMetas(); }
+  function getMetaMes(){ return _metaCache.mensal || 0; }
+  function setMetaMes(v){ _metaCache.mensal = v; persistirMetas(); }
+  function getMetaHoras(){ return _metaCache.horas || 0; }
+  function setMetaHoras(v){ _metaCache.horas = v; persistirMetas(); }
+  function getMetaKm(){ return _metaCache.km || 0; }
+  function setMetaKm(v){ _metaCache.km = v; persistirMetas(); }
+  function getMetaDias(){ return _metaCache.dias || 0; }
+  function setMetaDias(v){ _metaCache.dias = v; persistirMetas(); }
 
   // ---------- tema claro/escuro ----------
   function aplicarTema(tema){
@@ -1119,62 +1145,129 @@
   }
 
   // ---------- login / identificação do motorista ----------
-  function getSharedAdminData(){
-    try{
-      const raw = localStorage.getItem(ADMIN_DATA_KEY);
-      return raw ? JSON.parse(raw) : null;
-    }catch(e){ return null; }
+  function meuNomeAtual(){ return _meuNome; }
+
+  function alternarCadastro(){
+    _cadastroModo = !_cadastroModo;
+    document.getElementById('login-nome-wrap').style.display = _cadastroModo ? 'flex' : 'none';
+    document.getElementById('btn-login').textContent = _cadastroModo ? 'Criar conta' : 'Entrar';
+    document.getElementById('toggle-cadastro').textContent = _cadastroModo ? 'Já tenho conta — entrar' : 'Não tem conta? Cadastre-se';
+    document.getElementById('login-erro').style.display = 'none';
   }
-  function meuNomeAtual(){ return localStorage.getItem(MEU_NOME_KEY) || ''; }
-  function entrarMotorista(){
-    const nomeInput = document.getElementById('login-nome');
+
+  function mostrarErroLogin(msg){
     const erroEl = document.getElementById('login-erro');
-    const nome = (nomeInput.value || '').trim();
+    erroEl.textContent = msg;
+    erroEl.style.display = 'block';
+  }
+
+  async function entrarMotorista(){
+    const erroEl = document.getElementById('login-erro');
     erroEl.style.display = 'none';
-    if(!nome){
-      erroEl.textContent = 'Digite seu nome pra entrar.';
-      erroEl.style.display = 'block';
-      nomeInput.focus();
+    const email = document.getElementById('login-email').value.trim().toLowerCase();
+    const senha = document.getElementById('login-senha').value;
+    if(!email || !senha){
+      mostrarErroLogin('Informe e-mail e senha.');
       return;
     }
-    const dataAdmin = getSharedAdminData();
-    let acessoOk = false;
-    if(dataAdmin && Array.isArray(dataAdmin.assinantes)){
-      const registro = dataAdmin.assinantes.find(a => (a.nome||'').trim().toLowerCase() === nome.toLowerCase());
-      if(registro){
-        if(registro.ativo === false){
-          erroEl.textContent = '🚫 Seu acesso foi suspenso. Abra um chamado no Suporte ou fale com sua tropa pra regularizar.';
-          erroEl.style.display = 'block';
-          return;
-        }
-        acessoOk = true;
+    let user;
+    if(_cadastroModo){
+      const nome = document.getElementById('login-nome').value.trim();
+      if(!nome){ mostrarErroLogin('Digite seu nome completo no cadastro.'); return; }
+      const { data, error } = await DWClient.auth.signUp({
+        email, password: senha,
+        options: { data: { nome, papel: 'motorista' } },
+      });
+      if(error || !data.user){
+        mostrarErroLogin(error && error.message ? 'Erro no cadastro: ' + error.message : 'Erro no cadastro.');
+        return;
       }
+      user = data.user;
+      _meuNome = nome;
+    } else {
+      const { data, error } = await DWClient.auth.signInWithPassword({ email, password: senha });
+      if(error || !data.user){
+        mostrarErroLogin('E-mail ou senha incorretos.');
+        return;
+      }
+      user = data.user;
+      const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', user.id).single();
+      _meuNome = (perfil && perfil.nome) || '';
     }
-    if(!acessoOk){
-      erroEl.textContent = '🚫 Acesso não encontrado. Fale com um parceiro para assinar o DriveWin.';
-      erroEl.style.display = 'block';
+
+    // checagem de acesso ativo
+    const { data: assinantes } = await DWClient.from('assinantes')
+      .select('*')
+      .ilike('nome', _meuNome.trim());
+    const registro = (assinantes||[]).find(a => (a.nome||'').trim().toLowerCase() === _meuNome.trim().toLowerCase());
+    if(!registro){
+      mostrarErroLogin('Acesso não encontrado. Fale com um parceiro para assinar o DriveWin.');
       return;
     }
-    localStorage.setItem(MEU_NOME_KEY, nome);
+    if(registro.ativo === false){
+      mostrarErroLogin('Seu acesso foi suspenso. Abra um chamado no Suporte ou fale com sua tropa pra regularizar.');
+      return;
+    }
+    const tropaR = registro.tropa_id ? await DWClient.from('tropas').select('nome').eq('id', registro.tropa_id).maybeSingle() : null;
+    _minhaTropa = (tropaR && tropaR.data) ? tropaR.data.nome : '';
+    _dwUid = user.id;
+
+    await carregarDadosMotorista();
+    await carregarTickets();
+    document.getElementById('login').classList.remove('active');
     showScreen('dashboard','nav-dash');
   }
+
+  // sessão já aberta (recarregou a página) → tenta entrar direto
+  DWClient.auth.getSession().then(async ({ data }) => {
+    const session = data.session;
+    if(!session) return;
+    const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', session.user.id).single();
+    if(perfil && perfil.papel === 'motorista'){
+      _meuNome = perfil.nome || '';
+      const { data: assinantes } = await DWClient.from('assinantes').select('*');
+      const registro = (assinantes||[]).find(a => (a.nome||'').trim().toLowerCase() === _meuNome.trim().toLowerCase());
+      if(registro && registro.ativo !== false){
+        const tropaR = registro.tropa_id ? await DWClient.from('tropas').select('nome').eq('id', registro.tropa_id).maybeSingle() : null;
+        _minhaTropa = (tropaR && tropaR.data) ? tropaR.data.nome : '';
+        _dwUid = session.user.id;
+        await carregarDadosMotorista();
+        await carregarTickets();
+        document.getElementById('login').classList.remove('active');
+        showScreen('dashboard','nav-dash');
+      }
+    }
+  });
   document.addEventListener('DOMContentLoaded', () => {
     const nomeInput = document.getElementById('login-nome');
-    if(nomeInput) nomeInput.value = meuNomeAtual();
+    if(nomeInput) nomeInput.value = '';
   });
 
   // ---------- suporte (chamados) ----------
-  function getTickets(){
-    try{ const raw = localStorage.getItem(SUPORTE_KEY); return raw ? JSON.parse(raw) : []; }catch(e){ return []; }
-  }
-  function saveTickets(list){ localStorage.setItem(SUPORTE_KEY, JSON.stringify(list)); }
   function agoraFmt(){
     const d = new Date();
     return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   }
-  function renderSuporte(){
+  function _chamadoParaCache(row){
+    return {
+      id: row.id,
+      nome: row.nome,
+      tropa: row.tropa || '',
+      assunto: row.assunto || '',
+      status: row.status,
+      mensagens: (row.thread && row.thread.length) ? row.thread : (row.mensagem ? [{ de:'motorista', texto:row.mensagem, em: agoraFmt() }] : []),
+      criadoEm: row.criado_em,
+    };
+  }
+  async function carregarTickets(){
+    const { data } = await DWClient.from('chamados').select('*').eq('nome', _meuNome.trim()).order('criado_em', { ascending:false });
+    _ticketsCache = (data||[]).map(_chamadoParaCache);
+  }
+  function getTickets(){ return _ticketsCache; }
+  async function renderSuporte(){
     const nome = meuNomeAtual();
-    const meus = getTickets().filter(t => t.nome === nome).sort((a,b)=> b.criadoEm.localeCompare(a.criadoEm));
+    await carregarTickets();
+    const meus = _ticketsCache.slice().sort((a,b) => String(b.criadoEm).localeCompare(String(a.criadoEm)));
     const wrap = document.getElementById('suporte-lista');
     if(meus.length === 0){
       wrap.innerHTML = `<div style="text-align:center; color:var(--text-dim); font-size:12px; padding:26px 0;">
@@ -1201,26 +1294,20 @@
     document.getElementById('novo-ticket-overlay').classList.add('open');
   }
   function fecharNovoTicket(){ document.getElementById('novo-ticket-overlay').classList.remove('open'); }
-  function enviarNovoTicket(){
+  async function enviarNovoTicket(){
     const nome = meuNomeAtual();
     const assunto = document.getElementById('nt-assunto').value.trim();
     const mensagem = document.getElementById('nt-mensagem').value.trim();
     if(!assunto || !mensagem){ alert('Preencha o assunto e a mensagem.'); return; }
-    const dataAdmin = getSharedAdminData();
-    const registro = dataAdmin && Array.isArray(dataAdmin.assinantes)
-      ? dataAdmin.assinantes.find(a => (a.nome||'').trim().toLowerCase() === nome.toLowerCase())
-      : null;
-    const tropa = registro && dataAdmin.tropas ? (dataAdmin.tropas.find(t => t.id === registro.tropaId) || {}).nome : '';
-    const todos = getTickets();
-    todos.push({
-      id: 'tk_' + Date.now(),
-      nome, tropa: tropa || '',
+    const { data: novo } = await DWClient.from('chamados').insert({
+      nome,
+      tropa: _minhaTropa || '',
       assunto,
       status: 'aberto',
-      mensagens: [{ de:'motorista', texto: mensagem, em: agoraFmt() }],
-      criadoEm: new Date().toISOString(),
-    });
-    saveTickets(todos);
+      mensagem,
+      thread: [{ de:'motorista', texto: mensagem, em: agoraFmt() }],
+    }).select().single();
+    if(novo) _ticketsCache.unshift(_chamadoParaCache(novo));
     fecharNovoTicket();
     renderSuporte();
   }
@@ -1239,7 +1326,7 @@
     ticketAtualId = null;
   }
   function renderThreadTicket(){
-    const t = getTickets().find(x => x.id === ticketAtualId);
+    const t = _ticketsCache.find(x => x.id === ticketAtualId);
     if(!t){ fecharTicket(); return; }
     document.getElementById('ticket-titulo').textContent = t.assunto;
     const encerrado = t.status === 'fechado';
@@ -1252,34 +1339,32 @@
     document.getElementById('ticket-encerrado-nota').style.display = encerrado ? 'block' : 'none';
     document.getElementById('btn-reabrir-ticket').style.display = encerrado ? 'block' : 'none';
   }
-  function enviarRespostaTicket(){
+  async function enviarRespostaTicket(){
     const texto = document.getElementById('ticket-resposta').value.trim();
     if(!texto) return;
-    const todos = getTickets();
-    const t = todos.find(x => x.id === ticketAtualId);
+    const t = _ticketsCache.find(x => x.id === ticketAtualId);
     if(!t) return;
-    t.mensagens.push({ de:'motorista', texto, em: agoraFmt() });
+    const novoThread = (t.mensagens||[]).concat([{ de:'motorista', texto, em: agoraFmt() }]);
+    await DWClient.from('chamados').update({ thread: novoThread, status:'aberto' }).eq('id', t.id);
+    t.mensagens = novoThread;
     t.status = 'aberto';
-    saveTickets(todos);
     document.getElementById('ticket-resposta').value = '';
     renderThreadTicket();
     renderSuporte();
   }
-  function encerrarTicketMotorista(){
-    const todos = getTickets();
-    const t = todos.find(x => x.id === ticketAtualId);
+  async function encerrarTicketMotorista(){
+    const t = _ticketsCache.find(x => x.id === ticketAtualId);
     if(!t) return;
+    await DWClient.from('chamados').update({ status:'fechado' }).eq('id', t.id);
     t.status = 'fechado';
-    saveTickets(todos);
     renderThreadTicket();
     renderSuporte();
   }
-  function reabrirTicketMotorista(){
-    const todos = getTickets();
-    const t = todos.find(x => x.id === ticketAtualId);
+  async function reabrirTicketMotorista(){
+    const t = _ticketsCache.find(x => x.id === ticketAtualId);
     if(!t) return;
+    await DWClient.from('chamados').update({ status:'aberto' }).eq('id', t.id);
     t.status = 'aberto';
-    saveTickets(todos);
     renderThreadTicket();
     renderSuporte();
   }
@@ -1444,7 +1529,7 @@
   }
 
   // ---------- salvar lançamento ----------
-  document.getElementById('btn-salvar').addEventListener('click', () => {
+  document.getElementById('btn-salvar').addEventListener('click', async () => {
     const dataISO = document.getElementById('in-data').value || todayISO();
     const registro = lerFormulario();
     registro.data = dataISO;
@@ -1459,7 +1544,7 @@
 
     const registros = getLancamentos();
     registros[dataISO] = registro;
-    saveLancamentos(registros);
+    await saveLancamentos(registros);
 
     const metaVal = parseFloat(document.getElementById('in-meta').value);
     if(!isNaN(metaVal) && metaVal > 0) setMeta(metaVal);
@@ -1479,13 +1564,11 @@
     excluirLancamento(dataISO);
   }
 
-  function excluirLancamento(dataISO, event){
+  async function excluirLancamento(dataISO, event){
     if(event) event.stopPropagation(); // evita abrir edição ao clicar na lixeira do histórico
     if(!confirm(`Excluir o lançamento de ${fmtDateBR(dataISO)}? Essa ação não pode ser desfeita.`)) return;
 
-    const registros = getLancamentos();
-    delete registros[dataISO];
-    saveLancamentos(registros);
+    await excluirLancamentoDB(dataISO);
 
     // se a exclusão veio do formulário, limpa os campos e some com o botão
     if(document.getElementById('in-data').value === dataISO){
@@ -1511,11 +1594,10 @@
   }
 
   function exportarJSON(){
-    const dados = {};
-    ALL_KEYS.forEach(k => {
-      const v = localStorage.getItem(k);
-      if(v !== null) dados[k] = v;
-    });
+    const dados = {
+      lancamentos: getLancamentos(),
+      metas: { ..._metaCache },
+    };
     dados._formato = 'painelMotorista-backup';
     dados._exportadoEm = new Date().toISOString();
     baixarArquivo(JSON.stringify(dados, null, 2), `drivewin-backup-${todayISO()}.json`, 'application/json');
@@ -1545,7 +1627,7 @@
     const arquivo = event.target.files[0];
     if(!arquivo) return;
     const leitor = new FileReader();
-    leitor.onload = (e) => {
+    leitor.onload = async (e) => {
       let dados;
       try{
         dados = JSON.parse(e.target.result);
@@ -1559,12 +1641,22 @@
         event.target.value = '';
         return;
       }
-      const confirmar = confirm('Importar esse backup vai substituir todos os lançamentos e metas salvos neste aparelho. Quer continuar?');
+      const confirmar = confirm('Importar esse backup vai substituir todos os lançamentos e metas salvos. Quer continuar?');
       if(!confirmar){ event.target.value = ''; return; }
 
-      ALL_KEYS.forEach(k => {
-        if(dados[k] !== undefined) localStorage.setItem(k, dados[k]);
-      });
+      if(dados.lancamentos && typeof dados.lancamentos === 'object'){
+        await saveLancamentos(dados.lancamentos);
+      }
+      if(dados.metas){
+        const m = dados.metas;
+        if(m.diaria) _metaCache.diaria = m.diaria;
+        if(m.semanal) _metaCache.semanal = m.semanal;
+        if(m.mensal) _metaCache.mensal = m.mensal;
+        if(m.horas) _metaCache.horas = m.horas;
+        if(m.km) _metaCache.km = m.km;
+        if(m.dias) _metaCache.dias = m.dias;
+        await persistirMetas();
+      }
 
       event.target.value = '';
       fecharConfigMeta();
