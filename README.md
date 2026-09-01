@@ -19,6 +19,18 @@ Sistema de gestão para negócios de corridas com três painéis integrados e ba
 
 Para trocar de painel, use o link "Trocar painel" / "Central" disponível em cada um.
 
+## Pagamento por Pix (sem gateway)
+
+Todo pagamento é manual via Pix — o sistema organiza o fluxo de **receber antes de liberar**:
+
+1. **Admin define a chave Pix e a mensalidade** na seção "Pix e mensalidade" (fica na tabela `config`).
+2. **Admin vende o acesso** cadastrando o assinante (com o e-mail do motorista). Acesso "pendente" nasce **bloqueado**.
+3. **Motorista tenta entrar** → vê a tela de pagamento com a chave Pix e o valor, paga e clica em **"Já fiz o Pix"**.
+4. O aviso entra na **Fila de avisos de pagamento** do Admin. O admin confere o recebido no banco e clica em **confirmar** → o acesso é liberado e o vencimento ganha +30 dias.
+5. **Renovação**: quando o `venc` passa, o motorista é redirecionado para a mesma tela de pagamento até renovar.
+
+SQL necessário (uma vez): `supabase/addon_pix.sql` — cria a tabela `config` e as políticas para o motorista ver a chave e avisar o pagamento.
+
 ## Banco de dados
 
 Os dados ficam no Supabase (PostgreSQL). A configuração de acesso está em `supabase/config.js` (URL pública + chave publishable do frontend).
@@ -26,7 +38,9 @@ Os dados ficam no Supabase (PostgreSQL). A configuração de acesso está em `su
 - `supabase/schema.sql` — schema completo (tabelas, RLS, triggers) — já aplicado.
 - `supabase/addon_migracao.sql` — coluna `dados` em lançamentos, RPC `minha_tropa()`, trigger atualizado — já aplicado.
 - `supabase/fix_trigger.sql` — correção do trigger `criar_perfil` (security definer) — já aplicado.
-- `supabase/addon_operacional.sql` — **aplicar uma vez no SQL Editor**: políticas de colaboradores e colunas de chamados.
+- `supabase/addon_operacional.sql` — **aplicado**: políticas de colaboradores e colunas de chamados.
+- `supabase/addon_acesso_email.sql` — **aplicado**: coluna `email` em assinantes e acesso validado por e-mail.
+- `supabase/addon_pix.sql` — **aplicar uma vez no SQL Editor**: tabela `config` (chave Pix + mensalidade) e políticas do fluxo de pagamento.
 
 Segurança por RLS (Row Level Security): cada motorista só vê os próprios lançamentos/metas/chamados; a equipe (admin/colaborador) vê tudo.
 
@@ -36,7 +50,7 @@ O projeto é 100% estático (HTML + JS) e o banco é o Supabase na nuvem — nã
 
 ### 1. Antes de subir (uma única vez)
 
-- Aplicar `supabase/addon_operacional.sql` no SQL Editor do Supabase (necessário para gestão de colaboradores e chamados).
+- Aplicar `supabase/addon_pix.sql` no SQL Editor do Supabase (fluxo de pagamento Pix).
 - Garantir que a conta admin existe com `papel = 'admin'` na tabela `perfis` (o admin entra por e-mail/senha).
 - Opcional: desativar **signups abertos** no Supabase (Auth → Providers → Email → "Allow new users to sign up") e liberar só os motoristas cadastrados pelo admin. Se desativado, motoristas não conseguem criar conta — para vender acesso, o admin cadastra a conta do motorista manualmente em Authentication → Users → Add user com o nome exato do assinante.
 

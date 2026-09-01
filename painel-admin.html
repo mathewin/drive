@@ -531,6 +531,23 @@
           <tbody id="fila-pagamento-rows"></tbody>
         </table>
         <div class="empty-note" id="fila-pagamento-vazio" style="display:none;">Nenhum aviso pendente no momento.</div>
+        <div class="stat-note" style="margin-top:10px;">O motorista vê a chave Pix no app dele e clica em "Já fiz o Pix". Confira o recebido no banco e clique em confirmar para liberar o acesso.</div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">PIX E MENSALIDADE</div>
+        <div class="stat-note" style="margin-bottom:10px;">Essa chave aparece para os motoristas pendentes pagarem. A mensalidade é o valor cobrado por 30 dias de acesso.</div>
+        <div class="form-group">
+          <label class="form-label">Chave Pix</label>
+          <input class="form-input" id="cfg-pix" type="text" placeholder="CPF / CNPJ / e-mail / telefone / chave aleatória">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mensalidade (R$)</label>
+          <input class="form-input" id="cfg-mensalidade" type="number" step="0.01" min="0" placeholder="Ex: 99.90">
+        </div>
+        <div class="form-actions" style="margin-top:10px;">
+          <button class="btn-primary" style="background:linear-gradient(135deg, var(--green), var(--green-lucro)); color:#06210f;" onclick="salvarConfig()">Salvar Pix</button>
+        </div>
       </div>
 
       <div class="section-card">
@@ -838,6 +855,7 @@
       auditLog: [],
       alertasFraude: [],
       filaPagamento: [],
+      config: {},
       rankingRegiao: [],
       rankingTropa: {},
       premios: [],
@@ -923,7 +941,7 @@
 
   async function loadAll(){
     const sb = DWClient;
-    const [tropas, parceiros, candidatos, assinantes, fila, alertas, ranking, premios, financeiro, auditoria, colaboradores] = await Promise.all([
+    const [tropas, parceiros, candidatos, assinantes, fila, alertas, ranking, premios, financeiro, auditoria, colaboradores, config] = await Promise.all([
       sb.from('tropas').select('*'),
       sb.from('parceiros').select('*'),
       sb.from('candidatos').select('*'),
@@ -935,6 +953,7 @@
       sb.from('financeiro').select('*'),
       sb.from('auditoria').select('*').order('id', {ascending:false}).limit(200),
       sb.from('perfis').select('*').eq('papel','colaborador'),
+      sb.from('config').select('*'),
     ]);
     __db.tropas = (tropas.data||[]).map(t => ({ id:t.id, nome:t.nome, ativa:t.ativa, assinantes:0 }));
     __db.parceiros = (parceiros.data||[]).map(p => ({ id:p.id, tropaId:p.tropa_id, nome:p.nome, cupom:p.cupom, comissaoMes:p.comissao_mes, comissaoTotal:p.comissao_total }));
@@ -942,6 +961,10 @@
     __db.colaboradores = (colaboradores.data||[]).map(x => ({ id:x.id, nome:x.nome, email:x.email, todasTropas:x.todas_tropas, tropaIds:x.tropa_ids||[] }));
     __db.assinantes = (assinantes.data||[]).map(a => ({ id:a.id, nome:a.nome, email:a.email||null, tropaId:a.tropa_id, status:a.status, ativo:a.ativo, venc:a.venc, historico:a.historico||[], criadoEm:a.criado_em }));
     __db.filaPagamento = (fila.data||[]).map(f => ({ id:f.id, assinante:f.assinante, valor:f.valor, motivo:f.motivo }));
+    __db.config = {};
+    (config.data||[]).forEach(c => { __db.config[c.chave] = c.valor; });
+    document.getElementById('cfg-pix').value = __db.config.pix_chave || '';
+    document.getElementById('cfg-mensalidade').value = __db.config.mensalidade || '';
     __db.alertasFraude = (alertas.data||[]).map(x => ({ titulo:x.titulo, desc:x.descricao }));
     __db.rankingRegiao = (ranking.data||[]).map(r => ({ nome:r.nome, tropa:r.tropa, valor:r.valor }));
     __db.premios = (premios.data||[]).map(p => ({ id:p.id, tipo:p.tipo, escopo:p.escopo, ganhador:p.ganhador, valor:p.valor, antifraude:p.antifraude, status:p.status }));
@@ -1178,16 +1201,22 @@
     d.filaPagamento = d.filaPagamento.filter(x => x.id !== id);
     const a = d.assinantes.find(x => x.nome === f.assinante);
     let novoHistorico = null;
+    let novoVenc = null;
     if(a){
       a.status = 'pago';
+      a.ativo = true;
+      const venc = new Date();
+      venc.setDate(venc.getDate() + 30);
+      novoVenc = venc.toISOString().slice(0,10);
+      a.venc = novoVenc;
       a.historico = a.historico || [];
       a.historico.push({status:'pago', em: agora()});
       novoHistorico = a.historico;
     }
     await DWClient.from('fila_pagamento').delete().eq('id', f.id);
-    if(a) await DWClient.from('assinantes').update({ status:'pago', historico:novoHistorico }).eq('id', a.id);
+    if(a) await DWClient.from('assinantes').update({ status:'pago', ativo:true, venc:novoVenc, historico:novoHistorico }).eq('id', a.id);
     logAuditoria('Pagamento confirmado', `${f.assinante} — ${fmtMoney(f.valor)}`);
-    toast(`Pagamento de ${f.assinante} confirmado`);
+    toast(`Pagamento de ${f.assinante} confirmado — acesso liberado`);
     renderAssinantes(); renderDashboard();
   }
   async function toggleAcesso(id){
@@ -1341,6 +1370,26 @@
   document.getElementById('assinante-overlay').addEventListener('click', e => {
     if(e.target.id === 'assinante-overlay') fecharNovoAssinante();
   });
+  async function salvarConfig(){
+    const d = getData();
+    const pix = document.getElementById('cfg-pix').value.trim();
+    const mensal = document.getElementById('cfg-mensalidade').value.trim();
+    const config = {};
+    if(pix) config.pix_chave = pix;
+    if(mensal) config.mensalidade = String(Number(mensal));
+    const itens = Object.entries(config).map(([k,v]) => ({ chave:k, valor:v }));
+    for(const item of itens){
+      const existe = d.config[item.chave];
+      if(existe !== undefined){
+        await DWClient.from('config').update({ valor:item.valor }).eq('chave', item.chave);
+      } else {
+        await DWClient.from('config').insert(item);
+      }
+      d.config[item.chave] = item.valor;
+    }
+    logAuditoria('Configuração de Pix', `${pix ? 'chave atualizada' : 'chave removida'}${mensal ? ' — R$ ' + mensal : ''}`);
+    toast('Pix e mensalidade salvos');
+  }
   async function salvarNovoAssinante(){
     const nome = document.getElementById('na-nome').value.trim();
     const email = (document.getElementById('na-email').value || '').trim().toLowerCase();
@@ -1370,7 +1419,7 @@
       email: email || null,
       tropa_id: tropaId || null,
       status,
-      ativo: true,
+      ativo: status === 'pago',
       venc: venc.toISOString().slice(0,10),
       historico: [{ status, em: agora() }],
     };
@@ -1381,7 +1430,7 @@
       email: email || null,
       tropaId: tropaId || null,
       status,
-      ativo: true,
+      ativo: status === 'pago',
       venc: novo.venc,
       historico: novo.historico,
     });

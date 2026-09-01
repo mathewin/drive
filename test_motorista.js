@@ -7,12 +7,18 @@ function seedDb(){
       { id:'u-moto', nome:'Joao', papel:'motorista', email:'joao@x.com', todas_tropas:false, tropa_ids:[] },
       { id:'u-moto2', nome:'Pedro', papel:'motorista', email:'pedro@x.com', todas_tropas:false, tropa_ids:[] },
       { id:'u-falso', nome:'Joao', papel:'motorista', email:'falso@x.com', todas_tropas:false, tropa_ids:[] },
+      { id:'u-novato', nome:'Novato', papel:'motorista', email:'novato@x.com', todas_tropas:false, tropa_ids:[] },
     ],
     tropas: [ { id:'t1', nome:'Tropa do Carlos', ativa:true } ],
     parceiros: [], candidatos: [],
     assinantes: [
       { id:'a1', nome:'Joao', email:'joao@x.com', tropa_id:'t1', status:'pago', ativo:true, historico:[] },
       { id:'a2', nome:'Pedro', tropa_id:'t1', status:'pago', ativo:false, historico:[] },
+      { id:'a3', nome:'Novato', email:'novato@x.com', tropa_id:'t1', status:'pendente', ativo:false, historico:[] },
+    ],
+    config: [
+      { chave:'pix_chave', valor:'novato@pix.com' },
+      { chave:'mensalidade', valor:'99.9' },
     ],
     fila_pagamento: [], alertas_fraude: [], ranking_regiao: [], premios: [],
     chamados: [],
@@ -121,6 +127,27 @@ async function main(){
     process.exit(1);
   }
   console.log('[moto] fallback nome ok → Pedro (sem e-mail) encontrado e bloqueado por suspensão');
+
+  // --- fluxo Pix: pendente cai na tela de pagamento, vê a chave e avisa ---
+  auth.signInWithPassword = async ({email,password}) => ({ data:{ user:{ id:'u-novato', email } }, error:null });
+  document.getElementById('login-email').value = 'novato@x.com';
+  document.getElementById('login-senha').value = 'senha';
+  await window.entrarMotorista();
+  if(!document.getElementById('pagar').classList.contains('active')){
+    console.error('[moto] FALHOU: pendente não foi pra tela de pagamento');
+    process.exit(1);
+  }
+  if(document.getElementById('pix-chave').textContent !== 'novato@pix.com'){
+    console.error('[moto] FALHOU: chave pix não exibida na tela', document.getElementById('pix-chave').textContent);
+    process.exit(1);
+  }
+  await window.avisarPagamento();
+  const aviso = db.fila_pagamento.find(x => x.assinante === 'Novato');
+  if(!aviso || aviso.motivo !== 'Pix via app'){
+    console.error('[moto] FALHOU: aviso de pagamento não criado', db.fila_pagamento);
+    process.exit(1);
+  }
+  console.log('[moto] fluxo pix ok → pendente vê chave e avisa pagamento');
 
   console.log('\n=== TESTES MOTORISTA PASSARAM ===');
 }
