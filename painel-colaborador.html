@@ -175,6 +175,52 @@
   .periodo-btn{ font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; cursor:pointer; color: var(--text-dim); }
   .periodo-btn.active{ background: var(--card); color: var(--green); box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
 
+  /* ---------- LOGIN: escolher colaborador ou parceiro ---------- */
+  .login-role{
+    display:flex; gap:6px; background: var(--card); border:1px solid var(--card-border);
+    border-radius:14px; padding:4px; margin-bottom:18px; width:100%; max-width:300px; box-sizing:border-box;
+  }
+  .role-btn{
+    flex:1; text-align:center; font-size:12.5px; font-weight:800; padding:10px 6px; border-radius:10px;
+    cursor:pointer; color: var(--text-dim); transition: all .15s ease;
+  }
+  .role-btn.active{ background: linear-gradient(135deg, var(--green), var(--green-lucro)); color:#06210f; box-shadow: 0 0 14px rgba(49,249,0,0.3); }
+  .role-btn:not(.active):hover{ background: var(--muted-bg); }
+
+  /* ---------- CARDS DO PARCEIRO ---------- */
+  .partner-cards{ display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-top:16px; }
+  .stat-card{
+    background: var(--card); border:1px solid var(--card-border); border-radius:14px; padding:16px 18px;
+  }
+  .stat-card .card-label{ color: var(--text-dim); font-size:10.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; margin-bottom:8px; }
+  .stat-card .card-num{ font-size:24px; font-weight:800; }
+  .stat-card .card-num small{ font-size:12px; color: var(--text-dim); font-weight:600; }
+  .stat-card .card-sub{ color: var(--text-dim); font-size:11.5px; margin-top:6px; line-height:1.4; }
+  .cupom-box{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; background: var(--muted-bg);
+    border:1px dashed var(--green-dim); border-radius:12px; padding:12px 14px; margin-top:10px;
+  }
+  .cupom-code{ font-size:18px; font-weight:800; color: var(--green); letter-spacing:.08em; }
+  .copy-btn{
+    font-size:11.5px; font-weight:800; padding:7px 12px; border-radius:8px; cursor:pointer;
+    background: rgba(49,249,0,0.12); color: var(--green); border:1px solid var(--green-dim); flex-shrink:0;
+  }
+  .copy-btn:hover{ background: rgba(49,249,0,0.2); }
+  .tag-cupom{
+    display:inline-block; font-size:11.5px; font-weight:800; letter-spacing:.05em; padding:4px 10px;
+    border-radius:8px; background: rgba(49,249,0,0.1); color: var(--green); border:1px solid var(--green-dim);
+  }
+
+  /* ---------- PROGRESSO ---------- */
+  .bar-track{ height:10px; background: var(--muted-bg); border-radius:8px; overflow:hidden; margin-top:8px; }
+  .bar-fill{ height:100%; background: linear-gradient(90deg, var(--green-dim), var(--green)); border-radius:8px; transition: width .4s ease; }
+  .progress-line{ display:flex; justify-content:space-between; color: var(--text-dim); font-size:11px; margin-top:6px; }
+  .meta-chip{
+    display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; padding:7px 12px;
+    border-radius:10px; margin-right:8px; margin-bottom:8px; background: var(--muted-bg); border:1px solid var(--card-border);
+  }
+  .meta-chip.done{ color: var(--green); border-color: var(--green-dim); background: rgba(49,249,0,0.08); }
+
   .ticket-card{
     display:flex; align-items:flex-start; gap:10px; background: var(--muted-bg);
     border:1px solid var(--card-border); border-radius:12px; padding:12px 14px; margin-bottom:10px; cursor:pointer;
@@ -247,14 +293,18 @@
 <!-- TELA LOGIN -->
 <div id="login">
   <div class="login-glow"></div>
-  <div class="login-badge">🎧 ACESSO DA EQUIPE</div>
-  <div class="login-title">Drive<span>Win</span> Colaborador</div>
-  <div class="login-sub">Suporte e acompanhamento de tropas</div>
+  <div class="login-badge" id="login-badge">🎧 ACESSO DA EQUIPE</div>
+  <div class="login-title" id="login-title">Drive<span>Win</span> Colaborador</div>
+  <div class="login-sub" id="login-sub">Suporte e acompanhamento de tropas</div>
+  <div class="login-role" id="login-role">
+    <span class="role-btn active" data-role="colaborador" onclick="setRole('colaborador', this)">🎧 Colaborador</span>
+    <span class="role-btn" data-role="parceiro" onclick="setRole('parceiro', this)">🤝 Parceiro</span>
+  </div>
   <div class="field"><span>📧</span><input id="login-email" type="email" placeholder="Seu e-mail" autocomplete="email" style="background:transparent; border:none; outline:none; color:var(--text); font-size:14px; width:100%;"></div>
   <div class="field"><span>🔒</span><input id="login-senha" type="password" placeholder="Sua senha" autocomplete="current-password" style="background:transparent; border:none; outline:none; color:var(--text); font-size:14px; width:100%;"></div>
   <div class="login-erro" id="login-erro" style="display:none; color:var(--red); font-size:12px; margin:-4px 0 12px; text-align:left; width:100%; max-width:300px;"></div>
   <button class="btn-primary" onclick="entrar()">Entrar</button>
-  <div class="privacy-note">Acesso restrito à equipe do DriveWin</div>
+  <div class="privacy-note">Acesso restrito à equipe e parceiros do DriveWin</div>
 </div>
 
 <!-- APP -->
@@ -264,10 +314,12 @@
   </div>
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
   <div class="sidebar" id="sidebar">
-    <div class="brand">Drive<span>Win</span><small>PAINEL COLABORADOR</small></div>
-    <div class="side-item active" data-s="suporte" onclick="showSection('suporte', this)"><span class="side-icon">🎧</span>Suporte</div>
-    <div class="side-item" data-s="pagamentos" onclick="showSection('pagamentos', this)"><span class="side-icon">💳</span>Pagamentos</div>
-    <div class="side-item" data-s="tropas" onclick="showSection('tropas', this)"><span class="side-icon">🏁</span>Tropas &amp; Motoristas</div>
+    <div class="brand">Drive<span>Win</span><small id="brand-sub">PAINEL COLABORADOR</small></div>
+    <div id="side-menu">
+      <div class="side-item active" data-s="suporte" onclick="showSection('suporte', this)"><span class="side-icon">🎧</span>Suporte</div>
+      <div class="side-item" data-s="pagamentos" onclick="showSection('pagamentos', this)"><span class="side-icon">💳</span>Pagamentos</div>
+      <div class="side-item" data-s="tropas" onclick="showSection('tropas', this)"><span class="side-icon">🏁</span>Tropas &amp; Motoristas</div>
+    </div>
     <div class="side-footer">
       <div class="stat-note" id="colab-ativo-nome" style="margin-bottom:10px;"></div>
       <div class="theme-switch">
@@ -331,6 +383,65 @@
       <div id="tropas-wrap"></div>
     </div>
 
+    <!-- PARCEIRO: MINHA OPERAÇÃO -->
+    <div class="section" id="sec-visao">
+      <div class="page-title">Minha operação</div>
+      <div class="page-sub">Seu cupom, sua comissão e seu campeonato</div>
+      <div class="partner-cards">
+        <div class="stat-card">
+          <div class="card-label">Meu cupom</div>
+          <div class="card-num" id="par-cupom" style="font-size:20px;">—</div>
+          <div class="cupom-box">
+            <span class="cupom-code" id="par-cupom-codigo">—</span>
+            <span class="copy-btn" onclick="copiarCupom()">Copiar</span>
+          </div>
+          <div class="card-sub">O motorista usa esse código na hora de assinar pra entrar na sua tropa.</div>
+        </div>
+        <div class="stat-card">
+          <div class="card-label">Comissão do mês</div>
+          <div class="card-num" id="par-comissao-mes">R$ 0,00</div>
+          <div class="card-sub" id="par-comissao-info">R$ 1,49 por assinante ativo</div>
+        </div>
+        <div class="stat-card">
+          <div class="card-label">Comissão total</div>
+          <div class="card-num" id="par-comissao-total">R$ 0,00</div>
+          <div class="card-sub">Acumulado de todas as confirmações de pagamento.</div>
+        </div>
+        <div class="stat-card">
+          <div class="card-label">Motoristas na sua tropa</div>
+          <div class="card-num" id="par-total"><span id="par-total-num">0</span> <small id="par-ativos-txt"></small></div>
+          <div class="card-sub" id="par-tropa-nome">—</div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-title-row">
+          <div class="section-title" style="margin:0;">Campeonato da tropa</div>
+          <span class="stat-note" id="par-champ-status"></span>
+        </div>
+        <div id="par-champs"></div>
+        <div class="bar-track"><div class="bar-fill" id="par-champ-bar" style="width:0%;"></div></div>
+        <div class="progress-line"><span id="par-champ-count">0/120</span><span id="par-champ-pct">0%</span></div>
+        <div class="stat-note" style="margin-top:12px;">Cada tropa libera campeonatos conforme o nº de assinantes ativos: 60 = diário · 90 = semanal · 120 = mensal. Os prêmios são definidos pela administração.</div>
+      </div>
+    </div>
+
+    <!-- PARCEIRO: MOTORISTAS -->
+    <div class="section" id="sec-parceiro-motoristas">
+      <div class="page-title">Motoristas indicados</div>
+      <div class="page-sub">Quem assinou usando o seu cupom</div>
+      <div class="section-card">
+        <div class="section-title-row">
+          <div class="section-title" style="margin:0;">Assinantes pelo seu código</div>
+          <span class="stat-note" id="par-list-count"></span>
+        </div>
+        <table>
+          <thead><tr><th>Motorista</th><th>Situação</th><th>Vencimento</th><th>Valor pago</th></tr></thead>
+          <tbody id="par-list-rows"></tbody>
+        </table>
+        <div class="empty-note" id="par-list-vazio" style="display:none;">Nenhum motorista usou seu cupom ainda. Divulgue seu código pra começar a ganhar comissão.</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -377,11 +488,32 @@
   });
 
   // ---------------- dados compartilhados (Supabase) ----------------
-  const __db = { tropas: [], assinantes: [], chamados: [], filaPagamento: [], parceiros: [], config: {}, colaborador: null };
+  const __db = { tropas: [], assinantes: [], chamados: [], filaPagamento: [], parceiros: [], config: {}, colaborador: null, meuParceiro: null, perfil: null };
   let _dwUid = null;
   let _colabEmail = null;
+  let _modo = 'colaborador';
 
   function getData(){ return __db; }
+
+  function setRole(role, el){
+    _modo = role;
+    document.querySelectorAll('#login-role .role-btn').forEach(b => b.classList.remove('active'));
+    if(el) el.classList.add('active');
+    const badge = document.getElementById('login-badge');
+    const title = document.getElementById('login-title');
+    const sub = document.getElementById('login-sub');
+    const erroEl = document.getElementById('login-erro');
+    if(erroEl) erroEl.style.display = 'none';
+    if(role === 'parceiro'){
+      if(badge) badge.textContent = '🤝 PARCEIRO DRIVEWIN';
+      if(title) title.innerHTML = 'Drive<span>Win</span> Parceiro';
+      if(sub) sub.textContent = 'Seu cupom, comissões e campeonato';
+    }else{
+      if(badge) badge.textContent = '🎧 ACESSO DA EQUIPE';
+      if(title) title.innerHTML = 'Drive<span>Win</span> Colaborador';
+      if(sub) sub.textContent = 'Suporte e acompanhamento de tropas';
+    }
+  }
 
   function agoraFmt(){
     const d = new Date();
@@ -450,6 +582,70 @@
     return __db.tropas.filter(t => ids.has(t.id));
   }
 
+  function montarSidebar(modo){
+    const menu = document.getElementById('side-menu');
+    const brand = document.getElementById('brand-sub');
+    if(brand) brand.textContent = modo === 'parceiro' ? 'PAINEL PARCEIRO' : 'PAINEL COLABORADOR';
+    if(!menu) return;
+    if(modo === 'parceiro'){
+      menu.innerHTML =
+        '<div class="side-item active" data-s="visao" onclick="showSection(\'visao\', this)"><span class="side-icon">📊</span>Minha operação</div>' +
+        '<div class="side-item" data-s="parceiro-motoristas" onclick="showSection(\'parceiro-motoristas\', this)"><span class="side-icon">🚚</span>Motoristas</div>';
+    }else{
+      menu.innerHTML =
+        '<div class="side-item active" data-s="suporte" onclick="showSection(\'suporte\', this)"><span class="side-icon">🎧</span>Suporte</div>' +
+        '<div class="side-item" data-s="pagamentos" onclick="showSection(\'pagamentos\', this)"><span class="side-icon">💳</span>Pagamentos</div>' +
+        '<div class="side-item" data-s="tropas" onclick="showSection(\'tropas\', this)"><span class="side-icon">🏁</span>Tropas &amp; Motoristas</div>';
+    }
+  }
+
+  async function loadParceiro(){
+    const sb = DWClient;
+    const [parceirosR, tropasR, assinantesR, configR, perfilR] = await Promise.all([
+      sb.from('parceiros').select('*'),
+      sb.from('tropas').select('*').order('criado_em', {ascending:true}),
+      sb.from('assinantes').select('*').order('nome', {ascending:true}),
+      sb.from('config').select('*'),
+      sb.from('perfis').select('*').eq('id', _dwUid).single(),
+    ]);
+    const email = ((perfilR.data && perfilR.data.email) || '').toLowerCase();
+    const meus = (parceirosR.data||[]).filter(p => p.email && p.email.toLowerCase() === email);
+    __db.meuParceiro = meus[0] ? {
+      id: meus[0].id, tropaId: meus[0].tropa_id, nome: meus[0].nome, email: meus[0].email,
+      cupom: meus[0].cupom, comissaoMes: meus[0].comissao_mes, comissaoTotal: meus[0].comissao_total,
+    } : null;
+    __db.tropas = (tropasR.data||[]).map(t => ({ id:t.id, nome:t.nome, ativa:t.ativa }));
+    __db.assinantes = (assinantesR.data||[]).map(a => ({
+      id:a.id, nome:a.nome, tropaId:a.tropa_id, status:a.status, ativo:a.ativo,
+      valor:a.valor||null, cupom:a.cupom||null, venc:a.venc, historico:a.historico||[],
+    }));
+    if(__db.meuParceiro){
+      const cupom = String(__db.meuParceiro.cupom).toUpperCase();
+      __db.assinantes = __db.assinantes.filter(a => a.cupom && String(a.cupom).toUpperCase() === cupom);
+    }
+    __db.config = {};
+    (configR.data||[]).forEach(c => { __db.config[c.chave] = c.valor; });
+    __db.perfil = perfilR.data;
+  }
+
+  async function entrarComoParceiro(perfil){
+    await loadParceiro();
+    if(!__db.meuParceiro){
+      await DWClient.auth.signOut();
+      mostrarErroLogin('Seu e-mail ainda não está vinculado a um parceiro. Procure a administração.');
+      return;
+    }
+    _colabEmail = (perfil && perfil.email) || null;
+    montarSidebar('parceiro');
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').classList.add('active');
+    const nomeEl = document.getElementById('colab-ativo-nome');
+    if(nomeEl) nomeEl.textContent = perfil && perfil.nome ? `Logado como ${perfil.nome} · Parceiro` : '';
+    showSection('visao', null);
+    renderVisao();
+    renderParceiroMotoristas();
+  }
+
   async function entrar(){
     const email = document.getElementById('login-email').value.trim().toLowerCase();
     const senha = document.getElementById('login-senha').value.trim();
@@ -460,7 +656,21 @@
     if(error || !data.user){ mostrarErroLogin('E-mail ou senha incorretos.'); return; }
     _dwUid = data.user.id;
     const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', data.user.id).single();
-    if(!perfil || (perfil.papel !== 'colaborador' && perfil.papel !== 'admin')){
+    if(!perfil){
+      await DWClient.auth.signOut();
+      mostrarErroLogin('Conta não encontrada.');
+      return;
+    }
+    if(_modo === 'parceiro'){
+      if(perfil.papel !== 'parceiro'){
+        await DWClient.auth.signOut();
+        mostrarErroLogin('Esta conta não é de um parceiro.');
+        return;
+      }
+      await entrarComoParceiro(perfil);
+      return;
+    }
+    if(perfil.papel !== 'colaborador' && perfil.papel !== 'admin'){
       await DWClient.auth.signOut();
       mostrarErroLogin('Esta conta não tem acesso de colaborador.');
       return;
@@ -468,6 +678,7 @@
     await loadAll();
     document.getElementById('login').style.display = 'none';
     document.getElementById('app').classList.add('active');
+    montarSidebar('colaborador');
     const nomeEl = document.getElementById('colab-ativo-nome');
     if(nomeEl) nomeEl.textContent = perfil.nome ? `Logado como ${perfil.nome}${perfil.papel === 'admin' ? ' · ADMIN (teste)' : ''}` : '';
     _colabEmail = email;
@@ -483,6 +694,9 @@
     const senha = document.getElementById('login-senha');
     if(email) email.value = '';
     if(senha) senha.value = '';
+    const roleWrap = document.getElementById('login-role');
+    const btn = (roleWrap && roleWrap.querySelector) ? roleWrap.querySelector('.role-btn[data-role="' + _modo + '"]') : null;
+    if(btn) setRole(_modo, btn);
   }
 
   // sessão já aberta (recarregou a página) → entra direto
@@ -491,10 +705,18 @@
     if(!session) return;
     _dwUid = session.user.id;
     const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', session.user.id).single();
-    if(perfil && (perfil.papel === 'colaborador' || perfil.papel === 'admin')){
+    if(!perfil) return;
+    if(perfil.papel === 'parceiro'){
+      _modo = 'parceiro';
+      await entrarComoParceiro(perfil);
+      return;
+    }
+    if(perfil.papel === 'colaborador' || perfil.papel === 'admin'){
+      _modo = 'colaborador';
       await loadAll();
       document.getElementById('login').style.display = 'none';
       document.getElementById('app').classList.add('active');
+      montarSidebar('colaborador');
       const nomeEl = document.getElementById('colab-ativo-nome');
       if(nomeEl) nomeEl.textContent = perfil.nome ? `Logado como ${perfil.nome}${perfil.papel === 'admin' ? ' · ADMIN (teste)' : ''}` : '';
       _colabEmail = perfil.email || null;
@@ -508,11 +730,13 @@
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById('sec-'+id).classList.add('active');
     document.querySelectorAll('.side-item').forEach(s => s.classList.remove('active'));
-    el.classList.add('active');
+    if(el) el.classList.add('active');
     toggleSidebar(false);
     if(id === 'suporte') renderSuporte();
     if(id === 'pagamentos') renderFilaPagamento();
     if(id === 'tropas') renderTropas();
+    if(id === 'visao') renderVisao();
+    if(id === 'parceiro-motoristas') renderParceiroMotoristas();
   }
   function toggleSidebar(force){
     const sb = document.getElementById('sidebar');
@@ -765,6 +989,89 @@
     toast(novo ? `Acesso de ${a.nome} reativado` : `Acesso de ${a.nome} cancelado`);
     renderTropas();
     renderFilaPagamento();
+  }
+
+  // ---------------- PARCEIRO: visão geral ----------------
+  function renderVisao(){
+    const p = __db.meuParceiro;
+    if(!p) return;
+    const tropa = __db.tropas.find(t => t.id === p.tropaId) || null;
+    const todos = __db.assinantes;
+    const ativos = todos.filter(a => a.ativo !== false);
+    const cfg = __db.config;
+    const n = ativos.length;
+
+    document.getElementById('par-cupom-codigo').textContent = p.cupom;
+    document.getElementById('par-comissao-mes').textContent = fmtMoney(Number(p.comissaoMes)||0);
+    document.getElementById('par-comissao-info').textContent =
+      `${todos.length} assinante${todos.length===1?'':'s'} · ${cfg.comissao_parceiro ? 'R$ ' + cfg.comissao_parceiro : 'R$ 1,49'} por ativo no mês`;
+    document.getElementById('par-comissao-total').textContent = fmtMoney(Number(p.comissaoTotal)||0);
+    document.getElementById('par-total-num').textContent = String(todos.length);
+    document.getElementById('par-ativos-txt').textContent = `(${n} ativo${n===1?'':'s'})`;
+    document.getElementById('par-tropa-nome').textContent = tropa ? `Tropa: ${tropa.nome}` : 'Sem tropa vinculada';
+
+    const metas = [
+      { meta:60, nome:'Diário', pr: cfg.premio_diario },
+      { meta:90, nome:'Semanal', pr: cfg.premio_semanal },
+      { meta:120, nome:'Mensal', pr: cfg.premio_mensal },
+    ];
+    const champsHTML = metas.map(m => {
+      const done = n >= m.meta;
+      const prLabel = m.pr ? ` · R$ ${m.pr}` : '';
+      const statusTxt = done ? 'LIBERADO' : `Faltam ${m.meta - n}`;
+      return `<span class="meta-chip ${done ? 'done' : ''}">${statusTxt} · ${m.meta} = ${m.nome}${prLabel}</span>`;
+    }).join('');
+    document.getElementById('par-champs').innerHTML = champsHTML;
+    const pct = Math.min(100, Math.round(n/120*100));
+    document.getElementById('par-champ-bar').style.width = pct + '%';
+    document.getElementById('par-champ-count').textContent = `${n}/120`;
+    document.getElementById('par-champ-pct').textContent = pct + '%';
+    document.getElementById('par-champ-status').textContent = n >= 120 ? 'Campeonato completo' : `Faltam ${Math.max(0, 120-n)} ativos p/ liberar o mensal`;
+  }
+
+  // ---------------- PARCEIRO: motoristas indicados ----------------
+  function renderParceiroMotoristas(){
+    const rows = __db.assinantes.map(a => {
+      const ativo = a.ativo !== false;
+      const stCls = a.status === 'pago' ? 'green' : (a.status === 'pendente' ? 'amber' : 'red');
+      const stLabel = a.status === 'pago' ? 'Pago' : (a.status === 'pendente' ? 'Pendente' : 'Atrasado');
+      const acessoCls = a.status === 'pendente' ? 'amber' : (ativo ? 'green' : 'red');
+      const acessoLabel = a.status === 'pendente' ? 'Aguardando' : (ativo ? 'Ativo' : 'Cancelado');
+      return `<tr>
+        <td><b>${a.nome}</b></td>
+        <td><span class="badge ${stCls}">${stLabel}</span> <span class="badge ${acessoCls}">${acessoLabel}</span></td>
+        <td>${fmtEm(a.venc)}</td>
+        <td>${fmtMoney(a.valor)}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('par-list-count').textContent = `${__db.assinantes.length} assinante${__db.assinantes.length===1?'':'s'}`;
+    document.getElementById('par-list-vazio').style.display = __db.assinantes.length ? 'none' : 'block';
+    document.getElementById('par-list-rows').innerHTML = rows;
+  }
+
+  function copiarCupom(){
+    const p = __db.meuParceiro;
+    if(!p || !p.cupom) return;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(p.cupom).then(() => toast('Cupom copiado!')).catch(() => copiarCupomFallback(p.cupom));
+    }else{
+      copiarCupomFallback(p.cupom);
+    }
+  }
+  function copiarCupomFallback(texto){
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = texto;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      toast('Cupom copiado!');
+    }catch(e){
+      toast('Não foi possível copiar: ' + texto);
+    }
   }
 </script>
 </body>

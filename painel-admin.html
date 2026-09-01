@@ -648,7 +648,7 @@
         </div>
         <div class="stat-note" style="margin-bottom:10px;">Cada tropa libera campeonatos conforme o nº de assinantes ativos: 60 = diário · 90 = semanal · 120 = mensal. O parceiro recebe comissão recorrente por cada assinante que renovar com o cupom dele.</div>
         <table>
-          <thead><tr><th>Parceiro</th><th>Cupom</th><th>Assinantes</th><th>Progresso até 120</th><th>Comissão (mês)</th><th>Comissão total paga</th><th>Ação</th></tr></thead>
+          <thead><tr><th>Parceiro</th><th>E-mail</th><th>Cupom</th><th>Assinantes</th><th>Progresso até 120</th><th>Comissão (mês)</th><th>Comissão total paga</th><th>Ação</th></tr></thead>
           <tbody id="parceiros-rows"></tbody>
         </table>
         <div class="empty-note" id="parceiros-vazio" style="display:none;">Nenhum parceiro cadastrado ainda. Clique em "+ Novo parceiro" para adicionar o primeiro.</div>
@@ -766,6 +766,11 @@
     <div class="form-group">
       <label class="form-label">Nome do parceiro</label>
       <input class="form-input" id="np-nome" type="text" placeholder="Ex: Marcos Silva" oninput="sugerirCupom()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">E-mail do parceiro (login dele)</label>
+      <input class="form-input" id="np-email" type="email" placeholder="email@exemplo.com">
+      <div class="form-hint">O e-mail da conta dele no DriveWin. Se a conta já existir, ele vira parceiro na hora e entra em colaborador.drivewin.shop.</div>
     </div>
     <div class="form-group">
       <label class="form-label">Cupom de indicação</label>
@@ -995,7 +1000,7 @@
       sb.from('config').select('*'),
     ]);
     __db.tropas = (tropas.data||[]).map(t => ({ id:t.id, nome:t.nome, ativa:t.ativa, assinantes:0 }));
-    __db.parceiros = (parceiros.data||[]).map(p => ({ id:p.id, tropaId:p.tropa_id, nome:p.nome, cupom:p.cupom, comissaoMes:p.comissao_mes, comissaoTotal:p.comissao_total }));
+    __db.parceiros = (parceiros.data||[]).map(p => ({ id:p.id, tropaId:p.tropa_id, nome:p.nome, email:p.email||null, cupom:p.cupom, comissaoMes:p.comissao_mes, comissaoTotal:p.comissao_total }));
     __db.candidatos = (candidatos.data||[]).map(c => ({ id:c.id, nome:c.nome, perfil:c.perfil }));
     __db.colaboradores = (colaboradores.data||[]).map(x => ({ id:x.id, nome:x.nome, email:x.email, todasTropas:x.todas_tropas, tropaIds:x.tropa_ids||[] }));
     __db.assinantes = (assinantes.data||[]).map(a => ({ id:a.id, nome:a.nome, email:a.email||null, tropaId:a.tropa_id, status:a.status, ativo:a.ativo, valor:a.valor||null, cupom:a.cupom||null, venc:a.venc, historico:a.historico||[], criadoEm:a.criado_em }));
@@ -1370,6 +1375,7 @@
         : '60 = diário · 90 = semanal · 120 = mensal';
       return `<tr>
         <td><b>${p.nome}</b></td>
+        <td style="color:var(--text-dim); font-size:12px;">${p.email || '—'}</td>
         <td><span class="tag-cupom">${p.cupom}</span></td>
         <td>${n}</td>
         <td style="width:200px;">
@@ -1411,6 +1417,7 @@
       if(c) nomeSugerido = c.nome;
     }
     document.getElementById('np-nome').value = nomeSugerido;
+    document.getElementById('np-email').value = '';
     document.getElementById('np-cupom').value = '';
     document.getElementById('np-tropa').value = '';
     document.getElementById('np-tropa').dataset.editado = '';
@@ -1650,6 +1657,7 @@
 
   async function salvarNovoParceiro(){
     const nome = document.getElementById('np-nome').value.trim();
+    const email = document.getElementById('np-email').value.trim().toLowerCase();
     const cupom = document.getElementById('np-cupom').value.trim().toUpperCase();
     const tropaNome = document.getElementById('np-tropa').value.trim();
     const assinantesIniciais = Math.max(0, parseInt(document.getElementById('np-assinantes').value, 10) || 0);
@@ -1669,13 +1677,26 @@
     const { data: novoParceiro } = await DWClient.from('parceiros').insert({
       tropa_id: novaTropa.id,
       nome,
+      email: email || null,
       cupom,
       comissao_mes: assinantesIniciais*1.49,
       comissao_total: 0,
     }).select().single();
     if(!novoParceiro) return;
+
+    if(email){
+      const { data: perfis } = await DWClient.from('perfis').select('*').eq('email', email);
+      const alvo = (perfis||[])[0];
+      if(alvo){
+        await DWClient.from('perfis').update({ papel:'parceiro' }).eq('id', alvo.id);
+        toast(`${nome} vinculado à conta ${email} e promovido a parceiro`);
+      } else {
+        toast(`${nome} salvo. O motorista ${email} precisa se cadastrar antes (colaborador.drivewin.shop) — depois refaça o vínculo no painel do parceiro.`);
+      }
+    }
+
     d.tropas.push({ id: novaTropa.id, nome: tropaNome, assinantes: assinantesIniciais, ativa: true });
-    d.parceiros.push({ id: novoParceiro.id, tropaId: novaTropa.id, nome, cupom, comissaoMes: assinantesIniciais*1.49, comissaoTotal: 0 });
+    d.parceiros.push({ id: novoParceiro.id, tropaId: novaTropa.id, nome, email: email || null, cupom, comissaoMes: assinantesIniciais*1.49, comissaoTotal: 0 });
     if(npCandidatoId){
       d.candidatos = d.candidatos.filter(x => x.id !== npCandidatoId);
       await DWClient.from('candidatos').delete().eq('id', npCandidatoId);

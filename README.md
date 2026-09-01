@@ -19,7 +19,9 @@ Cada painel vive em um repositório próprio, servido em um subdomínio do `driv
 |--------|-----------|-------------|
 | Motorista | `motorista.drivewin.shop` | `mathewin/drive-motorista` |
 | Admin | `admin.drivewin.shop` | `mathewin/drive-admin` |
-| Colaborador | `colaborador.drivewin.shop` | `mathewin/drive-colaborador` |
+| Colaborador + Parceiro | `colaborador.drivewin.shop` | `mathewin/drive-colaborador` |
+
+> No subdomínio do colaborador, a tela de login pede pra **escolher entre Colaborador e Parceiro**. A mesma conta é validada conforme o papel: `colaborador`/`admin` entra como equipe; `parceiro` entra no painel do parceiro.
 
 Os repositórios de painel são **cópias geradas** a partir deste repo canônico (cada uma com seu `index.html`, `supabase/config.js` e `CNAME`). Qualquer mudança aqui precisa ser re-sincronizada para os subdomínios.
 
@@ -28,6 +30,7 @@ Os repositórios de painel são **cópias geradas** a partir deste repo canônic
 1. **Admin** — cadastre parceiros/tropas, venda acessos (cadastre assinantes) e adicione colaboradores da equipe. Todos entram por **e-mail + senha**.
 2. **Motorista** — só entra com um acesso ativo cadastrado pelo admin (o nome dele precisa bater com o assinante). Se o acesso for suspenso, é bloqueado.
 3. **Colaborador** — a equipe entra por e-mail/senha e acompanha chamados de suporte e tropas. O admin promove a conta (que já deve estar cadastrada) na seção Colaboradores.
+4. **Parceiro** — indicado pelo admin, entra pelo mesmo subdomínio escolhendo "Parceiro". Vê o próprio cupom, comissões (mês e total), quantos motoristas assinaram com o código dele e o progresso do campeonato da tropa (60/90/120).
 
 **Acesso do colaborador**: o admin define se ele vê **todas as tropas** ou **apenas as selecionadas** (`tropa_ids`). O colaborador vê só o que é da tropa dele:
 - **Suporte** — chamados dos motoristas das tropas liberadas.
@@ -37,6 +40,15 @@ Os repositórios de painel são **cópias geradas** a partir deste repo canônic
 Regras de segurança: bloqueado (`ativo=false` + `status='atrasado'`) corta o acesso na hora ("suspenso"); pendente **não** pode ser liberado por reativação (só confirmando o Pix); as políticas RLS impedem o colaborador de alterar assinantes de outras tropas.
 
 Para trocar de painel, use o link "Trocar painel" / "Central" disponível em cada um.
+
+## Painel do parceiro
+
+Quando o admin cadastra um parceiro, ele informa o **e-mail** da conta do parceiro (o mesmo usado no cadastro no site). Se a conta já existir, ela é promovida a `parceiro` automaticamente. O parceiro entra em `colaborador.drivewin.shop`, escolhe **Parceiro** e vê:
+
+- **Meu cupom** (com botão copiar) e o nome da tropa dele;
+- **Comissão do mês e total** (R$ 1,49 recorrente por assinante ativo confirmado);
+- **Motoristas** que assinaram com o código dele (nome, situação, vencimento e valor pago) — só os dele, graças à RLS por cupom;
+- **Campeonato da tropa**: progresso até 60 (diário), 90 (semanal) e 120 (mensal), com os prêmios definidos pela administração.
 
 ## Pagamento por Pix (sem gateway)
 
