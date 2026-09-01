@@ -1182,6 +1182,10 @@
         mostrarErroLogin(error && error.message ? 'Erro no cadastro: ' + error.message : 'Erro no cadastro.');
         return;
       }
+      if(!data.session){
+        mostrarErroLogin('Conta criada! Confirme seu e-mail para ativar (cheque a caixa de entrada e o spam) e depois entre com e-mail e senha.');
+        return;
+      }
       user = data.user;
       _meuNome = nome;
     } else {
