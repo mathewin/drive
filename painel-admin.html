@@ -1003,7 +1003,7 @@
     __db.parceiros = (parceiros.data||[]).map(p => ({ id:p.id, tropaId:p.tropa_id, nome:p.nome, email:p.email||null, cupom:p.cupom, comissaoMes:p.comissao_mes, comissaoTotal:p.comissao_total }));
     __db.candidatos = (candidatos.data||[]).map(c => ({ id:c.id, nome:c.nome, perfil:c.perfil }));
     __db.colaboradores = (colaboradores.data||[]).map(x => ({ id:x.id, nome:x.nome, email:x.email, todasTropas:x.todas_tropas, tropaIds:x.tropa_ids||[] }));
-    __db.assinantes = (assinantes.data||[]).map(a => ({ id:a.id, nome:a.nome, email:a.email||null, tropaId:a.tropa_id, status:a.status, ativo:a.ativo, valor:a.valor||null, cupom:a.cupom||null, venc:a.venc, historico:a.historico||[], criadoEm:a.criado_em }));
+    __db.assinantes = (assinantes.data||[]).map(a => ({ id:a.id, nome:a.nome, email:a.email||null, telefone:a.telefone||null, tropaId:a.tropa_id, status:a.status, ativo:a.ativo, valor:a.valor||null, cupom:a.cupom||null, venc:a.venc, historico:a.historico||[], criadoEm:a.criado_em }));
     __db.filaPagamento = (fila.data||[]).map(f => ({ id:f.id, assinante:f.assinante, valor:f.valor, motivo:f.motivo }));
     __db.config = {};
     (config.data||[]).forEach(c => { __db.config[c.chave] = c.valor; });
@@ -1231,6 +1231,7 @@
           ${a.email
             ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${a.email}</div>`
             : `<div style="font-size:11px;margin-top:2px;"><span class="btn-sm" onclick="definirEmailAssinante('${a.id}')">+ e-mail</span></div>`}
+          ${a.telefone ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px;">📱 ${a.telefone}</div>` : ''}
           ${a.cupom ? `<div style="font-size:11px;color:#c864af;margin-top:2px;">cupom ${a.cupom}</div>` : ''}
         </td>
         <td>${tropa ? tropa.nome : '—'}</td>

@@ -550,6 +550,7 @@
       <div class="login-sub">Seu controle de ganhos por corrida</div>
       <div class="login-tagline">🏆 Ganhe XP a cada corrida e vire Expert</div>
       <div class="field" id="login-nome-wrap" style="display:none;"><span class="field-icon">👤</span><input id="login-nome" type="text" placeholder="Seu nome completo" autocomplete="name"></div>
+      <div class="field" id="login-tel-wrap" style="display:none;"><span class="field-icon">📱</span><input id="login-telefone" type="tel" placeholder="Seu celular com DDD" autocomplete="tel"></div>
       <div class="field"><span class="field-icon">📧</span><input id="login-email" type="email" placeholder="Seu e-mail" autocomplete="email"></div>
       <div class="field"><span class="field-icon">🔒</span><input id="login-senha" type="password" placeholder="Sua senha" autocomplete="current-password"></div>
       <div class="login-erro" id="login-erro"></div>
@@ -1074,6 +1075,7 @@
   let _adminMode = false;
   let _meuNome = '';
   let _meuEmail = '';
+  let _meuTelefone = '';
   let _minhaTropa = '';
   let _regPagamento = null;
   let _meuAssinante = null;
@@ -1228,6 +1230,7 @@
   function alternarCadastro(){
     _cadastroModo = !_cadastroModo;
     document.getElementById('login-nome-wrap').style.display = _cadastroModo ? 'flex' : 'none';
+    document.getElementById('login-tel-wrap').style.display = _cadastroModo ? 'flex' : 'none';
     document.getElementById('btn-login').textContent = _cadastroModo ? 'Criar conta' : 'Entrar';
     document.getElementById('toggle-cadastro').textContent = _cadastroModo ? 'Já tenho conta — entrar' : 'Não tem conta? Cadastre-se';
     document.getElementById('login-erro').style.display = 'none';
@@ -1252,9 +1255,12 @@
     if(_cadastroModo){
       const nome = document.getElementById('login-nome').value.trim();
       if(!nome){ mostrarErroLogin('Digite seu nome completo no cadastro.'); return; }
+      const telefone = document.getElementById('login-telefone').value.trim();
+      const telDigits = telefone.replace(/\D/g,'');
+      if(telDigits.length < 10){ mostrarErroLogin('Informe seu celular com DDD (ex: 62 99999-9999).'); return; }
       const { data, error } = await DWClient.auth.signUp({
         email, password: senha,
-        options: { data: { nome, papel: 'motorista' } },
+        options: { data: { nome, telefone: telDigits, papel: 'motorista' } },
       });
       if(error || !data.user){
         mostrarErroLogin(error && error.message ? 'Erro no cadastro: ' + error.message : 'Erro no cadastro.');
@@ -1266,6 +1272,7 @@
       }
       user = data.user;
       _meuNome = nome;
+      _meuTelefone = telDigits;
     } else {
       const { data, error } = await DWClient.auth.signInWithPassword({ email, password: senha });
       if(error || !data.user){
@@ -1275,6 +1282,7 @@
       user = data.user;
       const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', user.id).single();
       _meuNome = (perfil && perfil.nome) || '';
+      _meuTelefone = (perfil && perfil.telefone) || '';
       if(perfil && perfil.papel === 'admin'){
         _adminMode = true;
         _dwUid = user.id;
@@ -1483,6 +1491,7 @@
     const { data: criado, error } = await DWClient.from('assinantes').insert({
       nome: _meuNome,
       email: _meuEmail || null,
+      telefone: _meuTelefone || null,
       tropa_id: parceiro ? parceiro.tropa_id : null,
       status: 'pendente',
       ativo: false,
@@ -1553,6 +1562,7 @@
     if(perfil && perfil.papel === 'motorista'){
       _meuNome = perfil.nome || '';
       _meuEmail = (perfil.email || '').trim().toLowerCase();
+      _meuTelefone = (perfil && perfil.telefone) || '';
       const { data: assinantes } = await DWClient.from('assinantes').select('*');
       const registro = (assinantes||[]).find(a => (a.nome||'').trim().toLowerCase() === _meuNome.trim().toLowerCase());
       _meuAssinante = registro || null;
