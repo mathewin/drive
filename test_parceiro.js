@@ -98,6 +98,25 @@ async function main(){
   if(!errText.includes('não é de um parceiro')){ console.error('[parceiro] FALHOU: erro esperado', errText); process.exit(1); }
   console.log('[parceiro] motorista bloqueado no modo parceiro ok');
 
+  // --- admin entra no modo parceiro (teste), desde que o e-mail dele seja o de um parceiro ---
+  db.perfis.push({ id:'u-admin', nome:'Admin Master', papel:'admin', email:'admin@x.com', todas_tropas:true, tropa_ids:[] });
+  db.parceiros.push({ id:'p2', nome:'Admin Master', email:'admin@x.com', cupom:'ADM50', tropa_id:'t1', comissao_mes:0, comissao_total:0 });
+  auth.signInWithPassword = async ({email,password}) => ({ data:{ user:{ id:'u-admin', email } }, error:null });
+  window.setRole('parceiro', document.getElementById('login-role'));
+  document.getElementById('login-email').value = 'admin@x.com';
+  document.getElementById('login-senha').value = 'senha';
+  await window.entrar();
+  if(document.getElementById('app').classList.contains('active') === false){
+    console.error('[parceiro] FALHOU: admin não entrou no modo parceiro');
+    process.exit(1);
+  }
+  const nomeAdmin = document.getElementById('colab-ativo-nome').textContent;
+  if(!nomeAdmin.includes('ADMIN (teste)')){
+    console.error('[parceiro] FALHOU: admin não marcado como teste', nomeAdmin);
+    process.exit(1);
+  }
+  console.log('[parceiro] admin entra no modo parceiro (teste) ok');
+
   console.log('\n=== TESTES PARCEIRO PASSARAM ===');
 }
 

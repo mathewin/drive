@@ -1688,8 +1688,12 @@
       const { data: perfis } = await DWClient.from('perfis').select('*').eq('email', email);
       const alvo = (perfis||[])[0];
       if(alvo){
-        await DWClient.from('perfis').update({ papel:'parceiro' }).eq('id', alvo.id);
-        toast(`${nome} vinculado à conta ${email} e promovido a parceiro`);
+        if(alvo.papel === 'motorista'){
+          await DWClient.from('perfis').update({ papel:'parceiro' }).eq('id', alvo.id);
+          toast(`${nome} vinculado à conta ${email} e promovido a parceiro`);
+        } else {
+          toast(`${nome} vinculado à conta ${email} (papel ${alvo.papel} mantido — para testar o painel do parceiro como admin, escolha "Parceiro" no login)`);
+        }
       } else {
         toast(`${nome} salvo. O motorista ${email} precisa se cadastrar antes (colaborador.drivewin.shop) — depois refaça o vínculo no painel do parceiro.`);
       }

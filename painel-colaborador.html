@@ -640,7 +640,9 @@
     document.getElementById('login').style.display = 'none';
     document.getElementById('app').classList.add('active');
     const nomeEl = document.getElementById('colab-ativo-nome');
-    if(nomeEl) nomeEl.textContent = perfil && perfil.nome ? `Logado como ${perfil.nome} · Parceiro` : '';
+    if(nomeEl) nomeEl.textContent = perfil && perfil.nome
+      ? `Logado como ${perfil.nome}${perfil.papel === 'admin' ? ' · ADMIN (teste)' : ' · Parceiro'}`
+      : '';
     showSection('visao', null);
     renderVisao();
     renderParceiroMotoristas();
@@ -662,7 +664,7 @@
       return;
     }
     if(_modo === 'parceiro'){
-      if(perfil.papel !== 'parceiro'){
+      if(perfil.papel !== 'parceiro' && perfil.papel !== 'admin'){
         await DWClient.auth.signOut();
         mostrarErroLogin('Esta conta não é de um parceiro.');
         return;
