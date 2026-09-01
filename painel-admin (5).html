@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DriveWin Admin — Prévia</title>
+<style>
+  :root{
+    --bg: #0a0a0a;
+    --card: #161616;
+    --card-border: #262626;
+    --green: #31f900;
+    --green-dim: #1c8f00;
+    --green-lucro: #00e6a0;
+    --pink: #c864af;
+    --pink-vivid: #ff2e92;
+    --text: #f2f2f2;
+    --text-dim: #8a8a8a;
+    --red: #ff5470;
+    --amber: #ffb100;
+    --track-bg: #222;
+    --divider: #1c1c1c;
+    --muted-bg: #1c1c1c;
+    --sidebar-w: 230px;
+  }
+  :root.theme-light{
+    --bg: #f3f4f7;
+    --card: #ffffff;
+    --card-border: #e3e5ea;
+    --green: #159c3f;
+    --green-dim: #0f7a30;
+    --green-lucro: #00946b;
+    --pink: #b1467d;
+    --pink-vivid: #d81b81;
+    --text: #14151a;
+    --text-dim: #6b7078;
+    --red: #e0304f;
+    --amber: #b8790a;
+    --track-bg: #e6e7eb;
+    --divider: #edeef1;
+    --muted-bg: #f0f1f4;
+  }
+  html.theme-light body{ background: var(--bg); }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text);
+    min-height:100vh;
+  }
+  a{ color:inherit; }
+
+  /* ---------- LOGIN ---------- */
+  #login{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column;
+    text-align:center; position:relative; overflow:hidden; padding:0 22px; box-sizing:border-box;
+  }
+  .login-glow{
+    width:100%; height:320px; position:absolute; top:0; left:0; pointer-events:none;
+    background: radial-gradient(circle at 30% 20%, rgba(49,249,0,0.16), transparent 60%),
+                radial-gradient(circle at 70% 30%, rgba(255,46,146,0.12), transparent 55%);
+  }
+  .login-badge{
+    display:inline-flex; align-items:center; gap:6px; background: rgba(255,46,146,0.12);
+    border:1px solid rgba(255,46,146,0.45); color: var(--pink-vivid);
+    font-size:10.5px; font-weight:800; letter-spacing:.04em; padding:6px 14px; border-radius:20px;
+  }
+  .login-title{ font-size:34px; font-weight:800; margin-top:14px; }
+  .login-title span{ color: var(--green); text-shadow: 0 0 18px rgba(49,249,0,0.5); }
+  .login-sub{ color: var(--text-dim); font-size:13px; margin-top:8px; margin-bottom:30px; }
+  .field{
+    background: var(--card); border:1px solid var(--card-border); border-radius:14px;
+    padding:14px 16px; text-align:left; color: var(--text-dim); font-size:14px; margin-bottom:14px;
+    display:flex; align-items:center; gap:10px; width:100%; max-width:300px; box-sizing:border-box;
+  }
+  .btn-primary{
+    background: linear-gradient(135deg, var(--green), var(--green-lucro)); color:#06210f; border:none;
+    border-radius:14px; padding:15px; font-weight:800; font-size:15px; width:100%; max-width:300px; cursor:pointer;
+    box-shadow: 0 0 22px rgba(49,249,0,0.3); box-sizing:border-box;
+  }
+  .privacy-note{ color: var(--text-dim); font-size:11px; margin-top:26px; }
+
+  /* ---------- APP LAYOUT ---------- */
+  #app{ display:none; }
+  #app.active{ display:flex; }
+  .sidebar{
+    width: var(--sidebar-w); flex-shrink:0; min-height:100vh; background: var(--card);
+    border-right:1px solid var(--card-border); padding:22px 14px 90px; position:sticky; top:0; height:100vh;
+    overflow-y:auto;
+  }
+  .brand{ font-size:19px; font-weight:800; padding:0 8px 22px; }
+  .brand span{ color: var(--green); }
+  .brand small{ display:block; color: var(--text-dim); font-size:10.5px; font-weight:700; letter-spacing:.06em; margin-top:2px; }
+  .side-item{
+    display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:10px; font-size:13.5px;
+    font-weight:600; color: var(--text-dim); cursor:pointer; margin-bottom:4px;
+  }
+  .side-item:hover{ background: var(--muted-bg); }
+  .side-item.active{ background: rgba(49,249,0,0.1); color: var(--green); }
+  .side-icon{ font-size:16px; width:20px; text-align:center; }
+  .side-footer{ position:absolute; bottom:18px; width: calc(var(--sidebar-w) - 28px); }
+  .logout{ font-size:12px; color: var(--text-dim); cursor:pointer; padding:0 12px; }
+
+  .main{ flex:1; padding: 26px 34px 60px; max-width:1180px; }
+  .page-title{ font-size:22px; font-weight:800; margin-bottom:2px; }
+  .page-sub{ color: var(--text-dim); font-size:13px; margin-bottom:22px; }
+  .section{ display:none; }
+  .section.active{ display:block; }
+
+  /* ---------- CARDS / GRID ---------- */
+  .grid4{ display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; }
+  .grid3{ display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; }
+  .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+  @media (max-width: 1000px){ .grid4{grid-template-columns: repeat(2,1fr);} .grid3{grid-template-columns: repeat(2,1fr);} }
+
+  .stat-card{ background: var(--card); border:1px solid var(--card-border); border-radius:14px; padding:16px 18px; }
+  .stat-label{ color: var(--text-dim); font-size:12px; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .stat-value{ font-size:23px; font-weight:800; }
+  .stat-value.green{ color: var(--green); }
+  .stat-value.pink{ color: var(--pink-vivid); }
+  .stat-value.amber{ color: var(--amber); }
+  .stat-note{ color: var(--text-dim); font-size:11px; margin-top:6px; }
+
+  .section-card{ background: var(--card); border:1px solid var(--card-border); border-radius:14px; padding:18px 20px; margin-top:16px; }
+  .section-title{ font-size:13px; font-weight:700; color: var(--text-dim); letter-spacing:.04em; margin-bottom:14px; text-transform:uppercase; }
+  .section-title-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+
+  /* ---------- TABLE ---------- */
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th{ text-align:left; color: var(--text-dim); font-weight:700; font-size:11px; letter-spacing:.03em; text-transform:uppercase; padding:8px 10px; border-bottom:1px solid var(--divider); }
+  td{ padding:11px 10px; border-bottom:1px solid var(--divider); vertical-align:middle; }
+  tr:last-child td{ border-bottom:none; }
+  tr:hover td{ background: rgba(255,255,255,0.015); }
+
+  .badge{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; }
+  .badge.green{ color: var(--green); background: rgba(49,249,0,0.1); }
+  .badge.amber{ color: var(--amber); background: rgba(255,177,0,0.12); }
+  .badge.red{ color: var(--red); background: rgba(255,84,112,0.12); }
+  .badge.gray{ color: var(--text-dim); background: var(--muted-bg); }
+
+  .btn-sm{ font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:8px; cursor:pointer; border:1px solid var(--card-border); background: var(--muted-bg); color: var(--text); display:inline-block; margin-right:6px; }
+  .btn-sm:hover{ border-color: var(--text-dim); }
+  .btn-sm.ok{ background: rgba(49,249,0,0.12); color: var(--green); border-color: var(--green-dim); }
+  .btn-sm.danger{ background: rgba(255,84,112,0.1); color: var(--red); border-color: rgba(255,84,112,0.3); }
+
+  .bar-track{ height:7px; background: var(--track-bg); border-radius:5px; overflow:hidden; }
+  .bar-fill{ height:100%; background: var(--green); border-radius:5px; }
+  .marker-row{ position:relative; height:7px; }
+  .marker{ position:absolute; top:-3px; width:2px; height:13px; background: var(--bg); }
+
+  .progress-line{ display:flex; justify-content:space-between; font-size:11px; color: var(--text-dim); margin-top:6px; }
+
+  .empty-note{ color: var(--text-dim); font-size:12.5px; text-align:center; padding:26px 0; }
+
+  .tag-cupom{ font-family: monospace; background: var(--muted-bg); padding:2px 8px; border-radius:6px; font-size:12px; letter-spacing:.02em; }
+
+  .toast{
+    position:fixed; bottom:22px; right:22px; background: var(--card); border:1px solid var(--green-dim);
+    color: var(--green); padding:12px 18px; border-radius:12px; font-size:13px; font-weight:700;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4); display:none; z-index:100;
+  }
+
+  /* ---------- ALERTAS ---------- */
+  .alert-card{
+    display:flex; align-items:flex-start; gap:10px; background: rgba(255,177,0,0.08);
+    border:1px solid rgba(255,177,0,0.35); border-radius:12px; padding:12px 14px; margin-bottom:10px;
+  }
+  .alert-card:last-child{ margin-bottom:0; }
+  .alert-icon{ font-size:16px; }
+  .alert-title{ font-size:13px; font-weight:700; color: var(--amber); }
+  .alert-desc{ font-size:12px; color: var(--text-dim); margin-top:2px; }
+
+  /* ---------- MODAL HISTÓRICO ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:flex-start; justify-content:center;
+    z-index:200; padding-top:90px;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-panel{ width:420px; max-width:calc(100% - 40px); background: var(--card); border:1px solid var(--card-border); border-radius:16px; padding:18px; max-height:70vh; overflow-y:auto; }
+  .modal-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .modal-title{ font-size:15px; font-weight:800; }
+  .modal-close{ color: var(--text-dim); font-size:20px; cursor:pointer; line-height:1; }
+  .hist-row{ display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--divider); font-size:12.5px; }
+  .hist-row:last-child{ border-bottom:none; }
+  .hist-row .t{ color: var(--text-dim); font-size:11px; }
+  .link-name{ cursor:pointer; text-decoration:underline; text-decoration-color: var(--card-border); text-underline-offset:3px; }
+  .link-name:hover{ color: var(--green); }
+
+  /* ---------- MENU HAMBÚRGUER (MOBILE) ---------- */
+  .hamburger-btn{
+    display:none; position:fixed; top:14px; left:14px; z-index:300;
+    width:42px; height:42px; border-radius:10px; background: var(--card);
+    border:1px solid var(--card-border); align-items:center; justify-content:center;
+    flex-direction:column; gap:4px; cursor:pointer;
+  }
+  .hamburger-btn span{ display:block; width:20px; height:2px; background: var(--text); border-radius:2px; }
+  .sidebar-overlay{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:249;
+  }
+  .sidebar-overlay.open{ display:block; }
+
+  @media (max-width: 780px){
+    html, body{ overflow-x:hidden; width:100%; max-width:100vw; }
+    #app.active{ display:block; }
+    .hamburger-btn{ display:flex; }
+    .sidebar{
+      position:fixed; top:0; left:0; z-index:250; height:100vh;
+      transform: translateX(-100%); transition: transform .25s ease;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    }
+    .sidebar.open{ transform: translateX(0); }
+    .main{
+      width:100%; max-width:100vw; padding: 70px 14px 50px;
+      box-sizing:border-box; overflow-x:hidden;
+    }
+    .grid4{ grid-template-columns: 1fr 1fr; }
+    .grid3{ grid-template-columns: 1fr 1fr; }
+    .grid2{ grid-template-columns: 1fr; }
+
+    /* Antes: table{display:block} tirava thead/tbody/tr do modo tabela,
+       fazendo cada linha calcular a largura das colunas sozinha — no fim
+       o cabeçalho ficava desalinhado com os dados ao rolar pro lado.
+       Agora a tabela continua sendo <table> de verdade (colunas alinhadas)
+       e quem rola de lado é o cartão que a contém. */
+    .section-card{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    table{ min-width:600px; white-space:nowrap; }
+  }
+
+  @media (max-width: 460px){
+    .grid4, .grid3, .ticker-grid{ grid-template-columns: 1fr; }
+    .depth-name{ width:96px; font-size:11.5px; }
+    .depth-value{ width:52px; font-size:11px; }
+    .login-title{ font-size:27px; }
+    .field, .btn-primary{ max-width:100%; }
+  }
+
+  /* ---------- TEMA CLARO/ESCURO ---------- */
+  .theme-switch{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:10px 12px; margin-bottom:10px; border-radius:10px; background: var(--muted-bg);
+    font-size:12px; font-weight:600; color: var(--text-dim);
+  }
+  .theme-toggle{
+    position:relative; width:40px; height:22px; border-radius:20px; background: var(--track-bg);
+    cursor:pointer; flex-shrink:0; border:1px solid var(--card-border);
+  }
+  .theme-toggle::after{
+    content:''; position:absolute; top:1px; left:1px; width:18px; height:18px; border-radius:50%;
+    background: var(--green); transition: transform .2s ease; box-shadow:0 0 8px rgba(49,249,0,0.5);
+  }
+  html.theme-light .theme-toggle::after{ transform: translateX(18px); background: var(--amber); box-shadow:0 0 8px rgba(184,121,10,0.4); }
+
+  /* ---------- CENTRAL ---------- */
+  .ticker-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; }
+  @media (max-width: 1000px){ .ticker-grid{ grid-template-columns: repeat(2,1fr); } }
+  .ticker-card{
+    background: var(--card); border:1px solid var(--card-border); border-radius:14px; padding:14px 16px;
+    position:relative; overflow:hidden;
+  }
+  .ticker-top{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .ticker-sym{ font-family: 'SF Mono', Consolas, monospace; font-size:11px; font-weight:800; color: var(--text-dim); letter-spacing:.06em; }
+  .ticker-value{ font-family: 'SF Mono', Consolas, monospace; font-size:21px; font-weight:800; margin-top:8px; }
+  .ticker-label{ color: var(--text-dim); font-size:11px; margin-top:2px; }
+
+  .chart-card{ background: var(--card); border:1px solid var(--card-border); border-radius:14px; padding:18px 20px 10px; margin-top:16px; }
+  .chart-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-wrap:wrap; gap:8px; }
+  .chart-head-title{ font-size:13px; font-weight:700; color: var(--text-dim); letter-spacing:.04em; text-transform:uppercase; }
+  .chart-head-value{ font-family:'SF Mono', Consolas, monospace; font-size:26px; font-weight:800; margin-top:2px; }
+  .chart-canvas-wrap{ width:100%; height:230px; margin-top:6px; }
+  #chart-main{ width:100%; height:100%; display:block; }
+
+  .periodo-group{ display:flex; gap:4px; background: var(--muted-bg); padding:3px; border-radius:10px; }
+  .periodo-btn{ font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; cursor:pointer; color: var(--text-dim); }
+  .periodo-btn.active{ background: var(--card); color: var(--green); box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+
+  .chart-legend{ display:flex; gap:16px; font-size:11.5px; color: var(--text-dim); margin-top:2px; }
+  .chart-legend i{ display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:middle; }
+
+  .depth-row{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--divider); }
+  .depth-row:last-child{ border-bottom:none; }
+  .depth-name{ width:150px; flex-shrink:0; font-size:12.5px; font-weight:700; }
+  .depth-bar-track{ flex:1; height:8px; background: var(--track-bg); border-radius:5px; overflow:hidden; }
+  .depth-bar-fill{ height:100%; border-radius:5px; background: linear-gradient(90deg, var(--green-dim), var(--green)); box-shadow:0 0 8px rgba(49,249,0,0.35); transition: width .5s ease; }
+  .depth-value{ width:64px; text-align:right; font-family:'SF Mono', Consolas, monospace; font-size:12px; color: var(--text-dim); flex-shrink:0; }
+
+  /* ---------- FORMULÁRIO (MODAL NOVO PARCEIRO) ---------- */
+  .form-group{ margin-bottom:14px; }
+  .form-label{ display:block; font-size:12px; font-weight:700; color: var(--text-dim); margin-bottom:6px; }
+  .form-input{
+    width:100%; background: var(--muted-bg); border:1px solid var(--card-border); border-radius:10px;
+    padding:11px 12px; font-size:13.5px; color: var(--text); font-family:inherit;
+  }
+  .form-input:focus{ outline:none; border-color: var(--green-dim); }
+  .form-hint{ font-size:11px; color: var(--text-dim); margin-top:5px; }
+  .form-actions{ display:flex; gap:10px; margin-top:18px; }
+  .form-actions .btn-primary{ width:auto; flex:1; padding:12px; font-size:13.5px; box-shadow:none; }
+  .btn-cancel{
+    flex:1; background: var(--muted-bg); color: var(--text-dim); border:1px solid var(--card-border);
+    border-radius:14px; padding:12px; font-weight:700; font-size:13.5px; cursor:pointer;
+  }
+  .btn-add-inline{
+    font-size:12px; font-weight:700; color: var(--green); background: rgba(49,249,0,0.1);
+    border:1px solid var(--green-dim); border-radius:8px; padding:7px 14px; cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<!-- TELA LOGIN -->
+<div id="login">
+  <div class="login-glow"></div>
+  <div class="login-badge">🔒 ACESSO RESTRITO</div>
+  <div class="login-title">Drive<span>Win</span> Admin</div>
+  <div class="login-sub">Painel de gestão do negócio</div>
+  <div class="field"><span>📧</span>admin@drivewin.com</div>
+  <div class="field"><span>🔒</span>••••••••</div>
+  <button class="btn-primary" onclick="entrar()">Entrar</button>
+  <div class="privacy-note">Acesso exclusivo do administrador do DriveWin</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()">
+    <span></span><span></span><span></span>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+  <div class="sidebar" id="sidebar">
+    <div class="brand">Drive<span>Win</span><small>PAINEL ADMIN</small></div>
+    <div class="side-item" data-s="central" onclick="showSection('central', this)"><span class="side-icon">📡</span>Central</div>
+    <div class="side-item active" data-s="dashboard" onclick="showSection('dashboard', this)"><span class="side-icon">📊</span>Dashboard</div>
+    <div class="side-item" data-s="assinantes" onclick="showSection('assinantes', this)"><span class="side-icon">👥</span>Assinantes</div>
+    <div class="side-item" data-s="tropas" onclick="showSection('tropas', this)"><span class="side-icon">🏁</span>Tropas &amp; Parceiros</div>
+    <div class="side-item" data-s="premiacao" onclick="showSection('premiacao', this)"><span class="side-icon">🏆</span>Ranking &amp; Premiação</div>
+    <div class="side-item" data-s="financeiro" onclick="showSection('financeiro', this)"><span class="side-icon">💰</span>Financeiro</div>
+    <div class="side-item" data-s="auditoria" onclick="showSection('auditoria', this)"><span class="side-icon">📋</span>Auditoria</div>
+    <div class="side-footer">
+      <div class="theme-switch">
+        <span id="theme-label">🌙 Modo escuro</span>
+        <div class="theme-toggle" id="theme-toggle" onclick="toggleTheme()"></div>
+      </div>
+      <div class="logout" onclick="sair()">← Sair</div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- CENTRAL -->
+    <div class="section" id="sec-central">
+      <div class="page-title">Central</div>
+      <div class="page-sub">Todo o histórico financeiro e de crescimento do DriveWin, num só lugar — pra você nunca perder o rumo</div>
+
+      <div class="ticker-grid">
+        <div class="ticker-card">
+          <div class="ticker-top"><span class="ticker-sym">HOJE</span></div>
+          <div class="ticker-value" id="tk-hoje-valor">—</div>
+          <div class="ticker-label">Faturamento de hoje</div>
+        </div>
+        <div class="ticker-card">
+          <div class="ticker-top"><span class="ticker-sym">7 DIAS</span></div>
+          <div class="ticker-value" id="tk-semana-valor">—</div>
+          <div class="ticker-label">Faturamento na semana</div>
+        </div>
+        <div class="ticker-card">
+          <div class="ticker-top"><span class="ticker-sym">MÊS</span></div>
+          <div class="ticker-value" id="tk-mes-valor">—</div>
+          <div class="ticker-label">Faturamento no mês</div>
+        </div>
+        <div class="ticker-card">
+          <div class="ticker-top"><span class="ticker-sym">TOTAL</span></div>
+          <div class="ticker-value" id="tk-total-valor">—</div>
+          <div class="ticker-label" id="tk-total-label">Desde o lançamento</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-head">
+          <div>
+            <div class="chart-head-title">Faturamento por período</div>
+            <div class="chart-head-value" id="chart-main-value">—</div>
+            <div class="ticker-label" id="chart-main-sub"></div>
+          </div>
+          <div class="periodo-group">
+            <span class="periodo-btn" data-p="diario" onclick="setCentralPeriodo('diario')">Diário</span>
+            <span class="periodo-btn" data-p="semanal" onclick="setCentralPeriodo('semanal')">Semanal</span>
+            <span class="periodo-btn active" data-p="mensal" onclick="setCentralPeriodo('mensal')">Mensal</span>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chart-main"></canvas></div>
+      </div>
+
+      <div class="grid2">
+        <div class="chart-card">
+          <div class="chart-head">
+            <div class="chart-head-title">Novos x cancelados (por mês)</div>
+          </div>
+          <div class="chart-legend">
+            <span><i style="background:var(--green);"></i>Novos assinantes</span>
+            <span><i style="background:var(--red);"></i>Cancelamentos</span>
+          </div>
+          <div class="chart-canvas-wrap" style="height:180px;"><canvas id="chart-assinantes"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head">
+            <div class="chart-head-title">Total de assinantes acumulado</div>
+          </div>
+          <div class="ticker-label" id="chart-assinantes-total-valor" style="margin-bottom:4px;"></div>
+          <div class="chart-canvas-wrap" style="height:180px;"><canvas id="chart-assinantes-total"></canvas></div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">INDICADORES DO NEGÓCIO</div>
+        <div class="grid4">
+          <div class="stat-card">
+            <div class="stat-label">🎟️ Ticket médio</div>
+            <div class="stat-value" id="ind-ticket">—</div>
+            <div class="stat-note">receita ÷ assinantes ativos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">📉 Churn mensal</div>
+            <div class="stat-value pink" id="ind-churn">—</div>
+            <div class="stat-note">cancelamentos ÷ base ativa</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">💎 LTV estimado</div>
+            <div class="stat-value green" id="ind-ltv">—</div>
+            <div class="stat-note">valor por assinante ao longo da vida</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">⏳ Vida média do assinante</div>
+            <div class="stat-value amber" id="ind-vida">—</div>
+            <div class="stat-note">estimado a partir do churn</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-head-title">Comissões x premiação pagas (por mês)</div>
+        </div>
+        <div class="chart-legend">
+          <span><i style="background:var(--pink-vivid);"></i>Comissões de parceiros</span>
+          <span><i style="background:var(--amber);"></i>Premiação</span>
+        </div>
+        <div class="chart-canvas-wrap" style="height:180px;"><canvas id="chart-custos"></canvas></div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">PARTICIPAÇÃO DAS TROPAS</div>
+        <div id="central-depth-rows"></div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="section active" id="sec-dashboard">
+      <div class="page-title">Dashboard geral</div>
+      <div class="page-sub">Visão consolidada do negócio neste mês</div>
+
+      <div class="section-card" id="dsh-alertas-card" style="display:none; margin-top:0; margin-bottom:16px;">
+        <div class="section-title">⚠️ ALERTAS DE POSSÍVEL FRAUDE EM TROPAS</div>
+        <div id="dsh-alertas-rows"></div>
+      </div>
+
+      <div class="grid4">
+        <div class="stat-card">
+          <div class="stat-label">💵 Receita bruta (mês)</div>
+          <div class="stat-value green" id="dsh-receita-bruta">—</div>
+          <div class="stat-note" id="dsh-assinantes-count">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">💰 Receita líquida (mês)</div>
+          <div class="stat-value" id="dsh-receita-liquida">—</div>
+          <div class="stat-note">após comissões e premiação</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">📈 Novos assinantes</div>
+          <div class="stat-value" id="dsh-novos">—</div>
+          <div class="stat-note">neste mês</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">📉 Cancelamentos</div>
+          <div class="stat-value pink" id="dsh-cancelamentos">—</div>
+          <div class="stat-note">neste mês</div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title-row">
+          <div class="section-title" style="margin:0;">TROPAS ATIVAS</div>
+          <span class="stat-note" id="dsh-tropas-count"></span>
+        </div>
+        <table>
+          <thead><tr><th>Tropa</th><th>Assinantes</th><th>Progresso (marco de 120)</th><th>Status</th></tr></thead>
+          <tbody id="dsh-tropas-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ASSINANTES -->
+    <div class="section" id="sec-assinantes">
+      <div class="page-title">Gestão de assinantes</div>
+      <div class="page-sub">Todos os assinantes do DriveWin, pagamentos e acesso</div>
+
+      <div class="section-card">
+        <div class="section-title">FILA DE AVISOS DE PAGAMENTO</div>
+        <table>
+          <thead><tr><th>Assinante</th><th>Valor</th><th>Motivo</th><th>Ação</th></tr></thead>
+          <tbody id="fila-pagamento-rows"></tbody>
+        </table>
+        <div class="empty-note" id="fila-pagamento-vazio" style="display:none;">Nenhum aviso pendente no momento.</div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">TODOS OS ASSINANTES</div>
+        <div class="stat-note" style="margin-bottom:10px;">Clique no nome pra ver o histórico de status do assinante.</div>
+        <table>
+          <thead><tr><th>Nome</th><th>Tropa</th><th>Status</th><th>Vencimento</th><th>Ação</th></tr></thead>
+          <tbody id="assinantes-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AUDITORIA -->
+    <div class="section" id="sec-auditoria">
+      <div class="page-title">Auditoria</div>
+      <div class="page-sub">Registro de todas as ações realizadas no painel admin</div>
+      <div class="section-card">
+        <table>
+          <thead><tr><th>Data/hora</th><th>Ação</th><th>Detalhe</th></tr></thead>
+          <tbody id="auditoria-rows"></tbody>
+        </table>
+        <div class="empty-note" id="auditoria-vazio" style="display:none;">Nenhuma ação registrada ainda.</div>
+      </div>
+    </div>
+
+    <!-- TROPAS E PARCEIROS -->
+    <div class="section" id="sec-tropas">
+      <div class="page-title">Tropas &amp; Parceiros</div>
+      <div class="page-sub">Desempenho das tropas e candidatos a parceiro</div>
+
+      <div class="section-card">
+        <div class="section-title">CANDIDATOS A PARCEIRO — AGUARDANDO AVALIAÇÃO</div>
+        <table>
+          <thead><tr><th>Nome</th><th>Alcance / perfil</th><th>Ação</th></tr></thead>
+          <tbody id="candidatos-rows"></tbody>
+        </table>
+        <div class="empty-note" id="candidatos-vazio" style="display:none;">Nenhum candidato aguardando avaliação.</div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title-row">
+          <div class="section-title" style="margin:0;">PARCEIROS E TROPAS</div>
+          <span class="btn-add-inline" onclick="abrirNovoParceiro()">+ Novo parceiro</span>
+        </div>
+        <table>
+          <thead><tr><th>Parceiro</th><th>Cupom</th><th>Assinantes</th><th>Progresso até 120</th><th>Comissão (mês)</th><th>Comissão total paga</th><th>Ação</th></tr></thead>
+          <tbody id="parceiros-rows"></tbody>
+        </table>
+        <div class="empty-note" id="parceiros-vazio" style="display:none;">Nenhum parceiro cadastrado ainda. Clique em "+ Novo parceiro" para adicionar o primeiro.</div>
+      </div>
+    </div>
+
+    <!-- RANKING E PREMIAÇÃO -->
+    <div class="section" id="sec-premiacao">
+      <div class="page-title">Ranking &amp; Premiação</div>
+      <div class="page-sub">Rankings por tropa, ranking geral da região e controle de prêmios</div>
+
+      <div class="grid2">
+        <div class="section-card" style="margin-top:0;">
+          <div class="section-title">RANKING GERAL DA REGIÃO — MAIOR FATURANTE DA SEMANA</div>
+          <table>
+            <thead><tr><th>#</th><th>Motorista</th><th>Tropa</th><th>Faturamento (semana)</th></tr></thead>
+            <tbody id="ranking-regiao-rows"></tbody>
+          </table>
+        </div>
+        <div class="section-card" style="margin-top:0;">
+          <div class="section-title">RANKING POR TROPA</div>
+          <div style="display:flex; gap:6px; margin-bottom:12px;">
+            <select id="ranking-periodo" onchange="renderRankingTropa()" style="background:var(--muted-bg); color:var(--text); border:1px solid var(--card-border); border-radius:8px; padding:6px 10px; font-size:12px;">
+              <option value="diario">Diário</option>
+              <option value="semanal" selected>Semanal</option>
+              <option value="mensal">Mensal</option>
+            </select>
+            <select id="ranking-tropa-sel" onchange="renderRankingTropa()" style="background:var(--muted-bg); color:var(--text); border:1px solid var(--card-border); border-radius:8px; padding:6px 10px; font-size:12px; flex:1;"></select>
+          </div>
+          <table>
+            <thead><tr><th>#</th><th>Motorista</th><th>Faturamento</th></tr></thead>
+            <tbody id="ranking-tropa-rows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">CONTROLE DE PRÊMIOS</div>
+        <table>
+          <thead><tr><th>Prêmio</th><th>Tropa / Região</th><th>Ganhador</th><th>Valor</th><th>Antifraude</th><th>Status</th><th>Ação</th></tr></thead>
+          <tbody id="premios-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FINANCEIRO -->
+    <div class="section" id="sec-financeiro">
+      <div class="page-title">Financeiro</div>
+      <div class="page-sub">Receita, comissões, premiação e margem do período</div>
+
+      <div class="grid3">
+        <div class="stat-card">
+          <div class="stat-label">💵 Receita bruta x líquida</div>
+          <div class="stat-value green" id="fin-bruta">—</div>
+          <div class="stat-note" id="fin-liquida">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">🤝 Total pago em comissões</div>
+          <div class="stat-value pink" id="fin-comissoes">—</div>
+          <div class="stat-note">R$1,49 por assinante ativo/tropa</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">🏆 Total gasto em premiação</div>
+          <div class="stat-value amber" id="fin-premiacao">—</div>
+          <div class="stat-note">diário + semanal + mensal + região</div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title-row">
+          <div class="section-title" style="margin:0;">RELATÓRIO FINANCEIRO</div>
+          <span class="btn-sm" onclick="exportarCSV()">⬇ Exportar CSV</span>
+        </div>
+        <div class="stat-note">Exporta receita, comissões e premiação do mês para levar ao contador.</div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">MARGEM DE LUCRO DO PERÍODO</div>
+        <div class="bar-track" style="height:12px;"><div class="bar-fill" id="fin-margem-bar" style="width:0%;"></div></div>
+        <div class="progress-line"><span id="fin-margem-pct">0%</span><span id="fin-margem-valor">R$ 0,00</span></div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">GASTO EM PREMIAÇÃO POR TROPA</div>
+        <table>
+          <thead><tr><th>Tropa</th><th>Diário</th><th>Semanal</th><th>Mensal</th><th>Total</th></tr></thead>
+          <tbody id="fin-tropas-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL HISTÓRICO DO ASSINANTE -->
+<div class="modal-overlay" id="hist-overlay">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <div class="modal-title" id="hist-titulo">Histórico</div>
+      <div class="modal-close" onclick="fecharHistorico()">✕</div>
+    </div>
+    <div id="hist-rows"></div>
+  </div>
+</div>
+
+<!-- MODAL NOVO PARCEIRO -->
+<div class="modal-overlay" id="parceiro-overlay">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <div class="modal-title">Novo parceiro</div>
+      <div class="modal-close" onclick="fecharNovoParceiro()">✕</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome do parceiro</label>
+      <input class="form-input" id="np-nome" type="text" placeholder="Ex: Marcos Silva" oninput="sugerirCupom()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cupom de indicação</label>
+      <input class="form-input" id="np-cupom" type="text" placeholder="Ex: MARCOS10" style="text-transform:uppercase;">
+      <div class="form-hint">Usado pelos motoristas dele pra assinar o DriveWin.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome da tropa</label>
+      <input class="form-input" id="np-tropa" type="text" placeholder="Ex: Tropa do Marcos">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Assinantes já trazidos (opcional)</label>
+      <input class="form-input" id="np-assinantes" type="number" min="0" value="0">
+      <div class="form-hint">Se ele já chega com uma base, informe aqui. Se for o primeiro parceiro do sistema, deixe 0.</div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="fecharNovoParceiro()">Cancelar</button>
+      <button class="btn-primary" style="background:linear-gradient(135deg, var(--green), var(--green-lucro)); color:#06210f;" onclick="salvarNovoParceiro()">Salvar parceiro</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------------- tema claro/escuro ----------------
+  (function initTheme(){
+    const saved = localStorage.getItem('drivewin_theme');
+    if(saved === 'light') document.documentElement.classList.add('theme-light');
+  })();
+  function toggleTheme(force){
+    const html = document.documentElement;
+    const isLight = typeof force === 'boolean' ? force : !html.classList.contains('theme-light');
+    html.classList.toggle('theme-light', isLight);
+    localStorage.setItem('drivewin_theme', isLight ? 'light' : 'dark');
+    const label = document.getElementById('theme-label');
+    if(label) label.textContent = isLight ? '☀️ Modo claro' : '🌙 Modo escuro';
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    if(document.documentElement.classList.contains('theme-light')){
+      const label = document.getElementById('theme-label');
+      if(label) label.textContent = '☀️ Modo claro';
+    }
+  });
+
+  // ---------------- dados mock (simulação da base compartilhada com o painel principal) ----------------
+  const STORAGE_KEY = 'drivewin_admin_mock_v1';
+
+  function seed(){
+    return {
+      tropas: [
+        { id:'t1', nome:'Tropa do Marcos',  assinantes:132, ativa:true },
+        { id:'t2', nome:'Tropa da Renata',  assinantes:97,  ativa:true },
+        { id:'t3', nome:'Tropa do Éder',    assinantes:64,  ativa:true },
+        { id:'t4', nome:'Tropa do Wagner',  assinantes:38,  ativa:true },
+      ],
+      parceiros: [
+        { id:'p1', tropaId:'t1', nome:'Marcos Silva',  cupom:'MARCOS10', comissaoMes:132*1.49, comissaoTotal:2840.60 },
+        { id:'p2', tropaId:'t2', nome:'Renata Alves',  cupom:'RENATA99', comissaoMes:97*1.49,  comissaoTotal:1560.30 },
+        { id:'p3', tropaId:'t3', nome:'Éder Batista',  cupom:'EDERGO',   comissaoMes:64*1.49,  comissaoTotal:640.10 },
+        { id:'p4', tropaId:'t4', nome:'Wagner Costa',  cupom:'WAGNER7',  comissaoMes:38*1.49,  comissaoTotal:210.50 },
+      ],
+      candidatos: [
+        { id:'c1', nome:'Juliana Prado', perfil:'Grupo de WhatsApp com 340 motoristas de Aparecida de Goiânia' },
+        { id:'c2', nome:'Carlos Nunes',  perfil:'Instagram com 6.200 seguidores no nicho de app de corrida' },
+      ],
+      assinantes: [
+        { id:'a1', nome:'Pedro Lima',      tropaId:'t1', status:'pago',      venc:'2026-09-05',
+          historico:[ {status:'pendente', em:'2026-07-05 09:12'}, {status:'pago', em:'2026-07-05 14:40'} ] },
+        { id:'a2', nome:'Ana Beatriz',     tropaId:'t1', status:'pendente',  venc:'2026-08-31',
+          historico:[ {status:'pago', em:'2026-07-05 10:02'}, {status:'pendente', em:'2026-08-30 08:15'} ] },
+        { id:'a3', nome:'Rafael Souza',    tropaId:'t2', status:'atrasado',  venc:'2026-08-27',
+          historico:[ {status:'pago', em:'2026-07-05 11:20'}, {status:'atrasado', em:'2026-08-28 09:00'} ] },
+        { id:'a4', nome:'Mariana Duarte',  tropaId:null, status:'pago',      venc:'2026-09-12',
+          historico:[ {status:'pago', em:'2026-08-12 09:40'} ] },
+        { id:'a5', nome:'Bruno Teixeira',  tropaId:'t3', status:'pendente',  venc:'2026-09-01',
+          historico:[ {status:'pago', em:'2026-07-01 10:00'}, {status:'pendente', em:'2026-08-31 07:50'} ] },
+      ],
+      auditLog: [
+        { em:'30/08 09:14', acao:'Login no painel', detalhe:'Admin acessou o painel' },
+      ],
+      alertasFraude: [
+        { titulo:'Tropa do Wagner — 9 assinantes cadastrados no mesmo dia', desc:'Crescimento fora do padrão comparado às outras tropas. Vale conferir se são contas reais antes de contar pro marco de 60.' },
+      ],
+      filaPagamento: [
+        { id:'f1', assinante:'Ana Beatriz', valor:21.99, motivo:'Clicou em "já paguei" — aguardando conferência' },
+        { id:'f2', assinante:'Bruno Teixeira', valor:29.99, motivo:'Chamou suporte via WhatsApp' },
+      ],
+      rankingRegiao: [
+        { nome:'Éder Batista', tropa:'Tropa do Éder', valor:2340.50 },
+        { nome:'Pedro Lima', tropa:'Tropa do Marcos', valor:2110.00 },
+        { nome:'Rafael Souza', tropa:'Tropa da Renata', valor:1980.75 },
+      ],
+      rankingTropa: {
+        t1: { diario:[['Pedro Lima',210],['Ana Beatriz',180]], semanal:[['Pedro Lima',1340],['Ana Beatriz',1120]], mensal:[['Pedro Lima',4980],['Ana Beatriz',4310]] },
+        t2: { diario:[['Rafael Souza',195]], semanal:[['Rafael Souza',1290]], mensal:[['Rafael Souza',4790]] },
+        t3: { diario:[['Bruno Teixeira',170]], semanal:[['Bruno Teixeira',1080]], mensal:[['Bruno Teixeira',3920]] },
+        t4: { diario:[], semanal:[], mensal:[] },
+      },
+      premios: [
+        { id:'pr1', tipo:'Diário', escopo:'Tropa do Marcos', ganhador:'Pedro Lima', valor:50, antifraude:'ok', status:'entregue' },
+        { id:'pr2', tipo:'Semanal', escopo:'Tropa do Marcos', ganhador:'Ana Beatriz', valor:120, antifraude:'pendente', status:'liberado' },
+        { id:'pr3', tipo:'Semanal', escopo:'Tropa da Renata', ganhador:'Rafael Souza', valor:120, antifraude:'ok', status:'entregue' },
+        { id:'pr4', tipo:'Maior faturante (região)', escopo:'Região Goiânia', ganhador:'Éder Batista', valor:175, antifraude:'pendente', status:'liberado' },
+      ],
+      financeiro: {
+        receitaBruta: 8940.00,
+        comissoesPagas: 493.15,
+        premiacaoPaga: 465.00,
+      },
+      dataLancamento: '2026-03-01',
+      historicoDiario: gerarSerieDiaria(30, 8940/30, 0.35),
+      historicoSemanal: gerarSerieSemanal(12, 8940/4.3, 0.22),
+      historicoMensal: gerarSerieMensal('2026-03-01', 8940, 0.18),
+      historicoAssinantesMensal: gerarSerieAssinantes('2026-03-01', 336, 0.15),
+    };
+  }
+
+  // ---------------- geradores de série histórica (mock) ----------------
+  function gerarSerieDiaria(n, mediaDia, variacao){
+    const arr = []; const hoje = new Date();
+    for(let i=n-1;i>=0;i--){
+      const dt = new Date(hoje); dt.setDate(hoje.getDate()-i);
+      const fimSemana = [0,6].includes(dt.getDay());
+      const base = mediaDia * (fimSemana ? 0.7 : 1.08);
+      const noise = 1 + (Math.random()-0.5)*variacao;
+      arr.push({ label: dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}), valor: Math.max(0, Math.round(base*noise)) });
+    }
+    return arr;
+  }
+  function gerarSerieSemanal(n, mediaSemana, variacao){
+    const arr = [];
+    for(let i=n-1;i>=0;i--){
+      const cresc = 1 + (n-1-i)*0.012;
+      const noise = 1 + (Math.random()-0.5)*variacao;
+      arr.push({ label:`S${n-i}`, valor: Math.max(0, Math.round(mediaSemana*cresc*noise)) });
+    }
+    return arr;
+  }
+  function gerarSerieMensal(dataLancamentoISO, valorAtual, variacao){
+    const inicio = new Date(dataLancamentoISO);
+    const hoje = new Date();
+    const meses = (hoje.getFullYear()-inicio.getFullYear())*12 + (hoje.getMonth()-inicio.getMonth()) + 1;
+    const arr = []; let base = valorAtual*0.42;
+    const inc = meses>1 ? (valorAtual - base)/(meses-1) : 0;
+    for(let i=0;i<meses;i++){
+      const dt = new Date(inicio.getFullYear(), inicio.getMonth()+i, 1);
+      const noise = 1 + (Math.random()-0.5)*variacao;
+      const v = i===meses-1 ? valorAtual : Math.max(0, Math.round((base+inc*i)*noise));
+      arr.push({ label: dt.toLocaleDateString('pt-BR',{month:'short'}).replace('.','').replace(/^./,c=>c.toUpperCase()), valor: v });
+    }
+    return arr;
+  }
+  function gerarSerieAssinantes(dataLancamentoISO, totalAtual, variacao){
+    const inicio = new Date(dataLancamentoISO);
+    const hoje = new Date();
+    const meses = (hoje.getFullYear()-inicio.getFullYear())*12 + (hoje.getMonth()-inicio.getMonth()) + 1;
+    const arr = []; let acumulado = 0;
+    const alvoPorMes = totalAtual/meses;
+    for(let i=0;i<meses;i++){
+      const dt = new Date(inicio.getFullYear(), inicio.getMonth()+i, 1);
+      const cresc = 1 + i*0.15;
+      const noise = 1 + (Math.random()-0.5)*variacao;
+      let novos = Math.max(1, Math.round(alvoPorMes*cresc*noise*0.7));
+      let cancelados = Math.max(0, Math.round(novos*(0.08+Math.random()*0.1)));
+      if(i===meses-1){
+        novos = Math.max(1, totalAtual - acumulado + cancelados);
+      }
+      acumulado += novos - cancelados;
+      arr.push({ label: dt.toLocaleDateString('pt-BR',{month:'short'}).replace('.','').replace(/^./,c=>c.toUpperCase()), novos, cancelados, total: Math.max(0,acumulado) });
+    }
+    return arr;
+  }
+
+  function getData(){
+    let raw = localStorage.getItem(STORAGE_KEY);
+    const base = seed();
+    if(!raw){ localStorage.setItem(STORAGE_KEY, JSON.stringify(base)); return base; }
+    const saved = JSON.parse(raw);
+    const merged = Object.assign({}, base, saved);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    return merged;
+  }
+  function saveData(d){ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+
+  function fmtMoney(v){ return 'R$ ' + (v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function fmtDate(iso){ const [y,m,d] = iso.split('-'); return `${d}/${m}`; }
+  function toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.style.display = 'block';
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(()=> t.style.display='none', 2200);
+  }
+
+  function agora(){
+    const d = new Date();
+    return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  }
+  function logAuditoria(acao, detalhe){
+    const d = getData();
+    d.auditLog.unshift({ em: agora(), acao, detalhe });
+    saveData(d);
+  }
+
+  function entrar(){
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').classList.add('active');
+    logAuditoria('Login no painel', 'Admin acessou o painel');
+    renderAll();
+    renderCentral();
+  }
+  function sair(){
+    document.getElementById('app').classList.remove('active');
+    document.getElementById('login').style.display = 'flex';
+  }
+
+  function showSection(id, el){
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('sec-'+id).classList.add('active');
+    document.querySelectorAll('.side-item').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    toggleSidebar(false);
+    if(id === 'central') requestAnimationFrame(renderCentral);
+  }
+
+  function toggleSidebar(force){
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('sidebar-overlay');
+    const open = typeof force === 'boolean' ? force : !sb.classList.contains('open');
+    sb.classList.toggle('open', open);
+    ov.classList.toggle('open', open);
+  }
+
+  function marcoStatus(n){
+    if(n >= 120) return { label:'Completo (diário + semanal + mensal)', cls:'green' };
+    if(n >= 90)  return { label:'Diário + Semanal liberados', cls:'amber' };
+    if(n >= 60)  return { label:'Diário liberado', cls:'amber' };
+    return { label:'Nenhum marco atingido', cls:'gray' };
+  }
+
+  function renderAlertas(){
+    const d = getData();
+    const card = document.getElementById('dsh-alertas-card');
+    if(!d.alertasFraude.length){ card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    document.getElementById('dsh-alertas-rows').innerHTML = d.alertasFraude.map(a => `
+      <div class="alert-card"><span class="alert-icon">⚠️</span>
+        <div><div class="alert-title">${a.titulo}</div><div class="alert-desc">${a.desc}</div></div>
+      </div>`).join('');
+  }
+
+  function renderAuditoria(){
+    const d = getData();
+    document.getElementById('auditoria-vazio').style.display = d.auditLog.length ? 'none' : 'block';
+    document.getElementById('auditoria-rows').innerHTML = d.auditLog.map(l => `<tr>
+      <td style="color:var(--text-dim); white-space:nowrap;">${l.em}</td>
+      <td><b>${l.acao}</b></td>
+      <td style="color:var(--text-dim);">${l.detalhe}</td>
+    </tr>`).join('');
+  }
+
+  function exportarCSV(){
+    const d = getData();
+    const bruta = d.financeiro.receitaBruta;
+    const liquida = bruta - d.financeiro.comissoesPagas - d.financeiro.premiacaoPaga;
+    let csv = 'Item;Valor\n';
+    csv += `Receita bruta;${bruta.toFixed(2)}\n`;
+    csv += `Total pago em comissões;${d.financeiro.comissoesPagas.toFixed(2)}\n`;
+    csv += `Total gasto em premiação;${d.financeiro.premiacaoPaga.toFixed(2)}\n`;
+    csv += `Receita líquida;${liquida.toFixed(2)}\n`;
+    const blob = new Blob(["\ufeff" + csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = 'drivewin-financeiro.csv';
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    logAuditoria('Relatório exportado', 'CSV financeiro do mês baixado');
+    toast('Relatório CSV exportado');
+  }
+
+  function renderDashboard(){
+    const d = getData();
+    renderAlertas();
+    const ativos = d.assinantes.filter(a => a.status !== 'atrasado').length;
+    const receitaBruta = d.financeiro.receitaBruta;
+    const receitaLiquida = receitaBruta - d.financeiro.comissoesPagas - d.financeiro.premiacaoPaga;
+    document.getElementById('dsh-receita-bruta').textContent = fmtMoney(receitaBruta);
+    document.getElementById('dsh-assinantes-count').textContent = `${d.assinantes.length} assinantes cadastrados`;
+    document.getElementById('dsh-receita-liquida').textContent = fmtMoney(receitaLiquida);
+    document.getElementById('dsh-novos').textContent = '18';
+    document.getElementById('dsh-cancelamentos').textContent = '3';
+    document.getElementById('dsh-tropas-count').textContent = `${d.tropas.length} tropas`;
+
+    document.getElementById('dsh-tropas-rows').innerHTML = d.tropas.map(t => {
+      const m = marcoStatus(t.assinantes);
+      const pct = Math.min(100, Math.round(t.assinantes/120*100));
+      return `<tr>
+        <td><b>${t.nome}</b></td>
+        <td>${t.assinantes}</td>
+        <td style="width:220px;">
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;"></div></div>
+          <div class="progress-line"><span>${t.assinantes}/120</span><span>${pct}%</span></div>
+        </td>
+        <td><span class="badge ${m.cls}">${m.label}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderAssinantes(){
+    const d = getData();
+    const filaEl = document.getElementById('fila-pagamento-rows');
+    document.getElementById('fila-pagamento-vazio').style.display = d.filaPagamento.length ? 'none' : 'block';
+    filaEl.innerHTML = d.filaPagamento.map(f => `<tr>
+      <td>${f.assinante}</td>
+      <td>${fmtMoney(f.valor)}</td>
+      <td style="color:var(--text-dim);">${f.motivo}</td>
+      <td><span class="btn-sm ok" onclick="confirmarPagamento('${f.id}')">Confirmar pagamento</span></td>
+    </tr>`).join('');
+
+    document.getElementById('assinantes-rows').innerHTML = d.assinantes.map(a => {
+      const tropa = d.tropas.find(t => t.id === a.tropaId);
+      const badge = a.status === 'pago' ? 'green' : a.status === 'pendente' ? 'amber' : 'red';
+      const label = a.status === 'pago' ? 'Pago' : a.status === 'pendente' ? 'Pendente' : 'Atrasado';
+      const bloqueado = a.status === 'atrasado';
+      return `<tr>
+        <td><b class="link-name" onclick="abrirHistorico('${a.id}')">${a.nome}</b></td>
+        <td>${tropa ? tropa.nome : '—'}</td>
+        <td><span class="badge ${badge}">${label}</span></td>
+        <td>${fmtDate(a.venc)}</td>
+        <td>${bloqueado
+            ? `<span class="btn-sm ok" onclick="toggleAcesso('${a.id}')">Liberar acesso</span>`
+            : `<span class="btn-sm danger" onclick="toggleAcesso('${a.id}')">Bloquear acesso</span>`}
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function confirmarPagamento(id){
+    const d = getData();
+    const f = d.filaPagamento.find(x => x.id === id);
+    d.filaPagamento = d.filaPagamento.filter(x => x.id !== id);
+    const a = d.assinantes.find(x => x.nome === f.assinante);
+    if(a){ a.status = 'pago'; a.historico = a.historico || []; a.historico.push({status:'pago', em: agora()}); }
+    saveData(d);
+    logAuditoria('Pagamento confirmado', `${f.assinante} — ${fmtMoney(f.valor)}`);
+    toast(`Pagamento de ${f.assinante} confirmado`);
+    renderAssinantes(); renderDashboard();
+  }
+  function toggleAcesso(id){
+    const d = getData();
+    const a = d.assinantes.find(x => x.id === id);
+    a.status = a.status === 'atrasado' ? 'pago' : 'atrasado';
+    a.historico = a.historico || [];
+    a.historico.push({status:a.status, em: agora()});
+    saveData(d);
+    logAuditoria(a.status === 'atrasado' ? 'Acesso bloqueado' : 'Acesso liberado', a.nome);
+    toast(a.status === 'atrasado' ? `Acesso de ${a.nome} bloqueado` : `Acesso de ${a.nome} liberado`);
+    renderAssinantes(); renderDashboard();
+  }
+
+  function abrirHistorico(id){
+    const d = getData();
+    const a = d.assinantes.find(x => x.id === id);
+    document.getElementById('hist-titulo').textContent = `Histórico — ${a.nome}`;
+    const hist = (a.historico || []).slice().reverse();
+    document.getElementById('hist-rows').innerHTML = hist.length ? hist.map(h => {
+      const badge = h.status === 'pago' ? 'green' : h.status === 'pendente' ? 'amber' : 'red';
+      const label = h.status === 'pago' ? 'Pago' : h.status === 'pendente' ? 'Pendente' : 'Atrasado';
+      return `<div class="hist-row"><span class="badge ${badge}">${label}</span><span class="t">${h.em}</span></div>`;
+    }).join('') : '<div class="empty-note">Sem mudanças de status registradas.</div>';
+    document.getElementById('hist-overlay').classList.add('open');
+  }
+  function fecharHistorico(){ document.getElementById('hist-overlay').classList.remove('open'); }
+  document.getElementById('hist-overlay').addEventListener('click', e => {
+    if(e.target.id === 'hist-overlay') fecharHistorico();
+  });
+
+  function renderTropas(){
+    const d = getData();
+    document.getElementById('candidatos-vazio').style.display = d.candidatos.length ? 'none' : 'block';
+    document.getElementById('candidatos-rows').innerHTML = d.candidatos.map(c => `<tr>
+      <td><b>${c.nome}</b></td>
+      <td style="color:var(--text-dim);">${c.perfil}</td>
+      <td>
+        <span class="btn-sm ok" onclick="abrirNovoParceiro('${c.id}')">Aprovar</span>
+        <span class="btn-sm" onclick="avaliarCandidato('${c.id}', false)">Manter em espera</span>
+      </td>
+    </tr>`).join('');
+
+    document.getElementById('parceiros-vazio').style.display = d.parceiros.length ? 'none' : 'block';
+    document.getElementById('parceiros-rows').innerHTML = d.parceiros.map(p => {
+      const t = d.tropas.find(x => x.id === p.tropaId);
+      const n = t ? t.assinantes : 0;
+      const pct = Math.min(100, Math.round(n/120*100));
+      return `<tr>
+        <td><b>${p.nome}</b></td>
+        <td><span class="tag-cupom">${p.cupom}</span></td>
+        <td>${n}</td>
+        <td style="width:200px;">
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;"></div></div>
+          <div class="progress-line"><span>${n}/120</span><span>${pct}%</span></div>
+        </td>
+        <td>${fmtMoney(p.comissaoMes)}</td>
+        <td>${fmtMoney(p.comissaoTotal)}</td>
+        <td><span class="btn-sm danger" onclick="excluirParceiro('${p.id}')">Excluir</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function avaliarCandidato(id, aprovado){
+    const d = getData();
+    const c = d.candidatos.find(x => x.id === id);
+    if(aprovado){
+      d.candidatos = d.candidatos.filter(x => x.id !== id);
+      logAuditoria('Candidato aprovado', `${c.nome} virou parceiro`);
+      toast(`${c.nome} aprovado como parceiro`);
+    } else {
+      logAuditoria('Candidato mantido em espera', c.nome);
+      toast(`${c.nome} mantido em espera`);
+    }
+    saveData(d);
+    renderTropas();
+  }
+
+  // ---------------- NOVO PARCEIRO ----------------
+  let npCandidatoId = null;
+
+  function abrirNovoParceiro(candidatoId){
+    npCandidatoId = candidatoId || null;
+    const d = getData();
+    let nomeSugerido = '';
+    if(candidatoId){
+      const c = d.candidatos.find(x => x.id === candidatoId);
+      if(c) nomeSugerido = c.nome;
+    }
+    document.getElementById('np-nome').value = nomeSugerido;
+    document.getElementById('np-cupom').value = '';
+    document.getElementById('np-tropa').value = '';
+    document.getElementById('np-tropa').dataset.editado = '';
+    document.getElementById('np-assinantes').value = 0;
+    if(nomeSugerido) sugerirCupom();
+    document.getElementById('parceiro-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('np-nome').focus(), 50);
+  }
+  function fecharNovoParceiro(){
+    document.getElementById('parceiro-overlay').classList.remove('open');
+    npCandidatoId = null;
+  }
+  document.getElementById('parceiro-overlay').addEventListener('click', e => {
+    if(e.target.id === 'parceiro-overlay') fecharNovoParceiro();
+  });
+  document.getElementById('np-tropa').addEventListener('input', () => {
+    document.getElementById('np-tropa').dataset.editado = '1';
+  });
+  function sugerirCupom(){
+    const nome = document.getElementById('np-nome').value.trim();
+    const primeiro = (nome.split(' ')[0] || '').toUpperCase();
+    document.getElementById('np-cupom').value = primeiro ? primeiro + Math.floor(10 + Math.random()*89) : '';
+    const tropaInput = document.getElementById('np-tropa');
+    if(!tropaInput.dataset.editado){
+      tropaInput.value = nome ? `Tropa do(a) ${nome.split(' ')[0]}` : '';
+    }
+  }
+
+  function salvarNovoParceiro(){
+    const nome = document.getElementById('np-nome').value.trim();
+    const cupom = document.getElementById('np-cupom').value.trim().toUpperCase();
+    const tropaNome = document.getElementById('np-tropa').value.trim();
+    const assinantesIniciais = Math.max(0, parseInt(document.getElementById('np-assinantes').value, 10) || 0);
+
+    if(!nome || !cupom || !tropaNome){
+      toast('Preencha nome, cupom e nome da tropa');
+      return;
+    }
+    const d = getData();
+    if(d.parceiros.some(p => p.cupom.toUpperCase() === cupom)){
+      toast('Já existe um parceiro com esse cupom');
+      return;
+    }
+
+    const sufixo = Date.now();
+    const novaTropaId = 't_' + sufixo;
+    const novoParceiroId = 'p_' + sufixo;
+    d.tropas.push({ id: novaTropaId, nome: tropaNome, assinantes: assinantesIniciais, ativa: true });
+    d.parceiros.push({ id: novoParceiroId, tropaId: novaTropaId, nome, cupom, comissaoMes: assinantesIniciais*1.49, comissaoTotal: 0 });
+    if(npCandidatoId){
+      d.candidatos = d.candidatos.filter(x => x.id !== npCandidatoId);
+    }
+    saveData(d);
+    logAuditoria('Parceiro cadastrado', `${nome} (${cupom}) — ${tropaNome}`);
+    toast(`${nome} adicionado como parceiro`);
+    fecharNovoParceiro();
+    renderTropas();
+    renderDashboard();
+    if(document.getElementById('sec-central').classList.contains('active')) renderCentral();
+  }
+
+  function excluirParceiro(id){
+    const d = getData();
+    const p = d.parceiros.find(x => x.id === id);
+    if(!p) return;
+    const t = d.tropas.find(x => x.id === p.tropaId);
+    const nomeTropa = t ? t.nome : '';
+    const confirmado = confirm(`Remover ${p.nome} (${p.cupom})${nomeTropa ? ` e a ${nomeTropa}` : ''}? Essa ação não pode ser desfeita.`);
+    if(!confirmado) return;
+
+    d.parceiros = d.parceiros.filter(x => x.id !== id);
+    d.tropas = d.tropas.filter(x => x.id !== p.tropaId);
+    d.assinantes.forEach(a => { if(a.tropaId === p.tropaId) a.tropaId = null; });
+
+    saveData(d);
+    logAuditoria('Parceiro removido', `${p.nome} (${p.cupom})`);
+    toast(`${p.nome} removido`);
+    renderTropas();
+    renderDashboard();
+    renderAssinantes();
+    if(document.getElementById('sec-central').classList.contains('active')) renderCentral();
+  }
+
+  function renderRankingSelects(){
+    const d = getData();
+    const sel = document.getElementById('ranking-tropa-sel');
+    if(sel.options.length === 0){
+      sel.innerHTML = d.tropas.map(t => `<option value="${t.id}">${t.nome}</option>`).join('');
+    }
+  }
+  function renderRankingTropa(){
+    const d = getData();
+    renderRankingSelects();
+    const tropaId = document.getElementById('ranking-tropa-sel').value || d.tropas[0].id;
+    const periodo = document.getElementById('ranking-periodo').value;
+    const lista = (d.rankingTropa[tropaId] && d.rankingTropa[tropaId][periodo]) || [];
+    const rows = document.getElementById('ranking-tropa-rows');
+    if(lista.length === 0){
+      rows.innerHTML = `<tr><td colspan="3" class="empty-note">Sem lançamentos nesse período ainda.</td></tr>`;
+      return;
+    }
+    rows.innerHTML = lista.map((r,i) => `<tr><td>${i+1}º</td><td>${r[0]}</td><td>${fmtMoney(r[1])}</td></tr>`).join('');
+  }
+
+  function renderPremiacao(){
+    const d = getData();
+    document.getElementById('ranking-regiao-rows').innerHTML = d.rankingRegiao.map((r,i) => `<tr>
+      <td>${i+1}º</td><td><b>${r.nome}</b></td><td>${r.tropa}</td><td>${fmtMoney(r.valor)}</td>
+    </tr>`).join('');
+    renderRankingTropa();
+
+    document.getElementById('premios-rows').innerHTML = d.premios.map(p => {
+      const afOk = p.antifraude === 'ok';
+      const stEntregue = p.status === 'entregue';
+      return `<tr>
+        <td><b>${p.tipo}</b></td>
+        <td>${p.escopo}</td>
+        <td>${p.ganhador}</td>
+        <td>${fmtMoney(p.valor)}</td>
+        <td><span class="badge ${afOk ? 'green' : 'amber'}">${afOk ? 'Vídeo confirmado' : 'Aguardando vídeo'}</span></td>
+        <td><span class="badge ${stEntregue ? 'green' : 'amber'}">${stEntregue ? 'Entregue' : 'Liberado'}</span></td>
+        <td>${stEntregue ? '—' : `<span class="btn-sm ok" onclick="marcarEntregue('${p.id}')" ${afOk ? '' : 'style="opacity:.5; pointer-events:none;"'}>Marcar entregue</span>`}</td>
+      </tr>`;
+    }).join('');
+  }
+  function marcarEntregue(id){
+    const d = getData();
+    const p = d.premios.find(x => x.id === id);
+    p.status = 'entregue';
+    saveData(d);
+    logAuditoria('Prêmio entregue', `${p.tipo} — ${p.ganhador} (${fmtMoney(p.valor)})`);
+    toast(`Prêmio de ${p.ganhador} marcado como entregue`);
+    renderPremiacao();
+  }
+
+  function renderFinanceiro(){
+    const d = getData();
+    const bruta = d.financeiro.receitaBruta;
+    const liquida = bruta - d.financeiro.comissoesPagas - d.financeiro.premiacaoPaga;
+    document.getElementById('fin-bruta').textContent = fmtMoney(bruta);
+    document.getElementById('fin-liquida').textContent = `Líquida: ${fmtMoney(liquida)}`;
+    document.getElementById('fin-comissoes').textContent = fmtMoney(d.financeiro.comissoesPagas);
+    document.getElementById('fin-premiacao').textContent = fmtMoney(d.financeiro.premiacaoPaga);
+    const margemPct = bruta > 0 ? Math.round(liquida/bruta*100) : 0;
+    document.getElementById('fin-margem-bar').style.width = Math.max(0,margemPct) + '%';
+    document.getElementById('fin-margem-pct').textContent = margemPct + '% de margem';
+    document.getElementById('fin-margem-valor').textContent = fmtMoney(liquida) + ' líquido no mês';
+
+    document.getElementById('fin-tropas-rows').innerHTML = d.tropas.map(t => {
+      const premiosDaTropa = d.premios.filter(p => p.escopo === t.nome);
+      const diario = premiosDaTropa.filter(p => p.tipo === 'Diário').reduce((s,p)=>s+p.valor,0);
+      const semanal = premiosDaTropa.filter(p => p.tipo === 'Semanal').reduce((s,p)=>s+p.valor,0);
+      const mensal = premiosDaTropa.filter(p => p.tipo === 'Mensal').reduce((s,p)=>s+p.valor,0);
+      const total = diario+semanal+mensal;
+      return `<tr><td><b>${t.nome}</b></td><td>${fmtMoney(diario)}</td><td>${fmtMoney(semanal)}</td><td>${fmtMoney(mensal)}</td><td><b>${fmtMoney(total)}</b></td></tr>`;
+    }).join('');
+  }
+
+  function renderAll(){
+    renderDashboard();
+    renderAssinantes();
+    renderTropas();
+    renderPremiacao();
+    renderFinanceiro();
+    renderAuditoria();
+  }
+
+  // ---------------- CENTRAL (histórico completo, estático — sem animação) ----------------
+  function getCss(varName){ return getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); }
+  function hexToRgba(hex, a){
+    let c = hex.replace('#','');
+    if(c.length === 3) c = c.split('').map(x=>x+x).join('');
+    const num = parseInt(c,16);
+    const r=(num>>16)&255, g=(num>>8)&255, b=num&255;
+    return `rgba(${r},${g},${b},${a})`;
+  }
+
+  function drawBarCanvas(canvas, labels, series, opts){
+    opts = opts || {};
+    if(!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    if(rect.width === 0) return;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const w = rect.width, h = rect.height;
+    const padBottom = 22, padTop = 10;
+    ctx.clearRect(0,0,w,h);
+
+    const nGroups = labels.length;
+    const nSeries = series.length;
+    const allVals = series.flatMap(s => s.data);
+    const max = Math.max(...allVals, 1);
+    const groupW = w / nGroups;
+    const barGap = 3;
+    const barW = Math.max(2, (groupW - barGap*(nSeries+1)) / nSeries);
+    const labelEvery = Math.ceil(nGroups / (w > 500 ? 14 : 7));
+
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.fillStyle = getCss('--text-dim');
+    ctx.textAlign = 'center';
+
+    for(let i=0;i<nGroups;i++){
+      series.forEach((s, si) => {
+        const v = s.data[i] || 0;
+        const barH = (v/max) * (h - padBottom - padTop);
+        const x = i*groupW + barGap + si*(barW+barGap);
+        const y = h - padBottom - barH;
+        const color = s.color || getCss('--green');
+        const grad = ctx.createLinearGradient(0,y,0,h-padBottom);
+        grad.addColorStop(0, color);
+        grad.addColorStop(1, hexToRgba(color, 0.35));
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        const r = Math.min(3, barW/2);
+        ctx.moveTo(x, y+r);
+        ctx.arcTo(x, y, x+r, y, r);
+        ctx.lineTo(x+barW-r, y);
+        ctx.arcTo(x+barW, y, x+barW, y+r, r);
+        ctx.lineTo(x+barW, h-padBottom);
+        ctx.lineTo(x, h-padBottom);
+        ctx.closePath();
+        ctx.fill();
+      });
+      if(i % labelEvery === 0){
+        ctx.fillStyle = getCss('--text-dim');
+        ctx.fillText(labels[i], i*groupW + groupW/2, h-6);
+      }
+    }
+  }
+
+  function drawLineCanvas(canvas, points, opts){
+    opts = opts || {};
+    if(!canvas || points.length < 2) return;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    if(rect.width === 0) return;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const w = rect.width, h = rect.height;
+    ctx.clearRect(0,0,w,h);
+    const min = Math.min(...points), max = Math.max(...points);
+    const pad = (max - min) * 0.15 || 1;
+    const lo = min - pad, hi = max + pad;
+    const stepX = w / (points.length - 1);
+    const y = v => h - ((v - lo) / (hi - lo)) * h;
+    const lineColor = opts.color || getCss('--green');
+
+    if(opts.area){
+      ctx.beginPath();
+      ctx.moveTo(0, y(points[0]));
+      points.forEach((p,i) => ctx.lineTo(i*stepX, y(p)));
+      ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+      const grad = ctx.createLinearGradient(0,0,0,h);
+      grad.addColorStop(0, hexToRgba(lineColor, 0.25));
+      grad.addColorStop(1, hexToRgba(lineColor, 0));
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+    ctx.beginPath();
+    points.forEach((p,i) => { const px=i*stepX, py=y(p); if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); });
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = opts.lineWidth || 2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+
+  let centralPeriodo = 'mensal';
+
+  function mesesDesde(dataISO){
+    const inicio = new Date(dataISO); const hoje = new Date();
+    return (hoje.getFullYear()-inicio.getFullYear())*12 + (hoje.getMonth()-inicio.getMonth()) + 1;
+  }
+
+  function setCentralPeriodo(p){
+    centralPeriodo = p;
+    document.querySelectorAll('.periodo-btn').forEach(b => b.classList.toggle('active', b.dataset.p === p));
+    renderCentralChartPrincipal();
+  }
+
+  function renderCentralChartPrincipal(){
+    const d = getData();
+    const map = { diario: d.historicoDiario, semanal: d.historicoSemanal, mensal: d.historicoMensal };
+    const serie = map[centralPeriodo];
+    const labels = serie.map(p => p.label);
+    const valores = serie.map(p => p.valor);
+    const somaPeriodo = valores.reduce((a,b)=>a+b,0);
+    const label = { diario:'Soma dos últimos 30 dias', semanal:'Soma das últimas 12 semanas', mensal:'Soma desde o lançamento' }[centralPeriodo];
+    document.getElementById('chart-main-value').textContent = fmtMoney(somaPeriodo);
+    document.getElementById('chart-main-sub').textContent = label;
+    drawBarCanvas(document.getElementById('chart-main'), labels, [{ data: valores, color: getCss('--green') }]);
+  }
+
+  function renderCentral(){
+    const d = getData();
+    const hoje = d.historicoDiario.at(-1)?.valor || 0;
+    const semana = d.historicoDiario.slice(-7).reduce((s,p)=>s+p.valor,0);
+    const mes = d.historicoMensal.at(-1)?.valor || 0;
+    const totalDesdeLancamento = d.historicoMensal.reduce((s,p)=>s+p.valor,0);
+    const nMeses = mesesDesde(d.dataLancamento);
+    const dataLanc = new Date(d.dataLancamento).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+
+    document.getElementById('tk-hoje-valor').textContent = fmtMoney(hoje);
+    document.getElementById('tk-semana-valor').textContent = fmtMoney(semana);
+    document.getElementById('tk-mes-valor').textContent = fmtMoney(mes);
+    document.getElementById('tk-total-valor').textContent = fmtMoney(totalDesdeLancamento);
+    document.getElementById('tk-total-label').textContent = `Desde ${dataLanc} · ${nMeses} ${nMeses===1?'mês':'meses'} de operação`;
+
+    renderCentralChartPrincipal();
+
+    // crescimento de assinantes: novos x cancelados por mês + total acumulado
+    const am = d.historicoAssinantesMensal;
+    drawBarCanvas(document.getElementById('chart-assinantes'), am.map(p=>p.label),
+      [ { data: am.map(p=>p.novos), color: getCss('--green') },
+        { data: am.map(p=>p.cancelados), color: getCss('--red') } ]);
+    drawLineCanvas(document.getElementById('chart-assinantes-total'), am.map(p=>p.total), { area:true, lineWidth:2 });
+    document.getElementById('chart-assinantes-total-valor').textContent = am.at(-1)?.total + ' assinantes ativos';
+
+    // indicadores
+    const totalAtivos = am.at(-1)?.total || 1;
+    const ticketMedio = d.financeiro.receitaBruta / totalAtivos;
+    const totalNovosUltimoMes = am.at(-1)?.novos || 0;
+    const totalCancUltimoMes = am.at(-1)?.cancelados || 0;
+    const churn = totalNovosUltimoMes ? (totalCancUltimoMes / totalAtivos * 100) : 0;
+    const tempoMedioMeses = churn>0 ? (100/churn) : nMeses;
+    const ltv = ticketMedio * tempoMedioMeses;
+    document.getElementById('ind-ticket').textContent = fmtMoney(ticketMedio);
+    document.getElementById('ind-churn').textContent = churn.toFixed(1) + '%';
+    document.getElementById('ind-ltv').textContent = fmtMoney(ltv);
+    document.getElementById('ind-vida').textContent = tempoMedioMeses.toFixed(1) + ' meses';
+
+    // comissões x premiação x líquido por mês (estimado a partir do mês atual)
+    const compMensal = d.historicoMensal.map(p => ({
+      label: p.label,
+      comissao: p.valor * (d.financeiro.comissoesPagas / d.financeiro.receitaBruta),
+      premio: p.valor * (d.financeiro.premiacaoPaga / d.financeiro.receitaBruta),
+    }));
+    drawBarCanvas(document.getElementById('chart-custos'), compMensal.map(p=>p.label),
+      [ { data: compMensal.map(p=>p.comissao), color: getCss('--pink-vivid') },
+        { data: compMensal.map(p=>p.premio), color: getCss('--amber') } ]);
+
+    // participação das tropas (estático)
+    const totalTropas = d.tropas.reduce((s,t)=>s+t.assinantes,0) || 1;
+    document.getElementById('central-depth-rows').innerHTML = d.tropas.map(t => {
+      const pct = Math.round(t.assinantes/totalTropas*100);
+      return `<div class="depth-row">
+        <div class="depth-name">${t.nome}</div>
+        <div class="depth-bar-track"><div class="depth-bar-fill" style="width:${pct}%;"></div></div>
+        <div class="depth-value">${pct}% · ${t.assinantes}</div>
+      </div>`;
+    }).join('');
+  }
+
+  window.addEventListener('resize', () => {
+    const sec = document.getElementById('sec-central');
+    if(sec && sec.classList.contains('active')) renderCentral();
+  });
+</script>
+</body>
+</html>
