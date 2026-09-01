@@ -1288,7 +1288,7 @@
       return;
     }
     const venceu = registro.venc ? new Date(registro.venc + 'T23:59:59') < new Date() : false;
-    const pendentePagamento = registro.ativo === false && registro.status !== 'pago';
+    const pendentePagamento = registro.ativo === false && registro.status === 'pendente';
     if(pendentePagamento || venceu){
       _regPagamento = registro;
       _meuAssinante = registro;

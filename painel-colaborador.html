@@ -266,6 +266,7 @@
   <div class="sidebar" id="sidebar">
     <div class="brand">Drive<span>Win</span><small>PAINEL COLABORADOR</small></div>
     <div class="side-item active" data-s="suporte" onclick="showSection('suporte', this)"><span class="side-icon">🎧</span>Suporte</div>
+    <div class="side-item" data-s="pagamentos" onclick="showSection('pagamentos', this)"><span class="side-icon">💳</span>Pagamentos</div>
     <div class="side-item" data-s="tropas" onclick="showSection('tropas', this)"><span class="side-icon">🏁</span>Tropas &amp; Motoristas</div>
     <div class="side-footer">
       <div class="stat-note" id="colab-ativo-nome" style="margin-bottom:10px;"></div>
@@ -303,6 +304,24 @@
         <div id="suporte-lista"></div>
         <div class="empty-note" id="suporte-vazio" style="display:none;">Nenhum chamado por aqui.</div>
       </div>
+    </div>
+
+    <!-- PAGAMENTOS -->
+    <div class="section" id="sec-pagamentos">
+      <div class="page-title">Pagamentos</div>
+      <div class="page-sub">Motoristas das suas tropas que avisaram o Pix e estão aguardando confirmação</div>
+      <div class="section-card">
+        <div class="section-title-row">
+          <div class="section-title" style="margin:0;">Fila de avisos de pagamento</div>
+          <span class="stat-note" id="fila-count"></span>
+        </div>
+        <table>
+          <thead><tr><th>Motorista</th><th>Valor</th><th>Motivo</th><th>Ação</th></tr></thead>
+          <tbody id="fila-rows"></tbody>
+        </table>
+        <div class="empty-note" id="fila-vazio" style="display:none;">Nenhum aviso pendente nas suas tropas. Os avisos entram aqui quando o motorista clica em "Já fiz o Pix".</div>
+      </div>
+      <div class="stat-note" style="margin-top:10px;">Antes de confirmar, confira no banco que o Pix entrou de verdade. Confirmar libera o acesso na hora e o vencimento ganha +30 dias.</div>
     </div>
 
     <!-- TROPAS & MOTORISTAS -->
@@ -358,8 +377,9 @@
   });
 
   // ---------------- dados compartilhados (Supabase) ----------------
-  const __db = { tropas: [], assinantes: [], chamados: [], colaborador: null };
+  const __db = { tropas: [], assinantes: [], chamados: [], filaPagamento: [], parceiros: [], config: {}, colaborador: null };
   let _dwUid = null;
+  let _colabEmail = null;
 
   function getData(){ return __db; }
 
@@ -379,6 +399,11 @@
     clearTimeout(window._toastTimer);
     window._toastTimer = setTimeout(()=> t.style.display='none', 2200);
   }
+  function fmtMoney(v){
+    const n = Number(v);
+    if(isNaN(n)) return '—';
+    return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+  }
 
   function mostrarErroLogin(msg){
     const erroEl = document.getElementById('login-erro');
@@ -387,19 +412,26 @@
 
   async function loadAll(){
     const sb = DWClient;
-    const [tropasR, assinantesR, chamadosR, perfilR] = await Promise.all([
+    const [tropasR, assinantesR, chamadosR, perfilR, filaR, parceirosR, configR] = await Promise.all([
       sb.from('tropas').select('*').order('criado_em', {ascending:true}),
       sb.from('assinantes').select('*'),
       sb.from('chamados').select('*').order('criado_em', {ascending:false}),
       sb.from('perfis').select('*').eq('id', _dwUid).single(),
+      sb.from('fila_pagamento').select('*'),
+      sb.from('parceiros').select('*'),
+      sb.from('config').select('*'),
     ]);
     __db.tropas = (tropasR.data||[]).map(t => ({ id:t.id, nome:t.nome, ativa:t.ativa }));
-    __db.assinantes = (assinantesR.data||[]).map(a => ({ id:a.id, nome:a.nome, tropaId:a.tropa_id, status:a.status, ativo:a.ativo }));
+    __db.assinantes = (assinantesR.data||[]).map(a => ({ id:a.id, nome:a.nome, tropaId:a.tropa_id, status:a.status, ativo:a.ativo, valor:a.valor||null, cupom:a.cupom||null, venc:a.venc, historico:a.historico||[] }));
     __db.chamados = (chamadosR.data||[]).map(c => ({
       id:c.id, nome:c.nome, tropa:c.tropa, assunto:c.assunto||'', status:c.status,
       mensagens: (c.thread && c.thread.length) ? c.thread : (c.mensagem ? [{ de:'motorista', texto:c.mensagem, em: fmtEm(c.criado_em) }] : []),
       criadoEm: c.criado_em, atualizadoEm: c.atualizado_em,
     }));
+    __db.filaPagamento = (filaR.data||[]).map(f => ({ id:f.id, assinante:f.assinante, valor:f.valor, motivo:f.motivo }));
+    __db.parceiros = (parceirosR.data||[]).map(p => ({ id:p.id, tropaId:p.tropa_id, nome:p.nome, cupom:p.cupom, comissaoMes:p.comissao_mes, comissaoTotal:p.comissao_total }));
+    __db.config = {};
+    (configR.data||[]).forEach(c => { __db.config[c.chave] = c.valor; });
     if(perfilR.data) __db.colaborador = {
       id: perfilR.data.id, nome: perfilR.data.nome, email: perfilR.data.email,
       todasTropas: perfilR.data.todas_tropas, tropaIds: perfilR.data.tropa_ids||[],
@@ -436,7 +468,9 @@
     document.getElementById('app').classList.add('active');
     const nomeEl = document.getElementById('colab-ativo-nome');
     if(nomeEl) nomeEl.textContent = perfil.nome ? `Logado como ${perfil.nome}` : '';
+    _colabEmail = email;
     renderSuporte();
+    renderFilaPagamento();
     renderTropas();
   }
   async function sair(){
@@ -461,7 +495,9 @@
       document.getElementById('app').classList.add('active');
       const nomeEl = document.getElementById('colab-ativo-nome');
       if(nomeEl) nomeEl.textContent = perfil.nome ? `Logado como ${perfil.nome}` : '';
+      _colabEmail = perfil.email || null;
       renderSuporte();
+      renderFilaPagamento();
       renderTropas();
     }
   });
@@ -473,6 +509,7 @@
     el.classList.add('active');
     toggleSidebar(false);
     if(id === 'suporte') renderSuporte();
+    if(id === 'pagamentos') renderFilaPagamento();
     if(id === 'tropas') renderTropas();
   }
   function toggleSidebar(force){
@@ -582,6 +619,80 @@
     renderSuporte();
   }
 
+  // ---------------- PAGAMENTOS (fila Pix) ----------------
+  function nomeEmTropaPermitida(nomeAssinante){
+    const col = getColaboradorAtivo();
+    if(!col) return false;
+    if(col.todasTropas) return true;
+    const a = __db.assinantes.find(x => x.nome === nomeAssinante);
+    if(!a || !a.tropaId) return false;
+    return col.tropaIds.includes(a.tropaId);
+  }
+  function renderFilaPagamento(){
+    const d = getData();
+    const minha = d.filaPagamento.filter(f => nomeEmTropaPermitida(f.assinante));
+    document.getElementById('fila-count').textContent = `${minha.length} aviso${minha.length===1?'':'s'}`;
+    document.getElementById('fila-vazio').style.display = minha.length ? 'none' : 'block';
+    document.getElementById('fila-rows').innerHTML = minha.map(f => `<tr>
+      <td><b>${f.assinante}</b></td>
+      <td>${fmtMoney(f.valor)}</td>
+      <td style="color:var(--text-dim);">${f.motivo||''}</td>
+      <td><span class="btn-sm ok" onclick="confirmarPagamento('${f.id}')">Confirmar pagamento</span></td>
+    </tr>`).join('');
+  }
+  function logAuditoria(acao, detalhe){
+    const usuario = _colabEmail || 'colaborador';
+    __db.chamados = __db.chamados || [];
+    DWClient.from('auditoria').insert({ usuario, acao, detalhe }).then(()=>{}).catch(()=>{});
+  }
+  async function confirmarPagamento(id){
+    const d = getData();
+    const f = d.filaPagamento.find(x => x.id === id);
+    if(!f) return;
+    if(!nomeEmTropaPermitida(f.assinante)){
+      toast('Este aviso não é da sua tropa.');
+      return;
+    }
+    const a = d.assinantes.find(x => x.nome === f.assinante);
+    if(a && a.ativo === true && a.status === 'pago'){
+      if(!confirm(`O acesso de ${f.assinante} já está ativo. Confirmar mesmo assim? (vai renovar +30 dias)`)) return;
+    }
+    d.filaPagamento = d.filaPagamento.filter(x => x.id !== id);
+    let novoVenc = null;
+    let novoHistorico = null;
+    if(a){
+      a.status = 'pago';
+      a.ativo = true;
+      const venc = new Date();
+      venc.setDate(venc.getDate() + 30);
+      novoVenc = venc.toISOString().slice(0,10);
+      a.venc = novoVenc;
+      a.historico = a.historico || [];
+      a.historico.push({status:'pago', em: agoraFmt()});
+      novoHistorico = a.historico;
+    }
+    await DWClient.from('fila_pagamento').delete().eq('id', f.id);
+    if(a){
+      await DWClient.from('assinantes').update({ status:'pago', ativo:true, venc:novoVenc, historico:novoHistorico }).eq('id', a.id);
+      // comissão recorrente do parceiro (todo mês que o assinante renovar com o mesmo código)
+      if(a.cupom){
+        const par = d.parceiros.find(p => (p.cupom||'').toUpperCase() === a.cupom.toUpperCase());
+        const comissao = Number(d.config.comissao_parceiro) || 0;
+        if(par && comissao > 0){
+          const novaMes = Number(par.comissaoMes || 0) + comissao;
+          const novaTotal = Number(par.comissaoTotal || 0) + comissao;
+          await DWClient.from('parceiros').update({ comissao_mes:novaMes, comissao_total:novaTotal }).eq('id', par.id);
+          par.comissaoMes = novaMes;
+          par.comissaoTotal = novaTotal;
+        }
+      }
+    }
+    logAuditoria('Pagamento confirmado', `${f.assinante} — ${fmtMoney(f.valor)}${a && a.cupom ? ' — comissão parceiro' : ''}`);
+    toast(`Pagamento de ${f.assinante} confirmado — acesso liberado`);
+    renderFilaPagamento();
+    renderTropas();
+  }
+
   // ---------------- TROPAS & MOTORISTAS ----------------
   function renderTropas(){
     const d = getData();
@@ -611,13 +722,16 @@
       const ativo = a.ativo !== false;
       const stCls = a.status === 'pago' ? 'green' : (a.status === 'pendente' ? 'amber' : 'red');
       const stLabel = a.status === 'pago' ? 'Pago' : (a.status === 'pendente' ? 'Pendente' : 'Atrasado');
+      const acao = a.status === 'pendente'
+        ? '<span class="stat-note">Aguardando pagamento</span>'
+        : (ativo
+            ? `<span class="btn-sm danger" onclick="alternarAcesso('${a.id}')">Cancelar acesso</span>`
+            : `<span class="btn-sm ok" onclick="alternarAcesso('${a.id}')">Reativar acesso</span>`);
       return `<tr>
         <td><b>${a.nome}</b></td>
         <td><span class="badge ${stCls}">${stLabel}</span></td>
         <td><span class="badge ${ativo ? 'green' : 'red'}">${ativo ? 'Ativo' : 'Cancelado'}</span></td>
-        <td>${ativo
-            ? `<span class="btn-sm danger" onclick="alternarAcesso('${a.id}')">Cancelar acesso</span>`
-            : `<span class="btn-sm ok" onclick="alternarAcesso('${a.id}')">Reativar acesso</span>`}</td>
+        <td>${acao}</td>
       </tr>`;
     }).join('');
     return `<div class="section-card">
@@ -641,10 +755,14 @@
     if(estaAtivo){
       if(!confirm(`Cancelar o acesso de ${a.nome}? Ele não vai conseguir mais entrar no app dele até ser reativado.`)) return;
     }
-    await DWClient.from('assinantes').update({ ativo: novo }).eq('id', id);
     a.ativo = novo;
+    a.status = novo ? 'pago' : 'atrasado';
+    a.historico = a.historico || [];
+    a.historico.push({status:a.status, em: agoraFmt()});
+    await DWClient.from('assinantes').update({ ativo: novo, status: a.status, historico: a.historico }).eq('id', id);
     toast(novo ? `Acesso de ${a.nome} reativado` : `Acesso de ${a.nome} cancelado`);
     renderTropas();
+    renderFilaPagamento();
   }
 </script>
 </body>

@@ -1220,7 +1220,7 @@
       const tropa = d.tropas.find(t => t.id === a.tropaId);
       const badge = a.status === 'pago' ? 'green' : a.status === 'pendente' ? 'amber' : 'red';
       const label = a.status === 'pago' ? 'Pago' : a.status === 'pendente' ? 'Pendente' : 'Atrasado';
-      const bloqueado = a.status === 'atrasado';
+      const bloqueado = a.status === 'atrasado' || a.ativo === false || a.status === 'pendente';
       return `<tr>
         <td><b class="link-name" onclick="abrirHistorico('${a.id}')">${a.nome}</b>
           ${a.email
@@ -1284,12 +1284,24 @@
     const d = getData();
     const a = d.assinantes.find(x => x.id === id);
     if(!a) return;
-    a.status = a.status === 'atrasado' ? 'pago' : 'atrasado';
+    const liberar = a.ativo === false || a.status !== 'pago';
+    if(liberar){
+      a.status = 'pago';
+      a.ativo = true;
+      if(!a.venc || new Date(a.venc + 'T23:59:59') < new Date()){
+        const venc = new Date();
+        venc.setDate(venc.getDate() + 30);
+        a.venc = venc.toISOString().slice(0,10);
+      }
+    } else {
+      a.status = 'atrasado';
+      a.ativo = false;
+    }
     a.historico = a.historico || [];
     a.historico.push({status:a.status, em: agora()});
-    await DWClient.from('assinantes').update({ status:a.status, historico:a.historico }).eq('id', a.id);
-    logAuditoria(a.status === 'atrasado' ? 'Acesso bloqueado' : 'Acesso liberado', a.nome);
-    toast(a.status === 'atrasado' ? `Acesso de ${a.nome} bloqueado` : `Acesso de ${a.nome} liberado`);
+    await DWClient.from('assinantes').update({ status:a.status, ativo:a.ativo, venc:a.venc, historico:a.historico }).eq('id', a.id);
+    logAuditoria(liberar ? 'Acesso liberado' : 'Acesso bloqueado', a.nome);
+    toast(liberar ? `Acesso de ${a.nome} liberado` : `Acesso de ${a.nome} bloqueado`);
     renderAssinantes(); renderDashboard();
   }
   async function definirEmailAssinante(id){

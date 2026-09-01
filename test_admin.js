@@ -72,11 +72,13 @@ async function main(){
 
   // --- toggle acesso + confirmar pagamento ---
   await window.toggleAcesso(db.assinantes[0].id);
-  if(db.assinantes[0].status !== 'atrasado'){ console.error('[admin] FALHOU: toggle acesso'); process.exit(1); }
+  if(db.assinantes[0].status !== 'atrasado' || db.assinantes[0].ativo !== false){ console.error('[admin] FALHOU: toggle acesso (bloquear)', db.assinantes[0]); process.exit(1); }
+  await window.toggleAcesso(db.assinantes[0].id);
+  if(db.assinantes[0].status !== 'pago' || db.assinantes[0].ativo !== true){ console.error('[admin] FALHOU: toggle acesso (liberar)', db.assinantes[0]); process.exit(1); }
   db.fila_pagamento.push({ id:'f1', assinante:'Joao', valor:50, motivo:'mensalidade' });
   await window.loadAll();
   await window.confirmarPagamento('f1');
-  if(db.assinantes[0].status !== 'pago' || db.fila_pagamento.length !== 0){ console.error('[admin] FALHOU: confirmar pagamento'); process.exit(1); }
+  if(db.assinantes[0].status !== 'pago' || db.assinantes[0].ativo !== true || !db.assinantes[0].venc || db.fila_pagamento.length !== 0){ console.error('[admin] FALHOU: confirmar pagamento', db.assinantes[0]); process.exit(1); }
   console.log('[admin] toggle acesso + confirmar pagamento ok');
 
   console.log('\n=== TESTES ADMIN PASSARAM ===');

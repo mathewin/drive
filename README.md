@@ -29,6 +29,13 @@ Os repositórios de painel são **cópias geradas** a partir deste repo canônic
 2. **Motorista** — só entra com um acesso ativo cadastrado pelo admin (o nome dele precisa bater com o assinante). Se o acesso for suspenso, é bloqueado.
 3. **Colaborador** — a equipe entra por e-mail/senha e acompanha chamados de suporte e tropas. O admin promove a conta (que já deve estar cadastrada) na seção Colaboradores.
 
+**Acesso do colaborador**: o admin define se ele vê **todas as tropas** ou **apenas as selecionadas** (`tropa_ids`). O colaborador vê só o que é da tropa dele:
+- **Suporte** — chamados dos motoristas das tropas liberadas.
+- **Pagamentos** — fila de avisos de Pix das tropas dele, podendo **confirmar o pagamento e liberar o acesso** (vencimento +30 dias, comissão do parceiro creditada).
+- **Tropas & Motoristas** — pode **bloquear/cancelar ou reativar** o acesso de motoristas das tropas dele.
+
+Regras de segurança: bloqueado (`ativo=false` + `status='atrasado'`) corta o acesso na hora ("suspenso"); pendente **não** pode ser liberado por reativação (só confirmando o Pix); as políticas RLS impedem o colaborador de alterar assinantes de outras tropas.
+
 Para trocar de painel, use o link "Trocar painel" / "Central" disponível em cada um.
 
 ## Pagamento por Pix (sem gateway)
@@ -55,8 +62,9 @@ Os dados ficam no Supabase (PostgreSQL). A configuração de acesso está em `su
 - `supabase/fix_trigger.sql` — correção do trigger `criar_perfil` (security definer) — já aplicado.
 - `supabase/addon_operacional.sql` — **aplicado**: políticas de colaboradores e colunas de chamados.
 - `supabase/addon_acesso_email.sql` — **aplicado**: coluna `email` em assinantes e acesso validado por e-mail.
-- `supabase/addon_pix.sql` — **aplicar uma vez no SQL Editor**: tabela `config` (chave Pix + mensalidade) e políticas do fluxo de pagamento.
-- `supabase/addon_parceiros.sql` — **aplicar uma vez no SQL Editor**: colunas `valor`/`cupom` em assinantes, auto-assinatura segura e leitura de parceiros/tropas pelo motorista.
+- `supabase/addon_pix.sql` — **aplicado**: tabela `config` (chave Pix + mensalidade) e políticas do fluxo de pagamento.
+- `supabase/addon_parceiros.sql` — **aplicado**: colunas `valor`/`cupom` em assinantes, auto-assinatura segura e leitura de parceiros/tropas pelo motorista.
+- `supabase/addon_colab_acoes.sql` — **aplicar uma vez no SQL Editor**: restringe a ações do colaborador às tropas dele (confirmar Pix, bloquear/liberar acesso).
 
 Segurança por RLS (Row Level Security): cada motorista só vê os próprios lançamentos/metas/chamados; a equipe (admin/colaborador) vê tudo.
 
@@ -66,7 +74,7 @@ O projeto é 100% estático (HTML + JS) e o banco é o Supabase na nuvem — nã
 
 ### 1. Antes de subir (uma única vez)
 
-- Aplicar `supabase/addon_pix.sql` e `supabase/addon_parceiros.sql` no SQL Editor do Supabase (fluxo de pagamento Pix com código de parceiro).
+- Aplicar `supabase/addon_pix.sql`, `supabase/addon_parceiros.sql` e `supabase/addon_colab_acoes.sql` no SQL Editor do Supabase (fluxo de pagamento Pix com código de parceiro e ações do colaborador por tropa).
 - Garantir que a conta admin existe com `papel = 'admin'` na tabela `perfis` (o admin entra por e-mail/senha).
 - Opcional: desativar **signups abertos** no Supabase (Auth → Providers → Email → "Allow new users to sign up") e liberar só os motoristas cadastrados pelo admin. Se desativado, motoristas não conseguem criar conta — para vender acesso, o admin cadastra a conta do motorista manualmente em Authentication → Users → Add user com o nome exato do assinante.
 
