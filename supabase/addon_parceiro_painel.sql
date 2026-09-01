@@ -30,3 +30,31 @@ create policy "assinantes_select_parceiro" on public.assinantes
         and lower(public.assinantes.cupom) = lower(par.cupom)
     )
   );
+
+-- ---------- PROMOÇÃO AUTOMÁTICA ----------
+-- Se o parceiro fizer o cadastro DEPOIS de ter sido criado no admin,
+-- a conta dele é promovida a 'parceiro' sozinha (mesmo e-mail).
+create or replace function public.auto_promover_parceiro()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  if (new.email is not null and new.email <> '') then
+    update public.perfis
+      set papel = 'parceiro'
+      where id = new.id
+        and papel <> 'parceiro'
+        and exists (
+          select 1 from public.parceiros par
+          where lower(par.email) = lower(new.email)
+        );
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_perfis_auto_parceiro on public.perfis;
+create trigger trg_perfis_auto_parceiro
+  after insert on public.perfis
+  for each row execute function public.auto_promover_parceiro();
