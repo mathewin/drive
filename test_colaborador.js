@@ -115,6 +115,25 @@ async function main(){
   if(!db.fila_pagamento.some(f=>f.id==='fp2')){ console.error('[colab] FALHOU: confirmou aviso de outra tropa'); process.exit(1); }
   console.log('[colab] restrição por tropa ok → não vê nem confirma de outra tropa');
 
+  // --- admin também entra como colaborador (modo teste, todas as tropas) ---
+  db.perfis.push({ id:'u-admin', nome:'Admin Master', papel:'admin', email:'admin@x.com', todas_tropas:true, tropa_ids:[] });
+  auth.signInWithPassword = async ({email,password}) => ({ data:{ user:{ id:'u-admin', email } }, error:null });
+  document.getElementById('login-email').value = 'admin@x.com';
+  document.getElementById('login-senha').value = 'senha';
+  await window.entrar();
+  const nomeColab = document.getElementById('colab-ativo-nome').textContent;
+  if(!nomeColab.includes('ADMIN')){
+    console.error('[colab] FALHOU: admin não entrou como colaborador', nomeColab);
+    process.exit(1);
+  }
+  await window.renderTropas();
+  const tropasHTML = document.getElementById('tropas-wrap').innerHTML;
+  if(!tropasHTML.includes('TROPA DO CARLOS') || !tropasHTML.includes('TROPA DA MARIA')){
+    console.error('[colab] FALHOU: admin não vê todas as tropas', tropasHTML);
+    process.exit(1);
+  }
+  console.log('[colab] admin entra como colaborador (teste) ok → vê todas as tropas');
+
   console.log('\n=== TESTES COLABORADOR PASSARAM ===');
 }
 

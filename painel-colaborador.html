@@ -434,7 +434,9 @@
     (configR.data||[]).forEach(c => { __db.config[c.chave] = c.valor; });
     if(perfilR.data) __db.colaborador = {
       id: perfilR.data.id, nome: perfilR.data.nome, email: perfilR.data.email,
-      todasTropas: perfilR.data.todas_tropas, tropaIds: perfilR.data.tropa_ids||[],
+      todasTropas: perfilR.data.papel === 'admin' ? true : perfilR.data.todas_tropas,
+      tropaIds: perfilR.data.tropa_ids||[],
+      eAdmin: perfilR.data.papel === 'admin',
     };
   }
 
@@ -458,7 +460,7 @@
     if(error || !data.user){ mostrarErroLogin('E-mail ou senha incorretos.'); return; }
     _dwUid = data.user.id;
     const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', data.user.id).single();
-    if(!perfil || perfil.papel !== 'colaborador'){
+    if(!perfil || (perfil.papel !== 'colaborador' && perfil.papel !== 'admin')){
       await DWClient.auth.signOut();
       mostrarErroLogin('Esta conta não tem acesso de colaborador.');
       return;
@@ -467,7 +469,7 @@
     document.getElementById('login').style.display = 'none';
     document.getElementById('app').classList.add('active');
     const nomeEl = document.getElementById('colab-ativo-nome');
-    if(nomeEl) nomeEl.textContent = perfil.nome ? `Logado como ${perfil.nome}` : '';
+    if(nomeEl) nomeEl.textContent = perfil.nome ? `Logado como ${perfil.nome}${perfil.papel === 'admin' ? ' · ADMIN (teste)' : ''}` : '';
     _colabEmail = email;
     renderSuporte();
     renderFilaPagamento();
@@ -489,12 +491,12 @@
     if(!session) return;
     _dwUid = session.user.id;
     const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', session.user.id).single();
-    if(perfil && perfil.papel === 'colaborador'){
+    if(perfil && (perfil.papel === 'colaborador' || perfil.papel === 'admin')){
       await loadAll();
       document.getElementById('login').style.display = 'none';
       document.getElementById('app').classList.add('active');
       const nomeEl = document.getElementById('colab-ativo-nome');
-      if(nomeEl) nomeEl.textContent = perfil.nome ? `Logado como ${perfil.nome}` : '';
+      if(nomeEl) nomeEl.textContent = perfil.nome ? `Logado como ${perfil.nome}${perfil.papel === 'admin' ? ' · ADMIN (teste)' : ''}` : '';
       _colabEmail = perfil.email || null;
       renderSuporte();
       renderFilaPagamento();

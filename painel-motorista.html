@@ -531,6 +531,11 @@
     color:var(--text); border-radius:12px; padding:10px 12px; margin:10px 0 0;
     font-size:12.5px; line-height:1.4;
   }
+  .admin-mode-bar{
+    background:rgba(255,46,146,.12); border:1px solid rgba(255,46,146,.45);
+    color:var(--pink-vivid); border-radius:12px; padding:10px 12px; margin:10px 0 0;
+    font-size:12.5px; line-height:1.4; font-weight:700;
+  }
 </style>
 </head>
 <body>
@@ -602,6 +607,7 @@
         </div>
       </div>
       <div class="renovar-aviso" id="renovar-aviso" style="display:none;"></div>
+      <div class="admin-mode-bar" id="admin-mode-bar" style="display:none;">Você está no modo ADMIN (teste).</div>
 
       <div class="section-card" id="nivel-card">
         <div class="section-title">NÍVEL DO MOTORISTA</div>
@@ -1065,6 +1071,7 @@
 
   // ---------- estado do motorista (Supabase) ----------
   let _dwUid = null;
+  let _adminMode = false;
   let _meuNome = '';
   let _meuEmail = '';
   let _minhaTropa = '';
@@ -1268,6 +1275,20 @@
       user = data.user;
       const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', user.id).single();
       _meuNome = (perfil && perfil.nome) || '';
+      if(perfil && perfil.papel === 'admin'){
+        _adminMode = true;
+        _dwUid = user.id;
+        _meuEmail = email;
+        _meuAssinante = null;
+        _minhaTropa = '';
+        await carregarDadosMotorista();
+        await carregarTickets();
+        document.getElementById('login').classList.remove('active');
+        showScreen('dashboard','nav-dash');
+        renderAvisoRenovacao();
+        mostrarAvisoAdminTeste();
+        return;
+      }
     }
 
     // checagem de acesso ativo — prioriza o e-mail (seguro); o nome só p/ assinantes antigos sem e-mail
@@ -1483,6 +1504,12 @@
   }
 
   // ---------- aviso de renovação (1 dia antes do vencimento) ----------
+  function mostrarAvisoAdminTeste(){
+    const el = document.getElementById('admin-mode-bar');
+    if(!el) return;
+    el.style.display = 'block';
+    el.textContent = 'Você está no modo ADMIN (teste). Os dados aqui não são do seu perfil de motorista.';
+  }
   function renderAvisoRenovacao(){
     const el = document.getElementById('renovar-aviso');
     if(!el){ return; }
@@ -1508,6 +1535,21 @@
     const session = data.session;
     if(!session) return;
     const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', session.user.id).single();
+    if(perfil && perfil.papel === 'admin'){
+      _adminMode = true;
+      _meuNome = perfil.nome || '';
+      _meuEmail = (perfil.email || '').trim().toLowerCase();
+      _meuAssinante = null;
+      _minhaTropa = '';
+      _dwUid = session.user.id;
+      await carregarDadosMotorista();
+      await carregarTickets();
+      document.getElementById('login').classList.remove('active');
+      showScreen('dashboard','nav-dash');
+      renderAvisoRenovacao();
+      mostrarAvisoAdminTeste();
+      return;
+    }
     if(perfil && perfil.papel === 'motorista'){
       _meuNome = perfil.nome || '';
       _meuEmail = (perfil.email || '').trim().toLowerCase();

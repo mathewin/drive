@@ -179,6 +179,22 @@ async function main(){
   }
   console.log('[moto] assinatura com código ok → pendente, tropa do Carlos, R$21,99');
 
+  // --- admin entra no painel do motorista (modo teste) ---
+  db.perfis.push({ id:'u-admin', nome:'Admin', papel:'admin', email:'admin@x.com', todas_tropas:true, tropa_ids:[] });
+  auth.signInWithPassword = async ({email,password}) => ({ data:{ user:{ id:'u-admin', email } }, error:null });
+  document.getElementById('login-email').value = 'admin@x.com';
+  document.getElementById('login-senha').value = 'senha';
+  await window.entrarMotorista();
+  if(!document.getElementById('dashboard').classList.contains('active')){
+    console.error('[moto] FALHOU: admin não entrou no dashboard do motorista');
+    process.exit(1);
+  }
+  if(document.getElementById('admin-mode-bar').style.display !== 'block'){
+    console.error('[moto] FALHOU: aviso de modo admin não exibido');
+    process.exit(1);
+  }
+  console.log('[moto] admin entra no motorista (modo teste) ok');
+
   console.log('\n=== TESTES MOTORISTA PASSARAM ===');
 }
 
