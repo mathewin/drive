@@ -103,19 +103,6 @@
   .side-footer{ position:absolute; bottom:18px; width: calc(var(--sidebar-w) - 28px); }
   .logout{ font-size:12px; color: var(--text-dim); cursor:pointer; padding:0 12px; }
 
-  .panel-switch{
-    margin-bottom:10px; padding:10px 12px; border-radius:10px; background: var(--muted-bg);
-  }
-  .panel-switch-title{
-    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
-    color: var(--text-dim); margin-bottom:6px;
-  }
-  .panel-switch a{
-    display:block; font-size:12px; color: var(--text-dim); text-decoration:none;
-    padding:3px 0; transition: color .15s ease;
-  }
-  .panel-switch a:hover{ color: var(--green); }
-
   .main{ flex:1; padding: 26px 34px 60px; max-width:1180px; }
   .page-title{ font-size:22px; font-weight:800; margin-bottom:2px; }
   .page-sub{ color: var(--text-dim); font-size:13px; margin-bottom:22px; }
@@ -325,12 +312,6 @@
       <div class="theme-switch">
         <span id="theme-label">🌙 Modo escuro</span>
         <div class="theme-toggle" id="theme-toggle" onclick="toggleTheme()"></div>
-      </div>
-      <div class="panel-switch">
-        <div class="panel-switch-title">Trocar painel</div>
-        <a href="index.html">🏠 Central</a>
-        <a href="painel-admin.html">🔐 Admin</a>
-        <a href="painel-motorista.html">🏁 Motorista</a>
       </div>
       <div class="logout" onclick="sair()">↩ Sair do painel</div>
     </div>
