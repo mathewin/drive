@@ -197,6 +197,11 @@
     display:inline-block; font-size:11.5px; font-weight:800; letter-spacing:.05em; padding:4px 10px;
     border-radius:8px; background: rgba(49,249,0,0.1); color: var(--green); border:1px solid var(--green-dim);
   }
+  .partner-banner{
+    margin-top:16px; padding:12px 14px; border-radius:12px; font-size:12.5px; line-height:1.5;
+    background: rgba(255,196,0,0.08); border:1px dashed rgba(255,196,0,0.45); color: var(--text);
+  }
+  .partner-banner b{ color:#ffc400; }
 
   /* ---------- PROGRESSO ---------- */
   .bar-track{ height:10px; background: var(--muted-bg); border-radius:8px; overflow:hidden; margin-top:8px; }
@@ -368,6 +373,7 @@
     <div class="section" id="sec-visao">
       <div class="page-title">Minha operação</div>
       <div class="page-sub">Seu cupom, sua comissão e seu campeonato</div>
+      <div class="partner-banner" id="par-banner" style="display:none;"></div>
       <div class="partner-cards">
         <div class="stat-card">
           <div class="card-label">Meu cupom</div>
@@ -611,7 +617,8 @@
 
   async function entrarComoParceiro(perfil){
     await loadParceiro();
-    if(!__db.meuParceiro){
+    const ehAdmin = perfil && perfil.papel === 'admin';
+    if(!__db.meuParceiro && !ehAdmin){
       await DWClient.auth.signOut();
       mostrarErroLogin('Seu e-mail ainda não está vinculado a um parceiro. Procure a administração.');
       return;
@@ -622,8 +629,17 @@
     document.getElementById('app').classList.add('active');
     const nomeEl = document.getElementById('colab-ativo-nome');
     if(nomeEl) nomeEl.textContent = perfil && perfil.nome
-      ? `Logado como ${perfil.nome}${perfil.papel === 'admin' ? ' · ADMIN (teste)' : ' · Parceiro'}`
+      ? `Logado como ${perfil.nome}${ehAdmin ? ' · ADMIN (teste)' : ' · Parceiro'}`
       : '';
+    const banner = document.getElementById('par-banner');
+    if(banner){
+      if(ehAdmin && !__db.meuParceiro){
+        banner.style.display = 'block';
+        banner.innerHTML = '<b>Modo ADMIN (teste)</b> — seu e-mail ainda não está vinculado a um parceiro, então cupom e comissões aparecem zerados. Para operar como parceiro de verdade, cadastre este e-mail na tabela de parceiros.';
+      }else{
+        banner.style.display = 'none';
+      }
+    }
     showSection('visao', null);
     renderVisao();
     renderParceiroMotoristas();
