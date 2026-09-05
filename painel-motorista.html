@@ -373,6 +373,37 @@
     padding: 12px 14px; margin-top: 6px;
   }
   .meta-note{ color: var(--text-dim); font-size: 11px; margin-top:4px; }
+  .data-btn{
+    width:100%; display:flex; align-items:center; gap:10px;
+    background: transparent; border:none; padding:2px 0;
+    color: var(--text); font-size:16px; font-weight:800; cursor:pointer; text-align:left;
+  }
+  .data-btn .db-ic{ font-size:16px; }
+  .data-btn .db-caret{ margin-left:auto; color:var(--text-dim); font-size:12px; }
+  .cal-back{
+    position:fixed; inset:0; z-index:130; background:rgba(0,0,0,.55);
+    display:none; align-items:center; justify-content:center; padding:24px;
+  }
+  .cal-panel{
+    width:100%; max-width:340px; background:var(--card);
+    border:1px solid var(--card-border); border-radius:18px; padding:16px;
+    box-shadow:0 18px 60px rgba(0,0,0,.45);
+  }
+  .cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .cal-mes{ font-size:14px; font-weight:800; text-transform:capitalize; }
+  .cal-nav{
+    width:36px; height:36px; border-radius:10px; background:var(--muted-bg);
+    border:1px solid var(--card-border); color:var(--text); font-size:18px; font-weight:800;
+  }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .cal-dow{ font-size:10px; font-weight:800; color:var(--text-dim); text-align:center; padding:6px 0; }
+  .cal-dia{
+    aspect-ratio:1; border:none; background:transparent; color:var(--text);
+    font-weight:700; font-size:13px; border-radius:10px; cursor:pointer;
+  }
+  .cal-dia:hover{ background:rgba(49,249,0,.12); }
+  .cal-dia.today{ border:1px solid var(--green); color:var(--green); }
+  .cal-dia.sel{ background:var(--green); color:#000; }
 
   .estimate-box{
     background: linear-gradient(135deg, rgba(49,249,0,0.12), rgba(200,100,175,0.08));
@@ -1244,7 +1275,10 @@
     <div class="screen" id="novo">
       <div class="section-title" style="margin-top:6px;">DATA DO LANÇAMENTO</div>
       <div class="meta-box" style="margin-bottom:14px;">
-        <input type="date" id="in-data" style="text-align:left; width:100%; color-scheme: var(--input-scheme);">
+        <input type="date" id="in-data" hidden>
+        <button type="button" class="data-btn" onclick="abrirCalendario()">
+          <span class="db-ic">📅</span><span id="data-lbl">Escolher dia</span><span class="db-caret">▾</span>
+        </button>
       </div>
 
       <div class="section-title">GANHOS POR APP</div>
@@ -1322,6 +1356,19 @@
       <div id="camp-trofeus-section"></div>
       <div id="camp-modal-host"></div>
       <div id="camp-toast"></div>
+    </div>
+
+    <!-- CALENDÁRIO DE DATA -->
+    <div class="cal-back" id="cal-back" onclick="if(event.target===this)this.style.display='none';">
+      <div class="cal-panel">
+        <div class="cal-head">
+          <button type="button" class="cal-nav" onclick="calMes(-1)">‹</button>
+          <div class="cal-mes" id="cal-mes"></div>
+          <button type="button" class="cal-nav" onclick="calMes(1)">›</button>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <button type="button" class="camp-btn purple" style="width:100%; margin-top:12px;" onclick="calHoje()">Hoje</button>
+      </div>
     </div>
 
     <!-- BOTTOM NAV -->
@@ -1464,7 +1511,7 @@
 
   </div>
 
-  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 9</b> · menu e aba Camp ativos</p>
+  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 10</b> · menu e aba Camp ativos</p>
 
 <script>
   const TEMA_KEY = 'painelMotorista_tema';
@@ -2159,6 +2206,7 @@
     atualizarBotaoExcluir(dataISO);
     atualizarEstimativa();
     formSnapshot = JSON.stringify(lerFormulario());
+    atualizarDataLbl();
   }
 
   // ---------- form: botoes de combustivel ----------
@@ -2181,6 +2229,7 @@
     document.getElementById('save-msg').style.display = 'none';
     atualizarEstimativa();
     formSnapshot = JSON.stringify(lerFormulario());
+    atualizarDataLbl();
   }
 
   function atualizarBotaoExcluir(dataISO){
@@ -2968,8 +3017,64 @@
     } catch(e) {}
   }, 1200);
 
+  // ---------- calendário de data (funciona em qualquer WebView/app) ----------
+  let _calMes = new Date();
+  function dataISOde(d){
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function atualizarDataLbl(){
+    const v = document.getElementById('in-data').value;
+    const lbl = document.getElementById('data-lbl');
+    if(lbl) lbl.textContent = v ? fmtDateBR(v) : 'Escolher dia';
+  }
+  function renderCal(){
+    const grid = document.getElementById('cal-grid');
+    const mesEl = document.getElementById('cal-mes');
+    if(!grid || !mesEl) return;
+    mesEl.textContent = _calMes.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    const ano = _calMes.getFullYear(), mes = _calMes.getMonth();
+    const hoje = new Date(); const hojeK = dataISOde(hoje);
+    const selV = document.getElementById('in-data').value;
+    const ini = new Date(ano, mes, 1).getDay();
+    const total = new Date(ano, mes + 1, 0).getDate();
+    let h = '';
+    ['D','S','T','Q','Q','S','S'].forEach(d => { h += '<div class="cal-dow">' + d + '</div>'; });
+    for(let i = 0; i < ini; i++) h += '<div></div>';
+    for(let dia = 1; dia <= total; dia++){
+      const k = dataISOde(new Date(ano, mes, dia));
+      h += '<button type="button" class="cal-dia' + (k === hojeK ? ' today' : '') + (k === selV ? ' sel' : '') + '" onclick="escolherDia(\'' + k + '\')">' + dia + '</button>';
+    }
+    grid.innerHTML = h;
+  }
+  function calMes(dir){
+    _calMes = new Date(_calMes.getFullYear(), _calMes.getMonth() + dir, 1);
+    renderCal();
+  }
+  function calHoje(){
+    escolherDia(todayISO());
+  }
+  function abrirCalendario(){
+    const inp = document.getElementById('in-data');
+    const back = document.getElementById('cal-back');
+    if(!back) return;
+    if(!inp.value) inp.value = todayISO();
+    const base = new Date(inp.value + 'T12:00:00');
+    if(!isNaN(base)) _calMes = new Date(base.getFullYear(), base.getMonth(), 1);
+    renderCal();
+    back.style.display = 'flex';
+  }
+  function escolherDia(k){
+    const inp = document.getElementById('in-data');
+    inp.value = k;
+    atualizarDataLbl();
+    inp.dispatchEvent(new Event('change', { bubbles: true }));
+    const back = document.getElementById('cal-back');
+    if(back) back.style.display = 'none';
+  }
+
   // ---------- inicialização ----------
   document.getElementById('in-data').value = todayISO();
+  atualizarDataLbl();
 
   // avisa antes de fechar/recarregar a aba com alterações não salvas em "Novo lançamento"
   window.addEventListener('beforeunload', (e) => {
