@@ -1464,7 +1464,7 @@
 
   </div>
 
-  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 8</b> · menu e aba Camp ativos</p>
+  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 9</b> · menu e aba Camp ativos</p>
 
 <script>
   const TEMA_KEY = 'painelMotorista_tema';
@@ -3185,6 +3185,20 @@ function campFatPeriodo(tipo){
   });
   return soma;
 }
+function campMinhaSemana(){
+  const registros = getLancamentos();
+  const hoje = new Date();
+  const dow = (hoje.getDay() + 6) % 7;
+  const seg = new Date(hoje); seg.setDate(hoje.getDate() - dow);
+  const out = [];
+  for(let i = 0; i < 7; i++){
+    const d = new Date(seg); d.setDate(seg.getDate() + i);
+    const k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    const l = registros[k];
+    out.push(l ? (calcularMetricas(l).faturamento || 0) : 0);
+  }
+  return out;
+}
 function campMinhasTrofReal(){
   const s = campStoreInit();
   const un = {};
@@ -3301,14 +3315,22 @@ function renderCamp(){
 
   const chips = ['dia','sem','mes'].map(t => {
     const marco = CAMP_MARCOS[t];
-    const live = ativos >= marco;
-    const pct = Math.min(100, Math.round(ativos / marco * 100));
     const lbl = t === 'dia' ? 'DIÁRIO' : t === 'sem' ? 'SEMANAL' : 'MENSAL';
-    return '<div class="camp-lock-chip ' + (live ? 'live' : 'locked') + '">' +
-      '<div class="lc-top"><span>' + lbl + '</span><span>marco ' + marco + '</span></div>' +
-      '<div class="lc-bar"><div class="lc-fill" style="width:' + pct + '%"></div></div>' +
-      '<div class="lc-num">' + ativos + ' <small>de ' + marco + ' assinantes</small></div>' +
-      '<div class="lc-status">' + (live ? '● Campeonato liberado' : (pct >= 50 ? 'Quase lá!' : 'Campeonato em breve')) + '</div>' +
+    if(demo){
+      const live = ativos >= marco;
+      const pct = Math.min(100, Math.round(ativos / marco * 100));
+      return '<div class="camp-lock-chip ' + (live ? 'live' : 'locked') + '">' +
+        '<div class="lc-top"><span>' + lbl + '</span><span>marco ' + marco + '</span></div>' +
+        '<div class="lc-bar"><div class="lc-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="lc-num">' + ativos + ' <small>de ' + marco + ' assinantes</small></div>' +
+        '<div class="lc-status">' + (live ? '● Campeonato liberado' : (pct >= 50 ? 'Quase lá!' : 'Campeonato em breve')) + '</div>' +
+      '</div>';
+    }
+    return '<div class="camp-lock-chip live">' +
+      '<div class="lc-top"><span>' + lbl + '</span><span>sua região</span></div>' +
+      '<div class="lc-bar"><div class="lc-fill" style="width:100%"></div></div>' +
+      '<div class="lc-num">● Liberado</div>' +
+      '<div class="lc-status">Solo · você é o único da região por enquanto</div>' +
     '</div>';
   }).join('');
 
@@ -3386,7 +3408,7 @@ function campCardCadencia(tipo){
   const demo = campEhPreview();
   const ativos = CAMP.ativos;
   const marco = CAMP_MARCOS[tipo];
-  const liberado = ativos >= marco;
+  const liberado = demo ? ativos >= marco : true;
   const agora = new Date();
   const util = campEhDiaUtil(agora);
   const nome = { dia: 'Diário', sem: 'Semanal', mes: 'Mensal' }[tipo];
@@ -3462,21 +3484,24 @@ function campRanking(tipo){
   const meu = campDemoMy();
   const reg = campRegiaoDoMotorista();
   let linhas = [];
+  let aviso = '';
 
   if(demo){
     CAMP_DEMO_RIVAIS.forEach(r => {
       const v = tipo === 'dia' ? r.hoje : tipo === 'sem' ? r.semana.reduce((a,b)=>a+b,0) : r.mes;
       linhas.push({ nome: r.nome, v, me: false, xp: r.xp, semana: r.semana });
     });
+    const vMeu = (tipo === 'dia' ? meu.hoje : tipo === 'sem' ? meu.semana.reduce((a,b)=>a+b,0) : meu.mes) + campFatPeriodo(tipo);
+    linhas.push({ nome: _meuNome || 'Você', v: vMeu, me: true, xp: campXp(), semana: meu.semana.slice() });
+  } else {
+    const semana = campMinhaSemana();
+    const vMeu = tipo === 'dia' ? campFatPeriodo('dia') : tipo === 'sem' ? semana.reduce((a,b)=>a+b,0) : campFatPeriodo('mes');
+    linhas.push({ nome: _meuNome || 'Você', v: vMeu, me: true, xp: campXp(), semana });
+    if(linhas.length < 2){
+      aviso = '<div class="camp-mini-aviso" style="margin-top:10px;">Você é o <b>único motorista da sua região</b> por enquanto — ranking com seus dados reais. Quando outros motoristas entrarem, eles aparecem aqui.</div>';
+    }
   }
-  const vMeu = (tipo === 'dia' ? meu.hoje : tipo === 'sem' ? meu.semana.reduce((a,b)=>a+b,0) : meu.mes) + campFatPeriodo(tipo);
-  linhas.push({ nome: _meuNome || 'Você', v: vMeu, me: true, xp: campXp(), semana: meu.semana.slice() });
   linhas = linhas.sort((a, b) => b.v - a.v);
-
-  if(!demo && linhas.length < 2){
-    return '<div class="camp-empty" style="margin-top:2px;"><div class="big">📡</div>' +
-      'Ainda não há rivais na sua região.<br>Quando sua tropa liberar o campeonato, os motoristas da região entram aqui.</div>';
-  }
 
   const maxSem = Math.max(1, ...linhas.map(l => Math.max.apply(null, l.semana).valueOf()));
   const rows = linhas.map((l, i) => {
@@ -3496,7 +3521,7 @@ function campRanking(tipo){
     '</div>';
   }).join('');
 
-  return '<div class="camp-rank">' + rows + '</div>';
+  return aviso + '<div class="camp-rank">' + rows + '</div>';
 }
 
 function campVerRanking(tipo){
@@ -3549,11 +3574,11 @@ function campRenderDuelos(){
   }
 
   const rivais = campRivaisDisponiveis();
-  html += '<button class="camp-btn purple" style="margin-top:14px;" onclick="campAbrirRivais()">⚔️ Desafiar motorista</button>' +
-    '<div class="camp-mini-aviso" style="margin-top:8px;">Duelos livres aparecem entre motoristas do <b>mesmo naipe</b>. Duelos entre naipes diferentes só acontecem quando a administração propõe (sinalizados como "Desafio Especial").</div>';
-
-  if(rivais.length === 0 && !ativo){
-    html += '<div class="camp-empty"><div class="big">🛡️</div>Nenhum rival do seu naipe disponível agora.<br>Volte mais tarde ou aguarde um <b>Desafio Especial</b> proposto pela administração.</div>';
+  if(rivais.length){
+    html += '<button class="camp-btn purple" style="margin-top:14px;" onclick="campAbrirRivais()">⚔️ Desafiar motorista</button>' +
+      '<div class="camp-mini-aviso" style="margin-top:8px;">Duelos livres aparecem entre motoristas do <b>mesmo naipe</b>. Duelos entre naipes diferentes só acontecem quando a administração propõe (sinalizados como "Desafio Especial").</div>';
+  } else if(!ativo){
+    html += '<div class="camp-empty"><div class="big">🛡️</div>Sem rivais reais ainda — você é o único motorista da região.<br>Quando outro motorista do seu naipe entrar, os duelos aparecem aqui.</div>';
   }
 
   if(ativo){
@@ -3673,6 +3698,9 @@ function campEnviarDesafio(){
 /* ---------------- ENTRE TROPAS ---------------- */
 function campRenderEntreTropas(){
   const demo = campEhPreview();
+  if(!demo){
+    return '<div class="camp-empty"><div class="big">🏟️</div>Entre Tropas ainda sem confronto — só existe a sua tropa por enquanto.<br>Quando outra tropa entrar na sua região, o ranking de tropas aparece aqui.</div>';
+  }
   const edAtual = {
     label: 'Edição ' + new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
     tropas: CAMP_DEMO_TROPAS_EDICAO.map(t => ({ ...t, total: Math.round(t.total * (0.92 + Math.random() * 0.16)) }))
