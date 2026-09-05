@@ -445,6 +445,19 @@
   .appmenu-item.danger{ color:#ff6b6b; }
   .appmenu-sep{ margin:8px 0 6px; color:var(--text-dim); font-size:10.5px; font-weight:800; letter-spacing:.08em; }
 
+  /* ---------- BARRA DE ABAS NO TOPO (garantia de navegação) ---------- */
+  .quicknav{
+    display:flex; gap:6px; overflow-x:auto; padding:2px 0 10px; margin-top:8px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .quicknav::-webkit-scrollbar{ display:none; }
+  .qn{
+    flex:0 0 auto; padding:7px 13px; border-radius:20px;
+    background: var(--card); border:1px solid var(--card-border);
+    color: var(--text); font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap;
+  }
+  .qn.active{ background: rgba(49,249,0,.15); border-color: var(--green); color: var(--green); }
+
   .goal-row{ margin-bottom: 16px; }
   .goal-row:last-child{ margin-bottom: 0; }
   .goal-row-top{ display:flex; justify-content:space-between; align-items:baseline; font-size:13px; margin-bottom:6px; }
@@ -974,6 +987,15 @@
       <div class="renovar-aviso" id="renovar-aviso" style="display:none;"></div>
       <div class="admin-mode-bar" id="admin-mode-bar" style="display:none;">Você está no modo ADMIN (teste).</div>
 
+      <div class="quicknav" id="quicknav">
+        <div class="qn active" id="q-dashboard" onclick="showScreen('dashboard','nav-dash')">📊 Painel</div>
+        <div class="qn" id="q-novo" onclick="showScreen('novo','nav-novo',true)">➕ Novo lançamento</div>
+        <div class="qn" id="q-historico" onclick="showScreen('historico','nav-hist')">🕘 Histórico</div>
+        <div class="qn" id="q-analise" onclick="showScreen('analise','nav-analise')">📈 Análise</div>
+        <div class="qn" id="q-camp" onclick="showScreen('camp','nav-camp')">🏆 Camp</div>
+        <div class="qn" id="q-suporte" onclick="showScreen('suporte','nav-suporte')">💬 Suporte</div>
+      </div>
+
       <div class="section-card" id="nivel-card">
         <div class="section-title">NÍVEL DO MOTORISTA</div>
         <div class="nivel-wrap">
@@ -1457,7 +1479,7 @@
 
   </div>
 
-  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 3</b> · menu e aba Camp ativos</p>
+  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 4</b> · menu e aba Camp ativos</p>
 
 <script>
   const TEMA_KEY = 'painelMotorista_tema';
@@ -2131,6 +2153,10 @@
     document.getElementById('bottomnav').style.display = 'flex';
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     if(navId) document.getElementById(navId).classList.add('active');
+    ['dashboard','novo','historico','analise','camp','suporte'].forEach(s => {
+      const el = document.getElementById('q-' + s);
+      if(el) el.classList.toggle('active', s === id);
+    });
 
     if(id === 'dashboard') renderDashboard();
     if(id === 'analise') renderAnalise();
