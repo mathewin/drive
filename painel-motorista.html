@@ -1660,6 +1660,7 @@
         _minhaTropa = '';
         await carregarDadosMotorista();
         await carregarTickets();
+        campCloudInit();
         document.getElementById('login').classList.remove('active');
         showScreen('dashboard','nav-dash');
         renderAvisoRenovacao();
@@ -1704,6 +1705,7 @@
 
     await carregarDadosMotorista();
     await carregarTickets();
+    campCloudInit();
     document.getElementById('login').classList.remove('active');
     showScreen('dashboard','nav-dash');
     renderAvisoRenovacao();
@@ -1922,6 +1924,7 @@
       _dwUid = session.user.id;
       await carregarDadosMotorista();
       await carregarTickets();
+      campCloudInit();
       document.getElementById('login').classList.remove('active');
       showScreen('dashboard','nav-dash');
       renderAvisoRenovacao();
@@ -1941,6 +1944,7 @@
         _dwUid = session.user.id;
         await carregarDadosMotorista();
         await carregarTickets();
+        campCloudInit();
         document.getElementById('login').classList.remove('active');
         showScreen('dashboard','nav-dash');
         renderAvisoRenovacao();
@@ -2966,12 +2970,17 @@ const CAMP_TROFEUS = [
 ];
 
 let CAMP = { tab: 'dia', ativos: CAMP_MARCOS.dia, lastXpSeen: null, dueloRivalIdx: null };
+let _campCloudOk = null;  // null=desconhecido · true=nuvem ativa · false=tabela ausente (segue local)
 
 function campStore(){
   try { return JSON.parse(localStorage.getItem(CAMP_KEY()) || 'null'); } catch(e){ return null; }
 }
-function campSave(s){
+function campSaveLocal(s){
   try { localStorage.setItem(CAMP_KEY(), JSON.stringify(s)); } catch(e){}
+}
+function campSave(s){
+  campSaveLocal(s);
+  campCloudFlush();
 }
 function campStoreInit(){
   let s = campStore();
@@ -2980,6 +2989,78 @@ function campStoreInit(){
     campSave(s);
   }
   return s;
+}
+
+// merge entre o estado local (aparelho) e o estado salvo na nuvem — nada se perde
+function campMergeEstados(local, remoto){
+  if(!remoto) return local;
+  const junta = (a, b) => {
+    const vistos = {};
+    const out = [];
+    (a || []).forEach(x => { const k = String(x.id || '') + '|' + String(x.em || x.criado || ''); if(k && !vistos[k]){ vistos[k] = 1; out.push(x); } });
+    (b || []).forEach(x => { const k = String(x.id || '') + '|' + String(x.em || x.criado || ''); if(k && !vistos[k]){ vistos[k] = 1; out.push(x); } });
+    return out;
+  };
+  return {
+    v: 1,
+    trophies: junta(local.trophies || [], remoto.trophies || []),
+    duelos: junta(local.duelos || [], remoto.duelos || []),
+    hist: junta(local.hist || [], remoto.hist || []),
+    chegada: !!(local.chegada || remoto.chegada),
+    dueloSeq: Math.max(Number(local.dueloSeq) || 0, Number(remoto.dueloSeq) || 0),
+    demoSeeded: !!(local.demoSeeded || remoto.demoSeeded)
+  };
+}
+
+// sobe o estado atual (troféus/duelos/histórico) pra nuvem — chamado a cada campSave
+function campCloudFlush(){
+  if(!_dwUid || !window.DWClient || _campCloudOk === false) return;
+  clearTimeout(campCloudFlush._t);
+  campCloudFlush._t = setTimeout(async () => {
+    if(!_dwUid || !window.DWClient) return;
+    if(_campCloudOk === null){
+      const ok = await campCloudInit();
+      if(!ok) return;
+    }
+    if(_campCloudOk !== true) return;
+    const s = campStore();
+    if(!s) return;
+    try {
+      await DWClient.from('camp_estado').upsert(
+        { usuario_id: _dwUid, dados: s, atualizado_em: new Date().toISOString() },
+        { onConflict: 'usuario_id' }
+      );
+    } catch(e){}
+  }, 500);
+}
+
+// puxa da nuvem no login e funde com o que houver no aparelho
+async function campCloudInit(){
+  if(!_dwUid || !window.DWClient) return false;
+  if(_campCloudOk === true){ campCloudFlush(); return true; }
+  if(_campCloudOk === false) return false;
+  let erroNuvem = false;
+  try {
+    const { data, error } = await DWClient.from('camp_estado').select('dados').eq('usuario_id', _dwUid).maybeSingle();
+    if(error){
+      erroNuvem = true;
+    } else {
+      _campCloudOk = true;
+      if(data && data.dados){
+        const local = campStore();
+        const novo = campMergeEstados(local, data.dados);
+        campSaveLocal(novo);
+      }
+      campCloudFlush();
+      const c = document.getElementById('camp');
+      if(c && c.classList.contains('active')) renderCamp();
+      return true;
+    }
+  } catch(e){
+    erroNuvem = true;
+  }
+  _campCloudOk = false;
+  return false;
 }
 function campEhPreview(){
   return !!_adminMode;
