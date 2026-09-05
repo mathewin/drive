@@ -75,7 +75,7 @@
     overflow-y:auto;
   }
   .screen.active{ display:flex; }
-  body.authed .screen.active{ padding-top: 58px; }
+  body.authed .screen.active{ padding-bottom: 96px; }
 
   /* ---------- LOGIN ---------- */
   #login{ justify-content:center; text-align:center; padding-bottom:20px; position:relative; overflow:hidden; }
@@ -385,16 +385,16 @@
   .estimate-label{ font-size:12px; color: var(--text-dim); }
   .estimate-value{ font-size: 20px; font-weight:800; color: var(--green-lucro); }
 
-  /* ---------- BOTTOM NAV (agora fixa no TOPO, sempre visível) ---------- */
+  /* ---------- BOTTOM NAV (barra preta fixa EMBAIXO, sempre visível) ---------- */
   .bottomnav{
     display:none;
-    position:fixed; top:0; left:50%; transform:translateX(-50%);
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
     width:100%; max-width:480px;
     background: rgba(10,10,10,0.97);
     backdrop-filter: blur(6px);
-    border-bottom: 1px solid var(--divider);
+    border-top: 1px solid var(--divider);
     justify-content:space-around; align-items:center;
-    padding: 8px 4px 10px;
+    padding: 10px 0 18px;
     z-index: 60;
   }
   body.authed .bottomnav{
@@ -1464,7 +1464,7 @@
 
   </div>
 
-  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 7</b> · menu e aba Camp ativos</p>
+  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 8</b> · menu e aba Camp ativos</p>
 
 <script>
   const TEMA_KEY = 'painelMotorista_tema';
@@ -2957,7 +2957,7 @@
     if(e.target.id === 'menu-overlay') fecharMenu();
   });
 
-  // vigia: garante a barra preta fixa no topo sempre que um painel estiver ativo
+  // vigia: garante a barra preta de baixo sempre que um painel estiver ativo
   setInterval(() => {
     try {
       const ativo = ['dashboard','novo','historico','analise','camp','suporte']
