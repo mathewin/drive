@@ -434,6 +434,17 @@
   .config-close{ color: var(--text-dim); font-size:20px; cursor:pointer; line-height:1; }
   .config-save-msg{ text-align:center; font-size:12px; color: var(--green); font-weight:700; margin-top:10px; display:none; }
 
+  /* ---------- MENU PRINCIPAL (☰) ---------- */
+  .appmenu-item{
+    display:flex; align-items:center; gap:12px; padding:13px 12px; border-radius:12px;
+    background: var(--muted-bg); border:1px solid var(--card-border);
+    font-size:14px; font-weight:700; cursor:pointer; margin-bottom:8px;
+  }
+  .appmenu-item:active{ transform:scale(.98); }
+  .appmenu-item .mi{ font-size:18px; }
+  .appmenu-item.danger{ color:#ff6b6b; }
+  .appmenu-sep{ margin:8px 0 6px; color:var(--text-dim); font-size:10.5px; font-weight:800; letter-spacing:.08em; }
+
   .goal-row{ margin-bottom: 16px; }
   .goal-row:last-child{ margin-bottom: 0; }
   .goal-row-top{ display:flex; justify-content:space-between; align-items:baseline; font-size:13px; margin-bottom:6px; }
@@ -957,7 +968,7 @@
       <div class="dash-topbar">
         <div class="theme-btn" id="theme-btn" onclick="alternarTema()">🌙</div>
         <div class="topbar-actions">
-          <div class="menu-btn" onclick="abrirConfigMeta()"><span></span><span></span><span></span></div>
+          <div class="menu-btn" onclick="abrirMenu()"><span></span><span></span><span></span></div>
         </div>
       </div>
       <div class="renovar-aviso" id="renovar-aviso" style="display:none;"></div>
@@ -1325,6 +1336,25 @@
       </div>
       <div class="nav-item" onclick="showScreen('novo','nav-novo', true)" id="nav-novo">
         <div class="nav-plus">+</div>Novo
+      </div>
+    </div>
+
+    <!-- OVERLAY: MENU PRINCIPAL -->
+    <div class="config-overlay" id="menu-overlay">
+      <div class="config-panel">
+        <div class="config-header">
+          <div class="config-title">Menu</div>
+          <div class="config-close" onclick="fecharMenu()">✕</div>
+        </div>
+        <div class="appmenu-item" onclick="irParaMenu('dashboard','nav-dash')"><span class="mi">📊</span>Painel</div>
+        <div class="appmenu-item" onclick="irParaMenu('novo','nav-novo',true)"><span class="mi">➕</span>Novo lançamento</div>
+        <div class="appmenu-item" onclick="irParaMenu('historico','nav-hist')"><span class="mi">🕘</span>Histórico</div>
+        <div class="appmenu-item" onclick="irParaMenu('analise','nav-analise')"><span class="mi">📈</span>Análise</div>
+        <div class="appmenu-item" onclick="irParaMenu('camp','nav-camp')"><span class="mi">🏆</span>Camp (campeonatos)</div>
+        <div class="appmenu-item" onclick="irParaMenu('suporte','nav-suporte')"><span class="mi">💬</span>Suporte</div>
+        <div class="appmenu-sep">CONFIGURAÇÃO</div>
+        <div class="appmenu-item" onclick="fecharMenu(); abrirConfigMeta();"><span class="mi">⚙️</span>Metas e lembretes</div>
+        <div class="appmenu-item danger" onclick="menuSair()"><span class="mi">🚪</span>Sair da conta</div>
       </div>
     </div>
 
@@ -2894,6 +2924,26 @@
   }
   document.getElementById('config-overlay').addEventListener('click', (e) => {
     if(e.target.id === 'config-overlay') fecharConfigMeta();
+  });
+
+  // ---------- menu principal (☰) ----------
+  function abrirMenu(){
+    document.getElementById('menu-overlay').classList.add('open');
+  }
+  function fecharMenu(){
+    document.getElementById('menu-overlay').classList.remove('open');
+  }
+  function irParaMenu(id, navId, forcarNovo){
+    fecharMenu();
+    showScreen(id, navId, !!forcarNovo);
+  }
+  async function menuSair(){
+    try { await DWClient.auth.signOut(); } catch(e) {}
+    try { localStorage.clear(); sessionStorage.clear(); } catch(e) {}
+    location.href = location.pathname;
+  }
+  document.getElementById('menu-overlay').addEventListener('click', (e) => {
+    if(e.target.id === 'menu-overlay') fecharMenu();
   });
 
   // ---------- inicialização ----------
