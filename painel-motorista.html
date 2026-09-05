@@ -573,6 +573,42 @@
     color:#c864af; border-radius:10px; padding:8px 10px; margin-top:6px;
     font-size:12px; font-weight:700; cursor:pointer;
   }
+  .qr-wrap{ margin-top:6px; }
+  .qr-loading{
+    width:202px; height:202px; margin:0 auto; border-radius:14px;
+    background: repeating-conic-gradient(rgba(49,249,0,.05) 0% 25%, rgba(20,20,20,0) 0% 50%) 0 0/26px 26px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+    border:1px dashed var(--card-border, #262626);
+  }
+  .qr-spin{
+    width:34px; height:34px; border-radius:50%;
+    border:3px solid rgba(49,249,0,.15); border-top-color: var(--green, #31f900);
+    animation: qrSpin .9s linear infinite;
+  }
+  .qr-loading-txt{ font-size:11px; font-weight:800; letter-spacing:.08em; color:var(--text-dim); }
+  @keyframes qrSpin{ to{ transform:rotate(360deg); } }
+  .qr-img{
+    width:202px; height:202px; margin:0 auto; border-radius:14px; display:block;
+    background:#fff; padding:10px; object-fit:contain;
+    border:1px solid var(--card-border, #262626);
+    animation: qrPop .35s ease;
+  }
+  @keyframes qrPop{ from{ transform:scale(.84); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  .pix-copia-texto{
+    max-height:56px; overflow:hidden; position:relative; margin-top:10px; text-align:left;
+    font-size:10px; color:var(--green, #31f900); word-break:break-all; line-height:1.4;
+    -webkit-mask-image: linear-gradient(#000 65%, transparent); mask-image: linear-gradient(#000 65%, transparent);
+  }
+  .pix-drive-note{
+    width:100%; max-width:300px; background:linear-gradient(135deg, rgba(49,249,0,.08), rgba(200,100,175,.10));
+    border:1px solid rgba(49,249,0,.35); border-radius:14px; padding:12px 14px; margin:10px 0 2px;
+    text-align:left; font-size:12.5px; line-height:1.5; box-sizing:border-box;
+  }
+  .pix-drive-note b{ color:var(--green, #31f900); }
+  .btn-drive{
+    margin-top:10px; width:100%; background:rgba(200,100,175,.14); border:1px solid rgba(200,100,175,.45);
+    color:#e6c9ff; border-radius:10px; padding:10px; font-weight:800; font-size:12px; cursor:pointer;
+  }
   .renovar-aviso{
     background:rgba(255,177,0,.1); border:1px solid rgba(255,177,0,.35);
     color:var(--text); border-radius:12px; padding:10px 12px; margin:10px 0 0;
@@ -970,11 +1006,29 @@
       <div class="login-title" style="margin-top:6px;">Quase <span>lá</span></div>
       <div class="login-sub" id="pagar-sub">Seu acesso ainda não foi liberado.</div>
       <div class="pix-box">
-        <div class="pix-label">CHAVE PIX</div>
-        <div class="pix-chave" id="pix-chave">—</div>
-        <button class="pix-copy" onclick="copiarPix()" id="btn-copiar-pix">Copiar chave</button>
+        <div class="pix-label">VALOR DA ASSINATURA</div>
+        <div class="pix-valor" id="pix-valor" style="font-size:22px;">R$ 0,00 / mês</div>
+        <div class="qr-wrap" id="qr-wrap" style="display:none;">
+          <div class="qr-loading" id="qr-loading">
+            <div class="qr-spin"></div>
+            <div class="qr-loading-txt" id="qr-loading-txt">GERANDO QR CODE…</div>
+          </div>
+          <img id="qr-img" class="qr-img" alt="QR Code Pix" style="display:none;">
+        </div>
+        <div id="pix-chave-wrap">
+          <div class="pix-label">CHAVE PIX</div>
+          <div class="pix-chave" id="pix-chave">—</div>
+        </div>
+        <div id="pix-copia-wrap" style="display:none;">
+          <div class="pix-label">PIX COPIA E COLA</div>
+          <div class="pix-copia-texto" id="pix-copia-texto">—</div>
+        </div>
+        <button class="pix-copy" onclick="copiarPix()" id="btn-copiar-pix">Copiar chave Pix</button>
       </div>
-      <div class="pix-valor" id="pix-valor">R$ 0,00 / mês</div>
+      <div class="pix-drive-note" id="pix-drive-note" style="display:none;">
+        <div id="pix-drive-txt"></div>
+        <button class="btn-drive" id="btn-usar-drive" onclick="usarCupomDrive()" style="display:none;">🎟️ Usar cupom DRIVE e pagar com desconto</button>
+      </div>
       <button class="btn-primary" onclick="avisarPagamento()" id="btn-avisar-pix">Já fiz o Pix — avisar</button>
       <div class="pix-msg" id="pix-msg" style="display:none;"></div>
       <a class="pix-whatsapp" id="pix-whatsapp" target="_blank" rel="noopener" style="display:none;">💬 Prefere falar com o suporte no WhatsApp?</a>
@@ -994,6 +1048,7 @@
       <div class="pix-valor" id="ass-valor" style="font-size:26px; margin:6px 0;">—</div>
       <button class="btn-primary" onclick="assinarComPix()">Assinar e pagar com Pix</button>
       <div class="privacy-note" style="margin-top:10px;">Sem código: preço cheio. Com código de parceiro: desconto e você entra na tropa dele pra competir nos campeonatos.</div>
+      <div class="pix-drive-note" style="width:100%; margin-top:8px;">Sem código de parceiro? Use o cupom <b>DRIVE</b> (cupom do Admin): você paga com desconto e entra na tropa do Admin.</div>
       <div class="parceiros-box" id="ass-parceiros" style="display:none;"></div>
       <div class="link-pink" style="margin-top:8px; font-size:12px; cursor:pointer;" onclick="voltarLogin()">← Voltar</div>
       <div class="login-road"></div>
@@ -1511,7 +1566,7 @@
 
   </div>
 
-  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 10</b> · menu e aba Camp ativos</p>
+  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 11</b> · assinatura com cupom DRIVE e QR</p>
 
 <script>
   const TEMA_KEY = 'painelMotorista_tema';
@@ -1796,25 +1851,99 @@
   }
 
   // ---------- tela de pagamento (Pix) ----------
+  let _cfgCache = null;
   async function carregarConfig(){
+    if(_cfgCache) return _cfgCache;
     const { data } = await DWClient.from('config').select('*');
     const map = {};
     (data||[]).forEach(r => { map[r.chave] = r.valor; });
+    _cfgCache = map;
     return map;
   }
 
+  let _pagVencida = false;
+
   async function abrirTelaPagamento(vencida){
+    _cfgCache = null;
+    _pagVencida = !!vencida;
     const cfg = await carregarConfig();
+    const reg = _regPagamento || {};
+    const cupom = (reg.cupom || '').toString().trim().toUpperCase();
+    const temCupom = !!cupom;
+    const cheio = Number(cfg.preco_cheio) || 0;
+    const desconto = Number(cfg.preco_parceiro) || 0;
+    const valor = Number(reg.valor) > 0
+      ? Number(reg.valor)
+      : (temCupom && desconto > 0 ? desconto : cheio);
     const chave = cfg.pix_chave || 'Configurar chave Pix no Painel Admin';
-    const valor = _regPagamento && Number(_regPagamento.valor)
-      ? Number(_regPagamento.valor)
-      : (Number(cfg.preco_cheio) || 0);
-    document.getElementById('pix-chave').textContent = chave;
+    const qrData = (temCupom ? (cfg.qr_cupom || '') : (cfg.qr_cheio || '')).trim();
+    const copia = (temCupom ? (cfg.pix_copia_cupom || '') : (cfg.pix_copia_cheio || '')).trim();
+    const temQR = !!qrData;
+    const copiarCompleto = temQR && !!copia;
+    window._pixCopiarTexto = copiarCompleto ? copia : chave;
+
+    // valor
     document.getElementById('pix-valor').textContent = valor > 0 ? fmtMoney(valor) + ' / mês' : 'Valor definido pela equipe';
+
+    // área do QR
+    const qrWrap = document.getElementById('qr-wrap');
+    const qrImg = document.getElementById('qr-img');
+    const qrLoading = document.getElementById('qr-loading');
+    const chaveWrap = document.getElementById('pix-chave-wrap');
+    const copiaWrap = document.getElementById('pix-copia-wrap');
+    const copiaTexto = document.getElementById('pix-copia-texto');
+    if(temQR){
+      qrWrap.style.display = 'block';
+      qrLoading.style.display = 'flex';
+      qrImg.style.display = 'none';
+      qrImg.src = '';
+      chaveWrap.style.display = 'none';
+      copiaWrap.style.display = 'none';
+      if(copiarCompleto){
+        copiaWrap.style.display = 'block';
+        copiaTexto.textContent = copia;
+      } else {
+        chaveWrap.style.display = 'block';
+        document.getElementById('pix-chave').textContent = chave;
+      }
+      document.getElementById('qr-loading-txt').textContent = 'GERANDO QR CODE…';
+      setTimeout(() => {
+        qrImg.src = qrData;
+        qrImg.style.display = 'block';
+        qrLoading.style.display = 'none';
+      }, 1300);
+    } else {
+      qrWrap.style.display = 'none';
+      chaveWrap.style.display = 'block';
+      document.getElementById('pix-chave').textContent = chave;
+      copiaWrap.style.display = 'none';
+    }
+    const btnCopy = document.getElementById('btn-copiar-pix');
+    btnCopy.textContent = copiarCompleto ? 'Copiar código Pix' : (temQR ? 'Copiar chave Pix' : 'Copiar chave');
+
+    // nota de cupom (DRIVE ou aplicado)
+    const driveNote = document.getElementById('pix-drive-note');
+    const driveTxt = document.getElementById('pix-drive-txt');
+    const btnDrive = document.getElementById('btn-usar-drive');
+    btnDrive.style.display = 'none';
+    if(temCupom){
+      driveNote.style.display = 'block';
+      if(cupom === 'DRIVE'){
+        driveTxt.innerHTML = 'Cupom <b>DRIVE</b> (Admin) aplicado: você está pagando com desconto e entrou na tropa do Admin.';
+      } else {
+        driveTxt.innerHTML = 'Cupom <b>' + cupom + '</b> aplicado: você está pagando com desconto e entrou na tropa do parceiro.';
+      }
+    } else {
+      driveNote.style.display = 'block';
+      driveTxt.innerHTML = 'Sem cupom, o valor é <b>cheio</b>. Use o cupom <b>DRIVE</b> (cupom do Admin) e pague com <b>desconto</b> entrando na tropa dele.';
+      if(_regPagamento && _regPagamento.status === 'pendente'){
+        btnDrive.style.display = 'block';
+      }
+    }
+
     document.getElementById('pix-msg').style.display = 'none';
     document.getElementById('pix-msg').textContent = '';
     document.getElementById('btn-avisar-pix').style.display = 'block';
-    document.getElementById('btn-copiar-pix').textContent = 'Copiar chave';
     document.getElementById('pagar-badge').textContent = vencida ? '⏳ ASSINATURA VENCIDA' : '💳 PAGAMENTO PENDENTE';
     document.getElementById('pagar-sub').textContent = vencida
       ? 'Sua assinatura venceu. Renove para continuar usando.'
@@ -1842,11 +1971,48 @@
   }
 
   function copiarPix(){
-    const chave = document.getElementById('pix-chave').textContent;
-    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(chave).catch(()=>{});
+    const texto = window._pixCopiarTexto || '';
+    if(!texto) return;
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).catch(()=>{});
     const btn = document.getElementById('btn-copiar-pix');
     btn.textContent = 'Copiado!';
-    setTimeout(() => { btn.textContent = 'Copiar chave'; }, 1600);
+    setTimeout(() => {
+      const temCupom = !!((_regPagamento || {}).cupom || '').toString().trim();
+      const cfg = _cfgCache || {};
+      const qrData = (temCupom ? (cfg.qr_cupom || '') : (cfg.qr_cheio || '')).trim();
+      const copia = (temCupom ? (cfg.pix_copia_cupom || '') : (cfg.pix_copia_cheio || '')).trim();
+      btn.textContent = (qrData && copia) ? 'Copiar código Pix' : 'Copiar chave';
+    }, 1600);
+  }
+
+  async function usarCupomDrive(){
+    const reg = _regPagamento;
+    const driveNote = document.getElementById('pix-drive-note');
+    const driveTxt = document.getElementById('pix-drive-txt');
+    const btnDrive = document.getElementById('btn-usar-drive');
+    if(!reg){ return; }
+    btnDrive.disabled = true;
+    btnDrive.textContent = 'Aplicando cupom…';
+    const { data } = await DWClient.from('parceiros').select('*').ilike('cupom', 'drive');
+    const drive = (data||[]).find(p => (p.cupom||'').toString().toUpperCase() === 'DRIVE');
+    if(!drive){
+      driveTxt.innerHTML = 'O cupom <b>DRIVE</b> ainda não está cadastrado. Fale com o suporte.';
+      btnDrive.style.display = 'none';
+      return;
+    }
+    const cfg = await carregarConfig();
+    const novoValor = Number(cfg.preco_parceiro) > 0 ? Number(cfg.preco_parceiro) : (Number(reg.valor) || null);
+    const { error } = await DWClient.from('assinantes')
+      .update({ cupom: 'DRIVE', tropa_id: drive.tropa_id || null, valor: novoValor })
+      .eq('id', reg.id);
+    if(error){
+      driveTxt.innerHTML = 'Não deu pra aplicar o cupom DRIVE agora: <b>fale com o suporte</b> pra usar ele.';
+      btnDrive.style.display = 'none';
+      return;
+    }
+    _regPagamento = { ...reg, cupom: 'DRIVE', tropa_id: drive.tropa_id || null, valor: novoValor };
+    _meuAssinante = _regPagamento;
+    await abrirTelaPagamento(_pagVencida);
   }
 
   async function avisarPagamento(){
@@ -1867,6 +2033,7 @@
 
   // ---------- assinatura (novo assinante, com/sem código de parceiro) ----------
   async function abrirTelaAssinatura(){
+    _cfgCache = null;
     const cfg = await carregarConfig();
     document.getElementById('ass-cupom').value = '';
     document.getElementById('ass-cupom-msg').style.display = 'none';
@@ -1880,8 +2047,7 @@
       const pars = data||[];
       if(pars.length){
         lista.innerHTML = '<div class="pix-label">PARCEIROS COM DESCONTO</div>' + pars.map(p => {
-          const t = p.tropa_id ? '' : '';
-          return `<div class="parceiro-chip" onclick="usarCodigoParceiro('${p.cupom}')">🎟️ ${p.cupom} — ${p.nome}${t}</div>`;
+          return `<div class="parceiro-chip" onclick="usarCodigoParceiro('${p.cupom}')">🎟️ ${p.cupom} — ${p.nome}</div>`;
         }).join('');
         lista.style.display = 'block';
       } else {

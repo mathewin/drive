@@ -575,6 +575,37 @@
             <input class="form-input" id="cfg-premio-mensal" type="number" step="0.01" min="0" placeholder="Ex: 800">
           </div>
         </div>
+
+        <div style="height:1px;background:var(--card-border, #262626);margin:16px 0;"></div>
+        <div class="section-title">QR CODE DO PIX (imagem fixa)</div>
+        <div class="stat-note" style="margin-bottom:12px;">O motorista vê uma animação de "gerando código" e depois a imagem do QR. Use um gerador de QR Pix e suba <b>duas imagens</b>: uma pro preço cheio (sem cupom) e outra pro preço com cupom. Sem imagem, o app mostra só a chave Pix.</div>
+
+        <div class="form-group">
+          <label class="form-label">QR — preço cheio (sem cupom)</label>
+          <input class="form-input" type="file" accept="image/*" id="cfg-qr-cheio-file" onchange="lerQRFile(this, 'qr-cheio')">
+          <img id="prev-qr-cheio" alt="" style="width:150px;height:150px;object-fit:contain;background:#fff;border-radius:10px;padding:6px;border:1px solid #333;margin-top:8px;display:none;">
+          <div style="margin-top:6px;"><span class="btn-sm" id="rm-qr-cheio" onclick="removerQR('qr-cheio')" style="display:none;">Remover imagem</span></div>
+          <div class="form-hint">Usado quando o motorista paga sem nenhum cupom (valor cheio).</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pix copia e cola — preço cheio</label>
+          <textarea class="form-input" id="cfg-copia-cheio" rows="2" placeholder="Código Pix copia e cola do valor cheio (opcional). Se vazio, o motorista copia só a chave."></textarea>
+        </div>
+
+        <div class="form-group" style="margin-top:14px;">
+          <label class="form-label">QR — preço com cupom / DRIVE</label>
+          <input class="form-input" type="file" accept="image/*" id="cfg-qr-cupom-file" onchange="lerQRFile(this, 'qr-cupom')">
+          <img id="prev-qr-cupom" alt="" style="width:150px;height:150px;object-fit:contain;background:#fff;border-radius:10px;padding:6px;border:1px solid #333;margin-top:8px;display:none;">
+          <div style="margin-top:6px;"><span class="btn-sm" id="rm-qr-cupom" onclick="removerQR('qr-cupom')" style="display:none;">Remover imagem</span></div>
+          <div class="form-hint">Usado quando o motorista usa qualquer cupom (incluindo o <b>DRIVE</b>, cupom do Admin).</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pix copia e cola — preço com cupom</label>
+          <textarea class="form-input" id="cfg-copia-cupom" rows="2" placeholder="Código Pix copia e cola do valor com cupom (opcional). Se vazio, o motorista copia só a chave."></textarea>
+        </div>
+        <div class="stat-note" style="margin-top:4px;">O cupom padrão do Admin é o <b>DRIVE</b>: quem usa ele paga o preço com desconto e entra na tropa do Admin. Use a ação "Remanejar tropa" nos assinantes pra mover alguém de tropa depois.</div>
+        <input type="hidden" id="cfg-qr-cheio">
+        <input type="hidden" id="cfg-qr-cupom">
         <div class="form-actions" style="margin-top:10px;">
           <button class="btn-primary" style="background:linear-gradient(135deg, var(--green), var(--green-lucro)); color:#06210f;" onclick="salvarConfig()">Salvar configurações</button>
         </div>
@@ -753,6 +784,26 @@
       <div class="modal-close" onclick="fecharHistorico()">✕</div>
     </div>
     <div id="hist-rows"></div>
+  </div>
+</div>
+
+<!-- MODAL REMANEJAR TROPA -->
+<div class="modal-overlay" id="remanejar-overlay">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <div class="modal-title">Remanejar para outra tropa</div>
+      <div class="modal-close" onclick="fecharRemanejar()">✕</div>
+    </div>
+    <div class="stat-note" id="rem-nome" style="margin-bottom:10px;"></div>
+    <div class="form-group">
+      <label class="form-label">Parceiro / cupom de destino</label>
+      <select class="form-input" id="rem-parceiro" style="background:var(--card); color:var(--text);"></select>
+      <div class="form-hint">Escolha o parceiro. O assinante passa a usar o cupom dele e entra na tropa dele. Use o <b>DRIVE</b> pra voltar pra tropa do Admin.</div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="fecharRemanejar()">Cancelar</button>
+      <button class="btn-primary" style="background:linear-gradient(135deg, var(--green), var(--green-lucro)); color:#06210f;" onclick="salvarRemanejar()">Salvar remanejamento</button>
+    </div>
   </div>
 </div>
 
@@ -1015,6 +1066,10 @@
     document.getElementById('cfg-premio-diario').value = __db.config.premio_diario || '';
     document.getElementById('cfg-premio-semanal').value = __db.config.premio_semanal || '';
     document.getElementById('cfg-premio-mensal').value = __db.config.premio_mensal || '';
+    document.getElementById('cfg-copia-cheio').value = __db.config.pix_copia_cheio || '';
+    document.getElementById('cfg-copia-cupom').value = __db.config.pix_copia_cupom || '';
+    mostrarQRPrevia('qr-cheio', __db.config.qr_cheio || '');
+    mostrarQRPrevia('qr-cupom', __db.config.qr_cupom || '');
     __db.alertasFraude = (alertas.data||[]).map(x => ({ titulo:x.titulo, desc:x.descricao }));
     __db.rankingRegiao = (ranking.data||[]).map(r => ({ nome:r.nome, tropa:r.tropa, valor:r.valor }));
     __db.premios = (premios.data||[]).map(p => ({ id:p.id, tipo:p.tipo, escopo:p.escopo, ganhador:p.ganhador, valor:p.valor, antifraude:p.antifraude, status:p.status }));
@@ -1241,6 +1296,7 @@
         <td>${bloqueado
             ? `<span class="btn-sm ok" onclick="toggleAcesso('${a.id}')">Liberar acesso</span>`
             : `<span class="btn-sm danger" onclick="toggleAcesso('${a.id}')">Bloquear acesso</span>`}
+          <span class="btn-sm" onclick="abrirRemanejar('${a.id}')" style="margin-left:6px;">⇄ Remanejar tropa</span>
         </td>
       </tr>`;
     }).join('');
@@ -1270,7 +1326,8 @@
     if(a){
       await DWClient.from('assinantes').update({ status:'pago', ativo:true, venc:novoVenc, historico:novoHistorico }).eq('id', a.id);
       // comissão recorrente do parceiro (todo mês que o assinante renovar com o mesmo código)
-      if(a.cupom){
+      // o cupom DRIVE é do próprio Admin → não paga comissão pra ele mesmo
+      if(a.cupom && (a.cupom||'').toUpperCase() !== 'DRIVE'){
         const par = d.parceiros.find(p => (p.cupom||'').toUpperCase() === a.cupom);
         const comissao = Number(d.config.comissao_parceiro) || 0;
         if(par && comissao > 0){
@@ -1464,6 +1521,109 @@
   document.getElementById('assinante-overlay').addEventListener('click', e => {
     if(e.target.id === 'assinante-overlay') fecharNovoAssinante();
   });
+  // ---------------- PIX QR (imagens de valor fixo) ----------------
+  const QR_KEYS = {
+    'qr-cheio': { hidden:'cfg-qr-cheio', prev:'prev-qr-cheio', rm:'rm-qr-cheio' },
+    'qr-cupom': { hidden:'cfg-qr-cupom', prev:'prev-qr-cupom', rm:'rm-qr-cupom' },
+  };
+
+  function mostrarQRPrevia(key, dataUrl){
+    const ids = QR_KEYS[key];
+    if(!ids) return;
+    const img = document.getElementById(ids.prev);
+    const rm = document.getElementById(ids.rm);
+    if(dataUrl && dataUrl.length > 20){
+      img.src = dataUrl;
+      img.style.display = 'block';
+      rm.style.display = 'inline-block';
+    } else {
+      img.src = '';
+      img.style.display = 'none';
+      rm.style.display = 'none';
+    }
+    document.getElementById(ids.hidden).value = dataUrl || '';
+  }
+
+  function lerQRFile(input, key){
+    const ids = QR_KEYS[key];
+    if(!ids) return;
+    const f = input.files && input.files[0];
+    if(!f) return;
+    if(f.size > 1.5 * 1024 * 1024){
+      toast('Imagem muito grande (máx 1,5 MB).');
+      input.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 640;
+        const escala = Math.min(1, MAX / Math.max(img.width, img.height));
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(img.width * escala));
+        cv.height = Math.max(1, Math.round(img.height * escala));
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, cv.width, cv.height);
+        ctx.drawImage(img, 0, 0, cv.width, cv.height);
+        mostrarQRPrevia(key, cv.toDataURL('image/png'));
+        input.value = '';
+      };
+      img.onerror = () => { toast('Não deu pra ler essa imagem.'); input.value = ''; };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(f);
+  }
+
+  function removerQR(key){
+    const ids = QR_KEYS[key];
+    if(!ids) return;
+    mostrarQRPrevia(key, '');
+  }
+
+  // ---------------- REMANEJAR TROPA ----------------
+  let _remAssinanteId = null;
+  function abrirRemanejar(id){
+    const d = getData();
+    const a = d.assinantes.find(x => x.id === id);
+    if(!a) return;
+    _remAssinanteId = id;
+    document.getElementById('rem-nome').textContent = `Assinante: ${a.nome}${a.cupom ? ' (cupom atual ' + a.cupom + ')' : ' (sem cupom)'}`;
+    const sel = document.getElementById('rem-parceiro');
+    sel.innerHTML = '<option value="">— Escolha o parceiro —</option>' + d.parceiros.map(p => {
+      const t = d.tropas.find(x => x.id === p.tropaId);
+      return `<option value="${p.id}">${p.cupom} — ${p.nome}${t ? ' (' + t.nome + ')' : ''}</option>`;
+    }).join('');
+    const atual = d.parceiros.find(p => (p.cupom || '').toUpperCase() === (a.cupom || '').toString().toUpperCase());
+    sel.value = atual ? atual.id : '';
+    document.getElementById('remanejar-overlay').classList.add('open');
+  }
+  function fecharRemanejar(){
+    document.getElementById('remanejar-overlay').classList.remove('open');
+    _remAssinanteId = null;
+  }
+  document.getElementById('remanejar-overlay').addEventListener('click', e => {
+    if(e.target.id === 'remanejar-overlay') fecharRemanejar();
+  });
+  async function salvarRemanejar(){
+    const d = getData();
+    const id = _remAssinanteId;
+    const parId = document.getElementById('rem-parceiro').value;
+    if(!id || !parId){ toast('Escolha o parceiro de destino'); return; }
+    const a = d.assinantes.find(x => x.id === id);
+    const par = d.parceiros.find(x => x.id === parId);
+    if(!a || !par) return;
+    const antigoCupom = a.cupom || '—';
+    a.tropaId = par.tropaId || null;
+    a.cupom = par.cupom;
+    await DWClient.from('assinantes').update({ tropa_id: a.tropaId, cupom: a.cupom }).eq('id', a.id);
+    logAuditoria('Assinante remanejado', `${a.nome}: cupom ${antigoCupom} → ${a.cupom || '—'}, tropa do ${par.nome}`);
+    toast(`${a.nome} agora está na tropa de ${par.nome}`);
+    fecharRemanejar();
+    renderAssinantes(); renderDashboard();
+  }
+
   async function salvarConfig(){
     const d = getData();
     const campos = {
@@ -1475,6 +1635,10 @@
       premio_diario: 'cfg-premio-diario',
       premio_semanal: 'cfg-premio-semanal',
       premio_mensal: 'cfg-premio-mensal',
+      qr_cheio: 'cfg-qr-cheio',
+      qr_cupom: 'cfg-qr-cupom',
+      pix_copia_cheio: 'cfg-copia-cheio',
+      pix_copia_cupom: 'cfg-copia-cupom',
     };
     const config = {};
     for(const [k, id] of Object.entries(campos)){
