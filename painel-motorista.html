@@ -1479,7 +1479,7 @@
 
   </div>
 
-  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 4</b> · menu e aba Camp ativos</p>
+  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 5</b> · menu e aba Camp ativos</p>
 
 <script>
   const TEMA_KEY = 'painelMotorista_tema';
@@ -2971,6 +2971,16 @@
   document.getElementById('menu-overlay').addEventListener('click', (e) => {
     if(e.target.id === 'menu-overlay') fecharMenu();
   });
+
+  // vigia: garante a barra preta de baixo visível sempre que um painel estiver ativo
+  setInterval(() => {
+    try {
+      const ativo = ['dashboard','novo','historico','analise','camp','suporte']
+        .some(id => { const el = document.getElementById(id); return el && el.classList.contains('active'); });
+      const bn = document.getElementById('bottomnav');
+      if(ativo && bn && bn.style.display === 'none') bn.style.display = 'flex';
+    } catch(e) {}
+  }, 1200);
 
   // ---------- inicialização ----------
   document.getElementById('in-data').value = todayISO();
