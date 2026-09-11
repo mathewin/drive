@@ -1121,6 +1121,11 @@
     DWClient.from('auditoria').insert({ usuario, acao, detalhe }).then(()=>{}).catch(()=>{});
   }
 
+  function escHtml(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
   function mostrarErroLogin(msg){
     const erroEl = document.getElementById('login-erro');
     if(erroEl){ erroEl.textContent = msg; erroEl.style.display = 'block'; }
@@ -1128,7 +1133,7 @@
 
   async function entrar(){
     const email = document.getElementById('login-email').value.trim().toLowerCase();
-    const senha = document.getElementById('login-senha').value.trim();
+    const senha = document.getElementById('login-senha').value;
     const erroEl = document.getElementById('login-erro');
     if(erroEl) erroEl.style.display = 'none';
     if(!email || !senha){ mostrarErroLogin('Informe e-mail e senha.'); return; }
@@ -1171,6 +1176,8 @@
       document.getElementById('app').classList.add('active');
       renderAll();
       renderCentral();
+    } else {
+      await DWClient.auth.signOut();
     }
   });
 
@@ -1205,7 +1212,7 @@
     card.style.display = 'block';
     document.getElementById('dsh-alertas-rows').innerHTML = d.alertasFraude.map(a => `
       <div class="alert-card"><span class="alert-icon">⚠️</span>
-        <div><div class="alert-title">${a.titulo}</div><div class="alert-desc">${a.desc}</div></div>
+        <div><div class="alert-title">${escHtml(a.titulo)}</div><div class="alert-desc">${escHtml(a.desc)}</div></div>
       </div>`).join('');
   }
 
@@ -1213,9 +1220,9 @@
     const d = getData();
     document.getElementById('auditoria-vazio').style.display = d.auditLog.length ? 'none' : 'block';
     document.getElementById('auditoria-rows').innerHTML = d.auditLog.map(l => `<tr>
-      <td style="color:var(--text-dim); white-space:nowrap;">${l.em}</td>
-      <td><b>${l.acao}</b></td>
-      <td style="color:var(--text-dim);">${l.detalhe}</td>
+      <td style="color:var(--text-dim); white-space:nowrap;">${escHtml(l.em)}</td>
+      <td><b>${escHtml(l.acao)}</b></td>
+      <td style="color:var(--text-dim);">${escHtml(l.detalhe)}</td>
     </tr>`).join('');
   }
 
@@ -1270,10 +1277,10 @@
     const filaEl = document.getElementById('fila-pagamento-rows');
     document.getElementById('fila-pagamento-vazio').style.display = d.filaPagamento.length ? 'none' : 'block';
     filaEl.innerHTML = d.filaPagamento.map(f => `<tr>
-      <td>${f.assinante}</td>
+      <td>${escHtml(f.assinante)}</td>
       <td>${fmtMoney(f.valor)}</td>
-      <td style="color:var(--text-dim);">${f.motivo}</td>
-      <td><span class="btn-sm ok" onclick="confirmarPagamento('${f.id}')">Confirmar pagamento</span></td>
+      <td style="color:var(--text-dim);">${escHtml(f.motivo)}</td>
+      <td><span class="btn-sm ok" onclick="confirmarPagamento('${escHtml(f.id)}')">Confirmar pagamento</span></td>
     </tr>`).join('');
 
     document.getElementById('assinantes-rows').innerHTML = d.assinantes.map(a => {
@@ -1282,21 +1289,21 @@
       const label = a.status === 'pago' ? 'Pago' : a.status === 'pendente' ? 'Pendente' : 'Atrasado';
       const bloqueado = a.status === 'atrasado' || a.ativo === false || a.status === 'pendente';
       return `<tr>
-        <td><b class="link-name" onclick="abrirHistorico('${a.id}')">${a.nome}</b>
+        <td><b class="link-name" onclick="abrirHistorico('${escHtml(a.id)}')">${escHtml(a.nome)}</b>
           ${a.email
-            ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${a.email}</div>`
-            : `<div style="font-size:11px;margin-top:2px;"><span class="btn-sm" onclick="definirEmailAssinante('${a.id}')">+ e-mail</span></div>`}
-          ${a.telefone ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px;">📱 ${a.telefone}</div>` : ''}
-          ${a.cupom ? `<div style="font-size:11px;color:#c864af;margin-top:2px;">cupom ${a.cupom}</div>` : ''}
+            ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${escHtml(a.email)}</div>`
+            : `<div style="font-size:11px;margin-top:2px;"><span class="btn-sm" onclick="definirEmailAssinante('${escHtml(a.id)}')">+ e-mail</span></div>`}
+          ${a.telefone ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px;">📱 ${escHtml(a.telefone)}</div>` : ''}
+          ${a.cupom ? `<div style="font-size:11px;color:#c864af;margin-top:2px;">cupom ${escHtml(a.cupom)}</div>` : ''}
         </td>
-        <td>${tropa ? tropa.nome : '—'}</td>
+        <td>${tropa ? escHtml(tropa.nome) : '—'}</td>
         <td>${a.valor ? fmtMoney(a.valor) : '—'}</td>
         <td><span class="badge ${badge}">${label}</span></td>
         <td>${fmtDate(a.venc)}</td>
         <td>${bloqueado
-            ? `<span class="btn-sm ok" onclick="toggleAcesso('${a.id}')">Liberar acesso</span>`
-            : `<span class="btn-sm danger" onclick="toggleAcesso('${a.id}')">Bloquear acesso</span>`}
-          <span class="btn-sm" onclick="abrirRemanejar('${a.id}')" style="margin-left:6px;">⇄ Remanejar tropa</span>
+            ? `<span class="btn-sm ok" onclick="toggleAcesso('${escHtml(a.id)}')">Liberar acesso</span>`
+            : `<span class="btn-sm danger" onclick="toggleAcesso('${escHtml(a.id)}')">Bloquear acesso</span>`}
+          <span class="btn-sm" onclick="abrirRemanejar('${escHtml(a.id)}')" style="margin-left:6px;">⇄ Remanejar tropa</span>
         </td>
       </tr>`;
     }).join('');
@@ -1406,11 +1413,11 @@
     const d = getData();
     document.getElementById('candidatos-vazio').style.display = d.candidatos.length ? 'none' : 'block';
     document.getElementById('candidatos-rows').innerHTML = d.candidatos.map(c => `<tr>
-      <td><b>${c.nome}</b></td>
-      <td style="color:var(--text-dim);">${c.perfil}</td>
+      <td><b>${escHtml(c.nome)}</b></td>
+      <td style="color:var(--text-dim);">${escHtml(c.perfil)}</td>
       <td>
-        <span class="btn-sm ok" onclick="abrirNovoParceiro('${c.id}')">Aprovar</span>
-        <span class="btn-sm" onclick="avaliarCandidato('${c.id}', false)">Manter em espera</span>
+        <span class="btn-sm ok" onclick="abrirNovoParceiro('${escHtml(c.id)}')">Aprovar</span>
+        <span class="btn-sm" onclick="avaliarCandidato('${escHtml(c.id)}', false)">Manter em espera</span>
       </td>
     </tr>`).join('');
 

@@ -14,20 +14,23 @@ create table if not exists public.config (
 );
 alter table public.config enable row level security;
 
--- Qualquer logado lê (motorista precisa ver a chave p/ pagar); só equipe escreve
+-- Só autenticado lê (motorista precisa ver a chave p/ pagar); só admin escreve
 drop policy if exists "config_select" on public.config;
 create policy "config_select" on public.config
-  for select using (true);
+  for select using (auth.uid() is not null);
 
 drop policy if exists "config_equipe" on public.config;
-create policy "config_equipe" on public.config
-  for all using (public.eh_equipe()) with check (public.eh_equipe());
+drop policy if exists "config_admin" on public.config;
+create policy "config_admin" on public.config
+  for all using (public.eh_admin()) with check (public.eh_admin());
 
 -- ---------- FILA DE PAGAMENTO ----------
 -- Motorista pode avisar o próprio pagamento (insere na fila) e ver o aviso
 drop policy if exists "fila_insert_motorista" on public.fila_pagamento;
 create policy "fila_insert_motorista" on public.fila_pagamento
-  for insert with check (true);
+  for insert with check (
+    assinante = (select nome from public.perfis where id = auth.uid())
+  );
 
 drop policy if exists "fila_select_motorista" on public.fila_pagamento;
 create policy "fila_select_motorista" on public.fila_pagamento

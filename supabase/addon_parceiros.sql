@@ -26,8 +26,8 @@ create policy "assinantes_insert_motorista" on public.assinantes
 -- das tropas (saber em qual tropa está entrando). Nomes/cupons não são sigilo.
 drop policy if exists "parceiros_select_motorista" on public.parceiros;
 create policy "parceiros_select_motorista" on public.parceiros
-  for select using (true);
+  for select using (auth.uid() is not null);
 
 drop policy if exists "tropas_select_motorista" on public.tropas;
 create policy "tropas_select_motorista" on public.tropas
-  for select using (true);
+  for select using (auth.uid() is not null);

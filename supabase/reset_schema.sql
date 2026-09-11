@@ -197,7 +197,7 @@ alter table public.auditoria enable row level security;
 
 -- Helper: usuário logado é admin/colaborador?
 create or replace function public.eh_equipe()
-returns boolean language sql stable security definer as $$
+returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from public.perfis
     where id = auth.uid() and papel in ('admin','colaborador')
@@ -206,7 +206,7 @@ $$;
 
 -- Helper: usuário logado é admin?
 create or replace function public.eh_admin()
-returns boolean language sql stable security definer as $$
+returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from public.perfis
     where id = auth.uid() and papel = 'admin'
@@ -346,13 +346,13 @@ create trigger trg_chamados_upd before update on public.chamados
 
 -- Perfil criado automaticamente no primeiro login
 create or replace function public.criar_perfil()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql security definer set search_path = public as $$
 begin
   insert into public.perfis (id, nome, papel, email)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'nome', split_part(new.email, '@', 1), 'Usuário'),
-    coalesce(new.raw_user_meta_data->>'papel', 'motorista'),
+    coalesce(nullif(trim(new.raw_user_meta_data->>'nome'), ''), split_part(new.email, '@', 1), 'Usuário'),
+    'motorista',
     new.email
   )
   on conflict (id) do nothing;

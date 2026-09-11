@@ -38,13 +38,14 @@ create or replace function public.auto_promover_parceiro()
 returns trigger
 language plpgsql
 security definer
+set search_path = public
 as $$
 begin
   if (new.email is not null and new.email <> '') then
     update public.perfis
       set papel = 'parceiro'
       where id = new.id
-        and papel <> 'parceiro'
+        and papel = 'motorista'
         and exists (
           select 1 from public.parceiros par
           where lower(par.email) = lower(new.email)

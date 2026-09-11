@@ -8,29 +8,30 @@ alter table public.lancamentos add column if not exists dados jsonb not null def
 
 -- 2) Função p/ o motorista descobrir o nome da própria tropa (sem expor a tabela de tropas)
 create or replace function public.minha_tropa()
-returns text language sql stable security definer as $$
+returns text language sql stable security definer set search_path = public as $$
   select t.nome
   from public.assinantes a
   join public.tropas t on t.id = a.tropa_id
-  where lower(a.nome) = lower((select nome from public.perfis where id = auth.uid()))
+  where lower(coalesce(a.email, '')) = lower((select email from public.perfis where id = auth.uid()))
+     or (
+       (a.email is null or a.email = '')
+       and lower(a.nome) = lower((select nome from public.perfis where id = auth.uid()))
+     )
   limit 1;
 $$;
 
 -- 3) Trigger de perfil atualizado: também copia todas_tropas e tropa_ids do metadata do usuário
 create or replace function public.criar_perfil()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql security definer set search_path = public as $$
 begin
   insert into public.perfis (id, nome, papel, email, todas_tropas, tropa_ids)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'nome', split_part(new.email, '@', 1), 'Usuário'),
-    coalesce(new.raw_user_meta_data->>'papel', 'motorista'),
+    coalesce(nullif(trim(new.raw_user_meta_data->>'nome'), ''), split_part(new.email, '@', 1), 'Usuário'),
+    'motorista',
     new.email,
-    coalesce((new.raw_user_meta_data->>'todas_tropas') = 'true', false),
-    coalesce(
-      (select array_agg(x::uuid) from jsonb_array_elements_text(coalesce(new.raw_user_meta_data->'tropa_ids','[]'::jsonb)) x),
-      '{}'::uuid[]
-    )
+    false,
+    '{}'::uuid[]
   )
   on conflict (id) do nothing;
   return new;

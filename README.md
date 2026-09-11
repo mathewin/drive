@@ -86,9 +86,11 @@ O projeto é 100% estático (HTML + JS) e o banco é o Supabase na nuvem — nã
 
 ### 1. Antes de subir (uma única vez)
 
-- Aplicar `supabase/addon_pix.sql`, `supabase/addon_parceiros.sql` e `supabase/addon_colab_acoes.sql` no SQL Editor do Supabase (fluxo de pagamento Pix com código de parceiro e ações do colaborador por tropa).
+- Aplicar `supabase/addon_pix.sql`, `supabase/addon_parceiros.sql`, `supabase/addon_colab_acoes.sql` e **`supabase/addon_seguranca.sql`** no SQL Editor do Supabase.
+- `addon_seguranca.sql` é obrigatório: impede cadastro com papel admin, restringe RLS e trava o motorista de se auto-liberar.
 - Garantir que a conta admin existe com `papel = 'admin'` na tabela `perfis` (o admin entra por e-mail/senha).
-- Opcional: desativar **signups abertos** no Supabase (Auth → Providers → Email → "Allow new users to sign up") e liberar só os motoristas cadastrados pelo admin. Se desativado, motoristas não conseguem criar conta — para vender acesso, o admin cadastra a conta do motorista manualmente em Authentication → Users → Add user com o nome exato do assinante.
+- Recomendado: desativar **signups abertos** no Supabase (Auth → Providers → Email → "Allow new users to sign up") e confirmar o e-mail. Sem isso, qualquer um cria conta de motorista.
+- Nunca coloque a chave `service_role` no frontend. Só a chave publishable em `supabase/config.js`.
 
 ### 2. Hospedagem (escolha uma)
 

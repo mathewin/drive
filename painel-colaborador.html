@@ -524,6 +524,12 @@
     return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
   }
 
+  function escHtml(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
   function mostrarErroLogin(msg){
     const erroEl = document.getElementById('login-erro');
     if(erroEl){ erroEl.textContent = msg; erroEl.style.display = 'block'; }
@@ -647,7 +653,7 @@
 
   async function entrar(){
     const email = document.getElementById('login-email').value.trim().toLowerCase();
-    const senha = document.getElementById('login-senha').value.trim();
+    const senha = document.getElementById('login-senha').value;
     const erroEl = document.getElementById('login-erro');
     if(erroEl) erroEl.style.display = 'none';
     if(!email || !senha){ mostrarErroLogin('Informe e-mail e senha.'); return; }
@@ -722,7 +728,9 @@
       renderSuporte();
       renderFilaPagamento();
       renderTropas();
+      return;
     }
+    await DWClient.auth.signOut();
   });
 
   function showSection(id, el){
@@ -770,15 +778,15 @@
       const cls = t.status === 'fechado' ? 'gray' : (t.status === 'respondido' ? 'green' : 'amber');
       const ultima = t.mensagens[t.mensagens.length - 1];
       const preview = ultima ? (ultima.texto.length > 90 ? ultima.texto.slice(0,90) + '…' : ultima.texto) : '';
-      return `<div class="ticket-card" onclick="abrirTicket('${t.id}')">
+      return `<div class="ticket-card" onclick="abrirTicket('${escHtml(t.id)}')">
         <span class="ticket-icon">💬</span>
         <div class="ticket-body">
           <div class="ticket-top-row">
-            <span class="ticket-nome">${t.nome}${t.tropa ? ' · ' + t.tropa : ''}</span>
+            <span class="ticket-nome">${escHtml(t.nome)}${t.tropa ? ' · ' + escHtml(t.tropa) : ''}</span>
             <span class="badge ${cls}">${label}</span>
           </div>
-          <div class="ticket-assunto">${t.assunto}</div>
-          <div class="ticket-preview">${preview}</div>
+          <div class="ticket-assunto">${escHtml(t.assunto)}</div>
+          <div class="ticket-preview">${escHtml(preview)}</div>
         </div>
       </div>`;
     }).join('');
@@ -804,8 +812,8 @@
     document.getElementById('ticket-mensagens').innerHTML = t.mensagens.map(m => {
       const meu = m.de === 'suporte';
       return `<div class="msg-row" style="text-align:${meu ? 'right' : 'left'};">
-        <div class="msg-bubble" style="background:${meu ? 'var(--green-dim)' : 'var(--muted-bg)'}; color:${meu ? '#06210f' : 'var(--text)'};">${m.texto}</div>
-        <div class="msg-meta">${meu ? 'Você (suporte)' : t.nome} · ${m.em}</div>
+        <div class="msg-bubble" style="background:${meu ? 'var(--green-dim)' : 'var(--muted-bg)'}; color:${meu ? '#06210f' : 'var(--text)'};">${escHtml(m.texto)}</div>
+        <div class="msg-meta">${meu ? 'Você (suporte)' : escHtml(t.nome)} · ${escHtml(m.em)}</div>
       </div>`;
     }).join('');
     const encerrado = t.status === 'fechado';
@@ -859,10 +867,10 @@
     document.getElementById('fila-count').textContent = `${minha.length} aviso${minha.length===1?'':'s'}`;
     document.getElementById('fila-vazio').style.display = minha.length ? 'none' : 'block';
     document.getElementById('fila-rows').innerHTML = minha.map(f => `<tr>
-      <td><b>${f.assinante}</b></td>
+      <td><b>${escHtml(f.assinante)}</b></td>
       <td>${fmtMoney(f.valor)}</td>
-      <td style="color:var(--text-dim);">${f.motivo||''}</td>
-      <td><span class="btn-sm ok" onclick="confirmarPagamento('${f.id}')">Confirmar pagamento</span></td>
+      <td style="color:var(--text-dim);">${escHtml(f.motivo||'')}</td>
+      <td><span class="btn-sm ok" onclick="confirmarPagamento('${escHtml(f.id)}')">Confirmar pagamento</span></td>
     </tr>`).join('');
   }
   function logAuditoria(acao, detalhe){
@@ -950,10 +958,10 @@
       const acao = a.status === 'pendente'
         ? '<span class="stat-note">Aguardando pagamento</span>'
         : (ativo
-            ? `<span class="btn-sm danger" onclick="alternarAcesso('${a.id}')">Cancelar acesso</span>`
-            : `<span class="btn-sm ok" onclick="alternarAcesso('${a.id}')">Reativar acesso</span>`);
+            ? `<span class="btn-sm danger" onclick="alternarAcesso('${escHtml(a.id)}')">Cancelar acesso</span>`
+            : `<span class="btn-sm ok" onclick="alternarAcesso('${escHtml(a.id)}')">Reativar acesso</span>`);
       return `<tr>
-        <td><b>${a.nome}</b></td>
+        <td><b>${escHtml(a.nome)}</b></td>
         <td><span class="badge ${stCls}">${stLabel}</span></td>
         <td><span class="badge ${ativo ? 'green' : 'red'}">${ativo ? 'Ativo' : 'Cancelado'}</span></td>
         <td>${acao}</td>
@@ -961,7 +969,7 @@
     }).join('');
     return `<div class="section-card">
       <div class="section-title-row">
-        <div class="section-title" style="margin:0;">${nomeTropa.toUpperCase()}</div>
+        <div class="section-title" style="margin:0;">${escHtml(nomeTropa.toUpperCase())}</div>
         <span class="stat-note">${ativos}/${membros.length} ativos</span>
       </div>
       <div class="stat-note" style="margin:0 0 10px; color:${champs.length ? 'var(--green)' : 'var(--text-dim)'};">🏆 Campeonatos: ${champsLabel} (60/90/120 assinantes)</div>
@@ -1037,7 +1045,7 @@
       const acessoCls = a.status === 'pendente' ? 'amber' : (ativo ? 'green' : 'red');
       const acessoLabel = a.status === 'pendente' ? 'Aguardando' : (ativo ? 'Ativo' : 'Cancelado');
       return `<tr>
-        <td><b>${a.nome}</b></td>
+        <td><b>${escHtml(a.nome)}</b></td>
         <td><span class="badge ${stCls}">${stLabel}</span> <span class="badge ${acessoCls}">${acessoLabel}</span></td>
         <td>${fmtEm(a.venc)}</td>
         <td>${fmtMoney(a.valor)}</td>

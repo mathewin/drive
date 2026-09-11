@@ -11,20 +11,17 @@ alter table public.assinantes add column if not exists telefone text;
 -- Atualiza o trigger de criação de perfil para gravar o telefone informado
 -- no cadastro (raw_user_meta_data). Só vale para contas criadas daqui pra frente.
 create or replace function public.criar_perfil()
-returns trigger language plpgsql security definer as $$
+returns trigger language plpgsql security definer set search_path = public as $$
 begin
   insert into public.perfis (id, nome, papel, email, telefone, todas_tropas, tropa_ids)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'nome', split_part(new.email, '@', 1), 'Usuário'),
-    coalesce(new.raw_user_meta_data->>'papel', 'motorista'),
+    coalesce(nullif(trim(new.raw_user_meta_data->>'nome'), ''), split_part(new.email, '@', 1), 'Usuário'),
+    'motorista',
     new.email,
     new.raw_user_meta_data->>'telefone',
-    coalesce((new.raw_user_meta_data->>'todas_tropas') = 'true', false),
-    coalesce(
-      (select array_agg(x::uuid) from jsonb_array_elements_text(coalesce(new.raw_user_meta_data->'tropa_ids','[]'::jsonb)) x),
-      '{}'::uuid[]
-    )
+    false,
+    '{}'::uuid[]
   )
   on conflict (id) do nothing;
   return new;

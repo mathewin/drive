@@ -14,6 +14,12 @@ drop policy if exists "assinantes_select" on public.assinantes;
 create policy "assinantes_select" on public.assinantes
   for select using (
     public.eh_equipe()
-    or lower(coalesce(email,'')) = lower((select email from public.perfis where id = auth.uid()))
-    or lower(nome) = lower((select nome from public.perfis where id = auth.uid()))
+    or (
+      email is not null and email <> ''
+      and lower(email) = lower((select email from public.perfis where id = auth.uid()))
+    )
+    or (
+      (email is null or email = '')
+      and lower(nome) = lower((select nome from public.perfis where id = auth.uid()))
+    )
   );

@@ -988,7 +988,7 @@
       <div class="field" id="login-nome-wrap" style="display:none;"><span class="field-icon">👤</span><input id="login-nome" type="text" placeholder="Seu nome completo" autocomplete="name"></div>
       <div class="field" id="login-tel-wrap" style="display:none;"><span class="field-icon">📱</span><input id="login-telefone" type="tel" placeholder="Seu celular com DDD" autocomplete="tel"></div>
       <div class="field"><span class="field-icon">📧</span><input id="login-email" type="email" placeholder="Seu e-mail" autocomplete="email"></div>
-      <div class="field"><span class="field-icon">🔒</span><input id="login-senha" type="password" placeholder="Sua senha" autocomplete="current-password"></div>
+      <div class="field"><span class="field-icon">🔒</span><input id="login-senha" type="password" placeholder="Sua senha" autocomplete="current-password" minlength="8"></div>
       <div class="login-erro" id="login-erro"></div>
       <button class="btn-primary" onclick="entrarMotorista()" id="btn-login">Entrar</button>
       <div class="link-pink" style="margin-top:10px; font-size:12px; cursor:pointer;" onclick="alternarCadastro()" id="toggle-cadastro">Não tem conta? Cadastre-se</div>
@@ -1744,6 +1744,12 @@
     document.getElementById('login-erro').style.display = 'none';
   }
 
+  function escHtml(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
   function mostrarErroLogin(msg){
     const erroEl = document.getElementById('login-erro');
     erroEl.textContent = msg;
@@ -1754,7 +1760,7 @@
     const erroEl = document.getElementById('login-erro');
     erroEl.style.display = 'none';
     const email = document.getElementById('login-email').value.trim().toLowerCase();
-    const senha = document.getElementById('login-senha').value.trim();
+    const senha = document.getElementById('login-senha').value;
     if(!email || !senha){
       mostrarErroLogin('Informe e-mail e senha.');
       return;
@@ -1763,12 +1769,13 @@
     if(_cadastroModo){
       const nome = document.getElementById('login-nome').value.trim();
       if(!nome){ mostrarErroLogin('Digite seu nome completo no cadastro.'); return; }
+      if(senha.length < 8){ mostrarErroLogin('A senha precisa ter pelo menos 8 caracteres.'); return; }
       const telefone = document.getElementById('login-telefone').value.trim();
       const telDigits = telefone.replace(/\D/g,'');
       if(telDigits.length < 10){ mostrarErroLogin('Informe seu celular com DDD (ex: 62 99999-9999).'); return; }
       const { data, error } = await DWClient.auth.signUp({
         email, password: senha,
-        options: { data: { nome, telefone: telDigits, papel: 'motorista' } },
+        options: { data: { nome, telefone: telDigits } },
       });
       if(error || !data.user){
         mostrarErroLogin(error && error.message ? 'Erro no cadastro: ' + error.message : 'Erro no cadastro.');
@@ -1791,6 +1798,11 @@
       const { data: perfil } = await DWClient.from('perfis').select('*').eq('id', user.id).single();
       _meuNome = (perfil && perfil.nome) || '';
       _meuTelefone = (perfil && perfil.telefone) || '';
+      if(perfil && (perfil.papel === 'colaborador' || perfil.papel === 'parceiro')){
+        await DWClient.auth.signOut();
+        mostrarErroLogin('Esta conta não é de motorista. Use o painel correto.');
+        return;
+      }
       if(perfil && perfil.papel === 'admin'){
         _adminMode = true;
         _dwUid = user.id;
@@ -1813,11 +1825,11 @@
     _meuEmail = emailLogin;
     let registro = null;
     if(emailLogin){
-      const { data: porEmail } = await DWClient.from('assinantes').select('*').ilike('email', emailLogin);
+      const { data: porEmail } = await DWClient.from('assinantes').select('*').eq('email', emailLogin);
       registro = (porEmail||[]).find(a => (a.email||'').trim().toLowerCase() === emailLogin);
     }
-    if(!registro){
-      const { data: porNome } = await DWClient.from('assinantes').select('*').ilike('nome', _meuNome.trim());
+    if(!registro && _meuNome){
+      const { data: porNome } = await DWClient.from('assinantes').select('*').eq('nome', _meuNome.trim());
       registro = (porNome||[]).find(a => !(a.email||'').trim() && (a.nome||'').trim().toLowerCase() === _meuNome.trim().toLowerCase());
     }
     if(!registro){
@@ -1931,7 +1943,7 @@
       if(cupom === 'DRIVE'){
         driveTxt.innerHTML = 'Cupom <b>DRIVE</b> (Admin) aplicado: você está pagando com desconto e entrou na tropa do Admin.';
       } else {
-        driveTxt.innerHTML = 'Cupom <b>' + cupom + '</b> aplicado: você está pagando com desconto e entrou na tropa do parceiro.';
+        driveTxt.innerHTML = 'Cupom <b>' + escHtml(cupom) + '</b> aplicado: você está pagando com desconto e entrou na tropa do parceiro.';
       }
     } else {
       driveNote.style.display = 'block';
@@ -2047,7 +2059,7 @@
       const pars = data||[];
       if(pars.length){
         lista.innerHTML = '<div class="pix-label">PARCEIROS COM DESCONTO</div>' + pars.map(p => {
-          return `<div class="parceiro-chip" onclick="usarCodigoParceiro('${p.cupom}')">🎟️ ${p.cupom} — ${p.nome}</div>`;
+          return `<div class="parceiro-chip" onclick="usarCodigoParceiro('${escHtml(p.cupom)}')">🎟️ ${escHtml(p.cupom)} — ${escHtml(p.nome)}</div>`;
         }).join('');
         lista.style.display = 'block';
       } else {
@@ -2188,8 +2200,15 @@
       _meuNome = perfil.nome || '';
       _meuEmail = (perfil.email || '').trim().toLowerCase();
       _meuTelefone = (perfil && perfil.telefone) || '';
-      const { data: assinantes } = await DWClient.from('assinantes').select('*');
-      const registro = (assinantes||[]).find(a => (a.nome||'').trim().toLowerCase() === _meuNome.trim().toLowerCase());
+      let registro = null;
+      if(_meuEmail){
+        const { data: porEmail } = await DWClient.from('assinantes').select('*').eq('email', _meuEmail);
+        registro = (porEmail||[]).find(a => (a.email||'').trim().toLowerCase() === _meuEmail);
+      }
+      if(!registro && _meuNome){
+        const { data: porNome } = await DWClient.from('assinantes').select('*').eq('nome', _meuNome.trim());
+        registro = (porNome||[]).find(a => !(a.email||'').trim() && (a.nome||'').trim().toLowerCase() === _meuNome.trim().toLowerCase());
+      }
       _meuAssinante = registro || null;
       if(registro && registro.ativo !== false){
         const tropaR = registro.tropa_id ? await DWClient.from('tropas').select('nome').eq('id', registro.tropa_id).maybeSingle() : null;
@@ -2202,7 +2221,9 @@
         showScreen('dashboard','nav-dash');
         renderAvisoRenovacao();
       }
+      return;
     }
+    await DWClient.auth.signOut();
   });
   document.addEventListener('DOMContentLoaded', () => {
     const nomeInput = document.getElementById('login-nome');
@@ -2244,12 +2265,12 @@
       const ultima = t.mensagens[t.mensagens.length-1];
       const label = t.status === 'fechado' ? 'Encerrado' : (t.status === 'respondido' ? 'Respondido' : 'Aguardando');
       const preview = ultima ? (ultima.texto.length > 58 ? ultima.texto.slice(0,58)+'…' : ultima.texto) : '';
-      return `<div class="section-card ticket-card" onclick="abrirTicket('${t.id}')">
+      return `<div class="section-card ticket-card" onclick="abrirTicket('${escHtml(t.id)}')">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
-          <b style="font-size:13px;">${t.assunto}</b>
-          <span class="badge-status ${t.status}">${label}</span>
+          <b style="font-size:13px;">${escHtml(t.assunto)}</b>
+          <span class="badge-status ${escHtml(t.status)}">${label}</span>
         </div>
-        <div style="color:var(--text-dim); font-size:11.5px;">${preview}</div>
+        <div style="color:var(--text-dim); font-size:11.5px;">${escHtml(preview)}</div>
       </div>`;
     }).join('');
   }
@@ -2298,8 +2319,8 @@
     const encerrado = t.status === 'fechado';
     document.getElementById('ticket-mensagens').innerHTML = t.mensagens.map(m => `
       <div class="msg-row ${m.de==='motorista' ? 'mine' : ''}">
-        <div class="msg-bubble" style="background:${m.de==='motorista' ? 'var(--green-dim)' : 'var(--muted-bg)'}; color:${m.de==='motorista' ? '#06210f' : 'var(--text)'};">${m.texto}</div>
-        <div class="msg-meta">${m.de==='motorista' ? 'Você' : 'Suporte'} · ${m.em}</div>
+        <div class="msg-bubble" style="background:${m.de==='motorista' ? 'var(--green-dim)' : 'var(--muted-bg)'}; color:${m.de==='motorista' ? '#06210f' : 'var(--text)'};">${escHtml(m.texto)}</div>
+        <div class="msg-meta">${m.de==='motorista' ? 'Você' : 'Suporte'} · ${escHtml(m.em)}</div>
       </div>`).join('');
     document.getElementById('ticket-resposta-wrap').style.display = encerrado ? 'none' : 'flex';
     document.getElementById('ticket-encerrado-nota').style.display = encerrado ? 'block' : 'none';
