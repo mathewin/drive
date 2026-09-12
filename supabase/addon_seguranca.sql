@@ -112,10 +112,39 @@ create policy "parceiros_insert" on public.parceiros
   for insert with check (public.eh_admin());
 drop policy if exists "parceiros_update" on public.parceiros;
 create policy "parceiros_update" on public.parceiros
-  for update using (public.eh_admin());
+  for update using (public.eh_admin() or public.eh_equipe());
 drop policy if exists "parceiros_delete" on public.parceiros;
 create policy "parceiros_delete" on public.parceiros
   for delete using (public.eh_admin());
+
+-- Colaborador so altera comissao; nao troca cupom, tropa, nome ou e-mail
+create or replace function public.proteger_parceiro_colaborador()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if public.eh_admin() then
+    return new;
+  end if;
+  if public.eh_equipe() then
+    new.id := old.id;
+    new.tropa_id := old.tropa_id;
+    new.nome := old.nome;
+    new.cupom := old.cupom;
+    new.email := old.email;
+    new.criado_em := old.criado_em;
+    return new;
+  end if;
+  raise exception 'nao autorizado';
+end;
+$$;
+
+drop trigger if exists trg_proteger_parceiro_colaborador on public.parceiros;
+create trigger trg_proteger_parceiro_colaborador
+  before update on public.parceiros
+  for each row execute function public.proteger_parceiro_colaborador();
 
 drop policy if exists "candidatos_all" on public.candidatos;
 create policy "candidatos_all" on public.candidatos
