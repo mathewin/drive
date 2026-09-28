@@ -992,6 +992,7 @@
       <div class="login-erro" id="login-erro"></div>
       <button class="btn-primary" onclick="entrarMotorista()" id="btn-login">Entrar</button>
       <div class="link-pink" style="margin-top:10px; font-size:12px; cursor:pointer;" onclick="alternarCadastro()" id="toggle-cadastro">Não tem conta? Cadastre-se</div>
+      <div class="link-pink" style="margin-top:8px; font-size:12px; cursor:pointer;" onclick="redefinirSenha()" id="toggle-redefinir">Esqueci a senha</div>
       <div class="login-road"></div>
       <div class="privacy-note">🔒 Seus dados são visíveis só para você</div>
       <div class="privacy-note panel-switch-links">
@@ -1521,7 +1522,7 @@
           <div class="btn-secondary" onclick="document.getElementById('input-importar').click()">⬆️ Importar dados (JSON)</div>
           <input type="file" id="input-importar" accept="application/json" style="display:none" onchange="importarJSON(event)">
         </div>
-        <div class="data-note">Hoje os dados ficam salvos só neste navegador/aparelho. Exporte de vez em quando pra não perder tudo se limpar o cache ou trocar de celular.</div>
+        <div class="data-note">Lançamentos e metas ficam salvos na sua conta (nuvem). Trocar de celular ou limpar o cache não apaga o histórico. O exportar é um backup extra.</div>
       </div>
     </div>
 
@@ -1564,9 +1565,26 @@
       </div>
     </div>
 
+    <div class="config-overlay" id="redefinir-overlay">
+      <div class="config-panel">
+        <div class="config-header">
+          <div class="config-title">Redefinir senha</div>
+          <div class="config-close" onclick="fecharRedefinir()">✕</div>
+        </div>
+        <div class="meta-box" style="margin-bottom:12px;">
+          <input type="password" id="redefinir-senha" placeholder="Nova senha (mín. 8 caracteres)" style="text-align:left; width:100%;" autocomplete="new-password">
+        </div>
+        <div class="meta-box" style="margin-bottom:14px;">
+          <input type="password" id="redefinir-senha2" placeholder="Confirme a nova senha" style="text-align:left; width:100%;" autocomplete="new-password">
+        </div>
+        <div class="login-erro" id="redefinir-erro"></div>
+        <button class="btn-primary" onclick="salvarNovaSenha()">Salvar nova senha</button>
+      </div>
+    </div>
+
   </div>
 
-  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 11</b> · assinatura com cupom DRIVE e QR</p>
+  <p style="text-align:center; color:#444; font-size:11px; letter-spacing:.06em; padding: 4px 0 24px;">DriveWin — seu controle de ganhos por corrida · <b>build 12</b> · assinatura com cupom DRIVE e QR</p>
 
 <script>
   const TEMA_KEY = 'painelMotorista_tema';
@@ -1741,7 +1759,72 @@
     document.getElementById('login-tel-wrap').style.display = _cadastroModo ? 'flex' : 'none';
     document.getElementById('btn-login').textContent = _cadastroModo ? 'Criar conta' : 'Entrar';
     document.getElementById('toggle-cadastro').textContent = _cadastroModo ? 'Já tenho conta — entrar' : 'Não tem conta? Cadastre-se';
+    const redef = document.getElementById('toggle-redefinir');
+    if(redef) redef.style.display = _cadastroModo ? 'none' : 'block';
     document.getElementById('login-erro').style.display = 'none';
+  }
+
+  function mostrarErroRedefinir(msg){
+    const erroEl = document.getElementById('redefinir-erro');
+    erroEl.textContent = msg;
+    erroEl.style.display = 'block';
+  }
+
+  function fecharRedefinir(){
+    document.getElementById('redefinir-overlay').classList.remove('open');
+  }
+
+  async function redefinirSenha(){
+    const email = document.getElementById('login-email').value.trim().toLowerCase();
+    if(!email){
+      mostrarErroLogin('Informe seu e-mail pra redefinir a senha.');
+      return;
+    }
+    const redirectTo = window.location.origin + (window.location.pathname || '/');
+    const { error } = await DWClient.auth.resetPasswordForEmail(email, { redirectTo });
+    if(error){
+      mostrarErroLogin(error.message || 'Não foi possível enviar o e-mail.');
+      return;
+    }
+    mostrarErroLogin('Enviamos um link de redefinição para o seu e-mail. Confira a caixa de entrada e o spam.');
+  }
+
+  function abrirRedefinir(){
+    const erroEl = document.getElementById('redefinir-erro');
+    erroEl.style.display = 'none';
+    document.getElementById('redefinir-senha').value = '';
+    document.getElementById('redefinir-senha2').value = '';
+    document.getElementById('redefinir-overlay').classList.add('open');
+  }
+
+  async function salvarNovaSenha(){
+    const s1 = document.getElementById('redefinir-senha').value;
+    const s2 = document.getElementById('redefinir-senha2').value;
+    document.getElementById('redefinir-erro').style.display = 'none';
+    if(!s1 || s1.length < 8){
+      mostrarErroRedefinir('A senha precisa ter pelo menos 8 caracteres.');
+      return;
+    }
+    if(s1 !== s2){
+      mostrarErroRedefinir('As senhas não coincidem.');
+      return;
+    }
+    const { error } = await DWClient.auth.updateUser({ password: s1 });
+    if(error){
+      mostrarErroRedefinir(error.message || 'Não foi possível salvar a nova senha.');
+      return;
+    }
+    fecharRedefinir();
+    mostrarErroLogin('Senha redefinida. Entre com a nova senha.');
+    try { await DWClient.auth.signOut(); } catch(e) {}
+  }
+
+  function checarRecuperacaoSenha(){
+    try{
+      const hash = (window.location.hash || '').replace(/^#/, '');
+      const qs = new URLSearchParams(hash);
+      if(qs.get('type') === 'recovery') abrirRedefinir();
+    }catch(e){}
   }
 
   function escHtml(s){
@@ -2228,7 +2311,14 @@
   document.addEventListener('DOMContentLoaded', () => {
     const nomeInput = document.getElementById('login-nome');
     if(nomeInput) nomeInput.value = '';
+    checarRecuperacaoSenha();
   });
+  checarRecuperacaoSenha();
+  if(DWClient.auth.onAuthStateChange){
+    DWClient.auth.onAuthStateChange((event) => {
+      if(event === 'PASSWORD_RECOVERY') abrirRedefinir();
+    });
+  }
 
   // ---------- suporte (chamados) ----------
   function agoraFmt(){

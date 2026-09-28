@@ -127,6 +127,9 @@ function setup(seedDb){
     },
     async signUp({email,password,options}){ this.user = { id:'u-new', email, user_metadata: (options&&options.data)||{} }; return { data:{ user: this.user }, error:null }; },
     async signOut(){ this.user = null; return { error:null }; },
+    async resetPasswordForEmail(email, opts){ this.lastReset = { email, opts }; return { data:{}, error:null }; },
+    async updateUser(payload){ this.lastUpdate = payload; return { data:{ user: this.user }, error:null }; },
+    onAuthStateChange(){ return { data:{ subscription:{ unsubscribe(){} } } }; },
     getUser(){ return { data:{ user: this.user } }; },
     getSession(){ return Promise.resolve({ data:{ session: null } }); },
   };
@@ -134,6 +137,7 @@ function setup(seedDb){
 
   global.document = document;
   global.window = global;
+  global.window.location = { origin:'https://motorista.drivewin.shop', pathname:'/', hash:'' };
   global.DWClient = DWClient;
   global.localStorage = localStorageMock;
   global.addEventListener = () => {};

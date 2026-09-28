@@ -195,6 +195,40 @@ async function main(){
   }
   console.log('[moto] admin entra no motorista (modo teste) ok');
 
+  // --- redefinir senha: exige e-mail e dispara resetPasswordForEmail ---
+  document.getElementById('login-email').value = '';
+  await window.redefinirSenha();
+  const erroReset = document.getElementById('login-erro');
+  if(!(erroReset.style.display === 'block' && (erroReset.textContent||'').includes('e-mail'))){
+    console.error('[moto] FALHOU: redefinir senha sem e-mail nao avisou', erroReset.textContent);
+    process.exit(1);
+  }
+  document.getElementById('login-email').value = 'joao@x.com';
+  await window.redefinirSenha();
+  if(!auth.lastReset || auth.lastReset.email !== 'joao@x.com'){
+    console.error('[moto] FALHOU: resetPasswordForEmail nao foi chamado', auth.lastReset);
+    process.exit(1);
+  }
+  if(!(erroReset.textContent||'').includes('Enviamos um link')){
+    console.error('[moto] FALHOU: mensagem de envio do link ausente', erroReset.textContent);
+    process.exit(1);
+  }
+  document.getElementById('redefinir-senha').value = 'nova1234';
+  document.getElementById('redefinir-senha2').value = 'outra123';
+  await window.salvarNovaSenha();
+  const erroNova = document.getElementById('redefinir-erro');
+  if(!(erroNova.style.display === 'block' && (erroNova.textContent||'').includes('coincidem'))){
+    console.error('[moto] FALHOU: senhas diferentes nao avisaram', erroNova.textContent);
+    process.exit(1);
+  }
+  document.getElementById('redefinir-senha2').value = 'nova1234';
+  await window.salvarNovaSenha();
+  if(!auth.lastUpdate || auth.lastUpdate.password !== 'nova1234'){
+    console.error('[moto] FALHOU: updateUser nao salvou a senha', auth.lastUpdate);
+    process.exit(1);
+  }
+  console.log('[moto] redefinir senha ok');
+
   console.log('\n=== TESTES MOTORISTA PASSARAM ===');
 }
 
